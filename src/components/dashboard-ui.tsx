@@ -35,7 +35,7 @@ export function ChartCard({ title, subtitle, badge, action, children, className 
 
 export function AlertPill({ label, tone }: { label: string; tone: Tone }) {
   const color = tone === "warning" ? "bg-warning-soft text-warning" : tone === "critical" ? "bg-critical/10 text-critical" : tone === "positive" ? "bg-highlight-soft text-success" : "bg-muted text-muted-foreground";
-  return <span className={`inline-block rounded-md px-2 py-1.5 text-center text-xs font-bold ${color}`}>{label}</span>;
+  return <span className={`inline-block whitespace-nowrap rounded-md px-2 py-1.5 text-center text-xs font-bold ${color}`}>{label}</span>;
 }
 
 export function Legend({ color, label, value }: { color: string; label: string; value: string }) {

@@ -49,6 +49,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { AddMarketFlow, type NewMarketData } from "@/components/add-market-flow";
 import { AlertPill, ChartCard, HorizontalBar, Legend, Metric, type IconType } from "@/components/dashboard-ui";
 import { MarketPanel } from "@/components/market-panel";
+import { ProductsModule } from "@/components/products-module";
+import { initialProducts, type Product } from "@/data/products";
 import { initialMarkets, money, type Market } from "@/data/markets";
 
 function marketFromForm(data: NewMarketData, existing: Market[]): Market {
@@ -93,6 +95,7 @@ const navigation: Array<{ label: string; icon: IconType }> = [
 export function OwnerDashboard({ onLogout }: { onLogout: () => void }) {
   const [markets, setMarkets] = useState<Market[]>(initialMarkets);
   const [addingMarket, setAddingMarket] = useState(false);
+  const [products, setProducts] = useState<Product[]>(initialProducts);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [active, setActive] = useState("Visão geral");
@@ -130,7 +133,7 @@ export function OwnerDashboard({ onLogout }: { onLogout: () => void }) {
     setActive(label);
     setDetailMarket(null);
     setMobileMenuOpen(false);
-    if (label !== "Visão geral" && label !== "Meus mercados") setToast(`${label}: área demonstrativa selecionada.`);
+    if (!["Visão geral", "Meus mercados", "Produtos"].includes(label)) setToast(`${label}: área demonstrativa selecionada.`);
   };
 
   const openMarket = (market: Market) => {
@@ -218,7 +221,9 @@ export function OwnerDashboard({ onLogout }: { onLogout: () => void }) {
 
         {toast && <div role="status" className="fixed bottom-4 right-4 z-50 flex max-w-[calc(100vw-32px)] items-center gap-3 rounded-md border border-border bg-card px-4 py-3 shadow-card"><CheckCircle2 className="h-5 w-5 text-success" /><span className="text-sm font-semibold">{toast}</span><Button variant="ghost" className="h-8 min-h-0 w-8 px-0" onClick={() => setToast("")} aria-label="Fechar aviso"><X className="h-4 w-4" /></Button></div>}
 
-        {detailMarket ? <MarketPanel key={detailMarket.id} market={detailMarket} markets={markets} onBack={() => { setDetailMarket(null); setActive("Visão geral"); }} onSwitch={setDetailMarket} notify={setToast} /> : (
+        {detailMarket ? <MarketPanel key={detailMarket.id} market={detailMarket} markets={markets} onBack={() => { setDetailMarket(null); setActive("Visão geral"); }} onSwitch={setDetailMarket} notify={setToast} renderTab={(tab, market) => tab === "Estoque" ? <ProductsModule key={market.id} markets={markets} products={products} onChange={setProducts} notify={setToast} fixedMarketId={market.id} title="Estoque e produtos" /> : null} /> : active === "Produtos" ? (
+          <section className="mx-auto max-w-[1680px] p-4 sm:p-6 lg:p-8"><ProductsModule markets={markets} products={products} onChange={setProducts} notify={setToast} /></section>
+        ) : (
           <DashboardOverview active={active} markets={markets} totals={totals} visibleMarkets={visibleMarkets} query={query} setQuery={setQuery} openMarket={openMarket} onAdd={() => { setToast(""); setAddingMarket(true); }} period={period} />
         )}
       </div>
