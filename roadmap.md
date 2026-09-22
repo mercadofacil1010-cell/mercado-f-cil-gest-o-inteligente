@@ -1,6 +1,6 @@
 # Mercado Fácil
 
-- [ ] Criar painel principal consolidado com indicadores e gráficos
-- [ ] Criar menu recolhível e controles do topo
-- [ ] Criar cards e página provisória dos mercados
-- [ ] Validar login, interações e visual móvel
+- [x] Criar painel principal consolidado com indicadores e gráficos
+- [x] Criar menu recolhível e controles do topo
+- [x] Criar cards e página provisória dos mercados
+- [x] Validar login, interações e visual móvel
