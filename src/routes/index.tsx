@@ -27,6 +27,7 @@ import {
 import operationsImage from "@/assets/mercado-facil-operations.jpg";
 import { BrandLogo } from "@/components/brand-logo";
 import { Button } from "@/components/ui/button";
+import { SignupFlow } from "@/components/signup-flow";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -43,11 +44,12 @@ export const Route = createFileRoute("/")({
 });
 
 function MercadoFacil() {
-  const [loggedIn, setLoggedIn] = useState(false);
-  return loggedIn ? <Dashboard onLogout={() => setLoggedIn(false)} /> : <Login onLogin={() => setLoggedIn(true)} />;
+  const [view, setView] = useState<"login" | "signup" | "dashboard">("login");
+  if (view === "signup") return <SignupFlow onBack={() => setView("login")} onComplete={() => setView("dashboard")} />;
+  return view === "dashboard" ? <Dashboard onLogout={() => setView("login")} /> : <Login onLogin={() => setView("dashboard")} onSignup={() => setView("signup")} />;
 }
 
-function Login({ onLogin }: { onLogin: () => void }) {
+function Login({ onLogin, onSignup }: { onLogin: () => void; onSignup: () => void }) {
   const [showPassword, setShowPassword] = useState(false);
   const [notice, setNotice] = useState("");
 
@@ -124,7 +126,7 @@ function Login({ onLogin }: { onLogin: () => void }) {
             <Button variant="outline" onClick={onLogin}><span className="text-lg font-extrabold text-google">G</span> Google</Button>
             <Button variant="outline" onClick={onLogin}><span className="grid h-5 w-5 place-items-center rounded-full bg-facebook text-xs font-extrabold text-social-foreground">f</span> Facebook</Button>
           </div>
-          <p className="mt-7 text-center text-sm text-muted-foreground">Ainda não possui acesso? <button type="button" onClick={() => setNotice("Cadastro demonstrativo disponível em breve.")} className="font-bold text-primary hover:underline">Criar minha conta</button></p>
+          <p className="mt-7 text-center text-sm text-muted-foreground">Ainda não possui acesso? <button type="button" onClick={onSignup} className="font-bold text-primary hover:underline">Criar minha conta</button></p>
           <div className="mt-8 border-t border-border pt-6 text-center">
             <button type="button" onClick={() => setNotice("Modo administrativo selecionado.")} className="text-sm font-semibold text-muted-foreground hover:text-foreground">Acesso administrativo</button>
           </div>
