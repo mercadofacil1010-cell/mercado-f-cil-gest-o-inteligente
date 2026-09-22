@@ -1,4 +1,4 @@
-import { useMemo, useState, type ComponentType, type KeyboardEvent } from "react";
+import { useMemo, useState, type KeyboardEvent } from "react";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -47,9 +47,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AddMarketFlow, type NewMarketData } from "@/components/add-market-flow";
+import { AlertPill, ChartCard, HorizontalBar, Legend, Metric, type IconType } from "@/components/dashboard-ui";
+import { MarketPanel } from "@/components/market-panel";
 import { initialMarkets, money, type Market } from "@/data/markets";
-
-type IconType = ComponentType<{ className?: string }>;
 
 function marketFromForm(data: NewMarketData, existing: Market[]): Market {
   const base = data.unitName.trim().toLocaleLowerCase("pt-BR").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "mercado";
@@ -218,7 +218,7 @@ export function OwnerDashboard({ onLogout }: { onLogout: () => void }) {
 
         {toast && <div role="status" className="fixed bottom-4 right-4 z-50 flex max-w-[calc(100vw-32px)] items-center gap-3 rounded-md border border-border bg-card px-4 py-3 shadow-card"><CheckCircle2 className="h-5 w-5 text-success" /><span className="text-sm font-semibold">{toast}</span><Button variant="ghost" className="h-8 min-h-0 w-8 px-0" onClick={() => setToast("")} aria-label="Fechar aviso"><X className="h-4 w-4" /></Button></div>}
 
-        {detailMarket ? <MarketDetail market={detailMarket} onBack={() => { setDetailMarket(null); setActive("Visão geral"); }} /> : (
+        {detailMarket ? <MarketPanel key={detailMarket.id} market={detailMarket} markets={markets} onBack={() => { setDetailMarket(null); setActive("Visão geral"); }} onSwitch={setDetailMarket} notify={setToast} /> : (
           <DashboardOverview active={active} markets={markets} totals={totals} visibleMarkets={visibleMarkets} query={query} setQuery={setQuery} openMarket={openMarket} onAdd={() => { setToast(""); setAddingMarket(true); }} period={period} />
         )}
       </div>
@@ -276,24 +276,9 @@ function DashboardOverview({ active, markets, totals, visibleMarkets, query, set
 
 function emptyTotals() { return { revenue: 0, sales: 0, replenishments: 0, stockAlerts: 0, expiryAlerts: 0, inconsistencies: 0, open: 0, count: 0 }; }
 
-function Metric({ title, value, note, icon: Icon, tone }: { title: string; value: string; note: string; icon: IconType; tone?: string }) {
-  const color = tone === "critical" ? "bg-critical/10 text-critical" : tone === "warning" ? "bg-warning-soft text-warning" : "bg-primary-soft text-primary";
-  return <article className="rounded-lg border border-border bg-card p-4 shadow-card"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="text-sm font-semibold text-muted-foreground">{title}</p><strong className="mt-2 block text-2xl font-extrabold">{value}</strong></div><span className={`grid h-10 w-10 shrink-0 place-items-center rounded-md ${color}`}><Icon className="h-5 w-5" /></span></div><p className={`mt-3 text-sm font-medium ${tone === "positive" ? "text-success" : tone === "critical" ? "text-critical" : "text-muted-foreground"}`}>{note}</p></article>;
-}
-
-function ChartCard({ title, subtitle, badge, children }: { title: string; subtitle: string; badge?: string; children: React.ReactNode }) {
-  return <section className="rounded-lg border border-border bg-card p-5 shadow-card sm:p-6"><div className="flex items-start justify-between gap-3"><div><h2 className="font-extrabold">{title}</h2><p className="mt-1 text-sm text-muted-foreground">{subtitle}</p></div>{badge && <span className="rounded-md bg-highlight-soft px-2.5 py-1 text-sm font-bold text-highlight-foreground">{badge}</span>}</div>{children}</section>;
-}
-
-function HorizontalBar({ label, value, max, detail, muted }: { label: string; value: number; max: number; detail: string; muted?: boolean }) {
-  return <div><div className="mb-2 flex items-center justify-between gap-4 text-sm"><span className="font-semibold">{label}</span><strong>{detail}</strong></div><div className="h-2.5 overflow-hidden rounded-full bg-muted"><div className={`h-full rounded-full ${muted ? "bg-chart-bar" : "bg-primary"}`} style={{ width: `${Math.round(value / max * 100)}%` }} /></div></div>;
-}
-
 function RankCard({ title, subtitle, icon: Icon, items, muted, footer }: { title: string; subtitle: string; icon: IconType; items: Array<{ name: string; value: string; width: number }>; muted?: boolean; footer: string }) {
   return <ChartCard title={title} subtitle={subtitle}><div className="mt-5 space-y-4">{items.map((item, index) => <div key={item.name} className="grid grid-cols-[24px_minmax(0,1fr)_auto] items-center gap-3"><span className={`grid h-6 w-6 place-items-center rounded-sm text-xs font-extrabold ${muted ? "bg-muted text-muted-foreground" : "bg-primary-soft text-primary"}`}>{index + 1}</span><div className="min-w-0"><span className="block truncate text-sm font-semibold">{item.name}</span><div className="mt-1.5 h-1.5 rounded-full bg-muted"><div className={`h-full rounded-full ${muted ? "bg-warning" : "bg-primary"}`} style={{ width: `${item.width}%` }} /></div></div><strong className="text-sm">{item.value}</strong></div>)}</div><div className="mt-5 flex items-center gap-2 border-t border-border pt-4 text-sm text-muted-foreground"><Icon className="h-4 w-4" /> {footer}</div></ChartCard>;
 }
-
-function Legend({ color, label, value }: { color: string; label: string; value: string }) { return <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2"><span className={`h-2.5 w-2.5 rounded-full ${color}`} /><span className="text-muted-foreground">{label}</span><strong>{value}</strong></div>; }
 
 function MarketCard({ market, onOpen }: { market: Market; onOpen: () => void }) {
   const handleKey = (event: KeyboardEvent<HTMLElement>) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onOpen(); } };
@@ -307,16 +292,5 @@ function MarketCard({ market, onOpen }: { market: Market; onOpen: () => void }) 
 }
 
 function MarketStat({ label, value, warning }: { label: string; value: string; warning?: boolean }) { return <div><span className="block text-xs font-semibold text-muted-foreground">{label}</span><strong className={`mt-0.5 block text-sm ${warning ? "text-critical" : ""}`}>{value}</strong></div>; }
-function AlertPill({ label, tone }: { label: string; tone: "warning" | "critical" | "neutral" }) { const color = tone === "warning" ? "bg-warning-soft text-warning" : tone === "critical" ? "bg-critical/10 text-critical" : "bg-muted text-muted-foreground"; return <span className={`rounded-md px-2 py-1.5 text-center text-xs font-bold ${color}`}>{label}</span>; }
 
-function MarketDetail({ market, onBack }: { market: Market; onBack: () => void }) {
-  return <section className="mx-auto max-w-[1400px] p-4 sm:p-6 lg:p-8"><Button variant="ghost" className="px-2" onClick={onBack}><ArrowLeft className="h-4 w-4" /> Voltar para visão geral</Button><div className="mt-5 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between"><div className="flex items-center gap-4"><span className="grid h-14 w-14 place-items-center rounded-lg bg-brand-panel text-sidebar-foreground"><Store className="h-7 w-7" /></span><div><div className="flex flex-wrap items-center gap-3"><h1 className="text-2xl font-extrabold sm:text-3xl">{market.name}</h1><span className={`rounded-full px-2.5 py-1 text-xs font-bold ${market.status === "Aberto" ? "bg-primary-soft text-success" : "bg-muted text-muted-foreground"}`}>{market.status}</span></div><p className="mt-1 text-muted-foreground">{market.address}</p></div></div><Button onClick={() => undefined}><Settings className="h-4 w-4" /> Gerenciar mercado</Button></div>
-    <div className="mt-7 rounded-lg border border-primary/25 bg-primary-soft p-5"><div className="flex items-start gap-3"><ClipboardList className="mt-0.5 h-5 w-5 text-primary" /><div><h2 className="font-bold">Página provisória da unidade</h2><p className="mt-1 text-sm text-muted-foreground">Os módulos operacionais específicos deste mercado serão adicionados nas próximas etapas.</p></div></div></div>
-    <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"><Metric title="Faturamento de hoje" value={money(market.revenue)} note="Operação da unidade" icon={CircleDollarSign} tone="positive" /><Metric title="Vendas realizadas" value={market.sales.toLocaleString("pt-BR")} note="Pedidos concluídos" icon={ShoppingCart} /><Metric title="Reposições pendentes" value={String(market.replenishments)} note="Tarefas abertas" icon={RefreshCw} /><Metric title="Alertas ativos" value={String(market.stockAlerts + market.expiryAlerts + market.inconsistencies)} note="Requerem acompanhamento" icon={AlertTriangle} tone="warning" /></div>
-    <div className="mt-6 grid gap-5 lg:grid-cols-2"><ChartCard title="Dados da unidade" subtitle="Informações cadastrais"><dl className="mt-5 grid gap-4 sm:grid-cols-2"><Detail label="Gerente" value={market.manager} /><Detail label="Telefone" value={market.phone} /><Detail label="Última atualização" value={`Hoje às ${market.updatedAt}`} /><Detail label="Status operacional" value={market.status} /></dl></ChartCard><ChartCard title="Resumo de alertas" subtitle="Pendências desta unidade"><div className="mt-5 space-y-3"><AlertLine label="Alertas de estoque" value={market.stockAlerts} tone="critical" /><AlertLine label="Produtos próximos da validade" value={market.expiryAlerts} tone="warning" /><AlertLine label="Inconsistências abertas" value={market.inconsistencies} tone="neutral" /></div></ChartCard></div>
-  </section>;
-}
-
-function Detail({ label, value }: { label: string; value: string }) { return <div><dt className="text-sm font-semibold text-muted-foreground">{label}</dt><dd className="mt-1 font-bold">{value}</dd></div>; }
-function AlertLine({ label, value, tone }: { label: string; value: number; tone: "critical" | "warning" | "neutral" }) { return <div className="flex items-center justify-between rounded-md bg-muted p-3.5"><span className="text-sm font-semibold">{label}</span><AlertPill label={String(value)} tone={tone} /></div>; }
 function Notification({ title, detail, tone }: { title: string; detail: string; tone: "critical" | "warning" | "info" }) { const color = tone === "critical" ? "bg-critical" : tone === "warning" ? "bg-warning" : "bg-primary"; return <DropdownMenuItem className="items-start p-3"><span className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${color}`} /><span><strong className="block text-sm">{title}</strong><span className="mt-0.5 block text-xs text-muted-foreground">{detail}</span></span></DropdownMenuItem>; }
