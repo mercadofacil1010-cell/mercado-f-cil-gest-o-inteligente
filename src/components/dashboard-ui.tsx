@@ -1,4 +1,7 @@
 import type { ComponentType, ReactNode } from "react";
+import { createPortal } from "react-dom";
+import { X } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export type IconType = ComponentType<{ className?: string }>;
@@ -72,4 +75,23 @@ export function HorizontalBar({ label, value, max, detail, muted, tone }: { labe
 
 export function EmptyState({ icon: Icon, title, description }: { icon: IconType; title: string; description: string }) {
   return <div className="rounded-lg border border-dashed border-border bg-card p-10 text-center"><Icon className="mx-auto h-8 w-8 text-muted-foreground" /><h3 className="mt-3 font-bold">{title}</h3><p className="mt-1 text-sm text-muted-foreground">{description}</p></div>;
+}
+
+/** Janela modal simples e acessível, usada nas simulações dos módulos. */
+export function Modal({ title, description, onClose, children, footer, wide = false }: { title: string; description?: string | undefined; onClose: () => void; children: ReactNode; footer?: ReactNode; wide?: boolean }) {
+  if (typeof document === "undefined") return null;
+  return createPortal(
+    <div className="fixed inset-0 z-50 grid grid-cols-[minmax(0,1fr)] place-items-end bg-scrim sm:place-items-center sm:p-4" role="dialog" aria-modal="true" aria-label={title} onKeyDown={(event) => { if (event.key === "Escape") onClose(); }}>
+      <button type="button" className="absolute inset-0 cursor-default" aria-label="Fechar janela" tabIndex={-1} onClick={onClose} />
+      <div className={cn("relative flex max-h-[92vh] w-full min-w-0 flex-col rounded-t-lg bg-card shadow-card sm:rounded-lg", wide ? "sm:max-w-3xl" : "sm:max-w-lg")}>
+        <div className="flex items-start justify-between gap-3 border-b border-border p-5">
+          <div className="min-w-0"><h3 className="text-lg font-extrabold">{title}</h3>{description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}</div>
+          <Button variant="ghost" size="icon" onClick={onClose} aria-label="Fechar" autoFocus><X className="h-4 w-4" /></Button>
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto p-5">{children}</div>
+        {footer && <div className="flex flex-col-reverse gap-2 border-t border-border p-4 sm:flex-row sm:justify-end">{footer}</div>}
+      </div>
+    </div>,
+    document.body,
+  );
 }
