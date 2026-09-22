@@ -210,7 +210,7 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
             <section className="rounded-lg border border-border bg-card p-5 shadow-card sm:p-6">
               <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3"><div className="min-w-0"><h2 className="text-lg font-bold">Vendas da rede</h2><p className="text-sm text-muted-foreground">Últimos 7 dias</p></div><span className="shrink-0 rounded-md bg-highlight-soft px-2.5 py-1 text-sm font-bold text-highlight-foreground">+9,4%</span></div>
               <div className="mt-7 flex h-56 items-end gap-2 sm:gap-4" aria-label="Gráfico de vendas dos últimos sete dias">
-                {[48, 62, 55, 76, 68, 88, 82].map((height, index) => <div key={index} className="flex flex-1 flex-col items-center gap-2"><div className="w-full rounded-t-sm bg-chart-bar transition hover:bg-primary" style={{ height: `${height}%` }} /><span className="text-xs font-semibold text-muted-foreground">{['Qua','Qui','Sex','Sáb','Dom','Seg','Hoje'][index]}</span></div>)}
+                {[48, 62, 55, 76, 68, 88, 82].map((height, index) => <div key={index} className="grid h-full flex-1 grid-rows-[minmax(0,1fr)_auto] gap-2"><div className="flex items-end"><div className="w-full rounded-t-sm bg-chart-bar transition hover:bg-primary" style={{ height: `${height}%` }} /></div><span className="text-center text-xs font-semibold text-muted-foreground">{['Qua','Qui','Sex','Sáb','Dom','Seg','Hoje'][index]}</span></div>)}
               </div>
             </section>
             <section className="rounded-lg border border-border bg-card p-5 shadow-card sm:p-6">
