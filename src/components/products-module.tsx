@@ -64,7 +64,7 @@ const plural: Record<PackagingUnit, [string, string]> = {
   Quilograma: ["quilograma", "quilogramas"],
   Litro: ["litro", "litros"],
 };
-export const packagingLabel = (unit: PackagingUnit, quantity: number) => (quantity === 1 ? plural[unit][0] : plural[unit][1]);
+const packagingLabel = (unit: PackagingUnit, quantity: number) => (quantity === 1 ? plural[unit][0] : plural[unit][1]);
 
 type ProductsModuleProps = {
   markets: Market[];

@@ -33,7 +33,7 @@ import { money, type Market } from "@/data/markets";
 import { getMarketOperation, inconsistencies, teamMembers, type OperationEvent } from "@/data/market-operations";
 import { cn } from "@/lib/utils";
 
-export const marketTabs = [
+const marketTabs = [
   "Visão geral",
   "Estoque",
   "Gôndolas",

@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 import {
   ArrowRight,
@@ -39,6 +39,7 @@ function MercadoFacil() {
 }
 
 function Login({ onLogin, onSignup, onEmployee }: { onLogin: () => void; onSignup: () => void; onEmployee: () => void }) {
+  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [notice, setNotice] = useState("");
 
@@ -112,13 +113,13 @@ function Login({ onLogin, onSignup, onEmployee }: { onLogin: () => void; onSignu
 
           <div className="my-6 flex items-center gap-4 text-xs font-semibold uppercase text-muted-foreground before:h-px before:flex-1 before:bg-border after:h-px after:flex-1 after:bg-border">ou continue com</div>
           <div className="grid gap-3 sm:grid-cols-2">
-            <Button variant="outline" onClick={onLogin}><span className="text-lg font-extrabold text-google">G</span> Google</Button>
-            <Button variant="outline" onClick={onLogin}><span className="grid h-5 w-5 place-items-center rounded-full bg-facebook text-xs font-extrabold text-social-foreground">f</span> Facebook</Button>
+            <Button variant="outline" onClick={onLogin}><span className="text-lg font-extrabold text-google">G</span> Continuar com Google</Button>
+            <Button variant="outline" onClick={onLogin}><span className="grid h-5 w-5 place-items-center rounded-full bg-facebook text-xs font-extrabold text-social-foreground">f</span> Continuar com Facebook</Button>
           </div>
           <p className="mt-7 text-center text-sm text-muted-foreground">Ainda não possui acesso? <button type="button" onClick={onSignup} className="font-bold text-primary hover:underline">Criar minha conta</button></p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 border-t border-border pt-6 text-center">
             <button type="button" onClick={onEmployee} className="text-sm font-semibold text-muted-foreground hover:text-foreground">Acesso do funcionário</button>
-            <button type="button" onClick={() => setNotice("Modo administrativo selecionado.")} className="text-sm font-semibold text-muted-foreground hover:text-foreground">Acesso administrativo</button>
+            <button type="button" onClick={() => void navigate({ to: "/admin" })} className="text-sm font-semibold text-muted-foreground hover:text-foreground">Acesso administrativo</button>
           </div>
         </div>
       </section>

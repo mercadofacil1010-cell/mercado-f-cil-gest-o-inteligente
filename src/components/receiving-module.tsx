@@ -53,7 +53,7 @@ const clock = () => { const now = new Date(); return `${pad(now.getHours())}:${p
 const formatDuration = (minutes: number | null) => (minutes === null ? "—" : minutes < 60 ? `${minutes} min` : `${Math.floor(minutes / 60)} h ${pad(minutes % 60)} min`);
 
 /** Compara o que era esperado com o que foi contado (somente para usuário autorizado). */
-export function buildResult(receiving: Receiving): ResultLine[] {
+function buildResult(receiving: Receiving): ResultLine[] {
   const lines: ResultLine[] = receiving.expected.map((expected) => {
     const items = receiving.counted.filter((item) => item.barcode === expected.barcode);
     const total = items.reduce((sum, item) => sum + item.baseQuantity, 0);

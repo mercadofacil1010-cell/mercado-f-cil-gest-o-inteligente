@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
 import {
   AlertTriangle,
-  ArrowLeft,
   BarChart3,
   Bell,
   Boxes,
@@ -13,7 +12,6 @@ import {
   ChevronLeft,
   ChevronRight,
   CircleDollarSign,
-  ClipboardList,
   Clock3,
   FileChartColumn,
   HelpCircle,
@@ -55,6 +53,7 @@ import { initialAddresses, initialGondolas, initialMovements } from "@/data/loca
 import { ReceivingModule } from "@/components/receiving-module";
 import { initialReceivings, type Receiving } from "@/data/receivings";
 import { ReplenishmentOverview } from "@/components/replenishment-overview";
+import { OwnerSection } from "@/components/owner-sections";
 import { initialProducts, type Product } from "@/data/products";
 import { initialMarkets, money, type Market } from "@/data/markets";
 
@@ -146,7 +145,7 @@ export function OwnerDashboard({ onLogout, onOpenStocker }: { onLogout: () => vo
     setActive(label);
     setDetailMarket(null);
     setMobileMenuOpen(false);
-    if (!["Visão geral", "Meus mercados", "Produtos"].includes(label)) setToast(`${label}: área demonstrativa selecionada.`);
+    window.scrollTo({ top: 0 });
   };
 
   const openMarket = (market: Market) => {
@@ -222,7 +221,7 @@ export function OwnerDashboard({ onLogout, onOpenStocker }: { onLogout: () => vo
               </DropdownMenu>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild><Button variant="ghost" className="h-11 min-h-0 gap-2 px-1.5 sm:px-2"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-brand-panel text-sm font-bold text-sidebar-foreground">MA</span><span className="hidden text-left sm:block"><strong className="block text-sm">Marina Alves</strong><span className="block text-xs font-normal text-muted-foreground">Proprietária</span></span><ChevronDown className="hidden h-4 w-4 text-muted-foreground sm:block" /></Button></DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-52"><DropdownMenuLabel>Minha conta</DropdownMenuLabel><DropdownMenuSeparator /><DropdownMenuItem onSelect={() => setToast("Perfil selecionado.")}><Users /> Meu perfil</DropdownMenuItem><DropdownMenuItem onSelect={() => setToast("Configurações selecionadas.")}><Settings /> Configurações</DropdownMenuItem><DropdownMenuSeparator /><DropdownMenuItem onSelect={onLogout}><LogOut /> Sair</DropdownMenuItem></DropdownMenuContent>
+                <DropdownMenuContent align="end" className="w-52"><DropdownMenuLabel>Minha conta</DropdownMenuLabel><DropdownMenuSeparator /><DropdownMenuItem onSelect={() => selectNav("Equipe e acessos")}><Users /> Meu perfil e equipe</DropdownMenuItem><DropdownMenuItem onSelect={() => selectNav("Configurações")}><Settings /> Configurações</DropdownMenuItem><DropdownMenuSeparator /><DropdownMenuItem onSelect={onLogout}><LogOut /> Sair</DropdownMenuItem></DropdownMenuContent>
               </DropdownMenu>
             </div>
           </div>
@@ -234,8 +233,10 @@ export function OwnerDashboard({ onLogout, onOpenStocker }: { onLogout: () => vo
 
         {toast && <div role="status" className="pointer-events-none fixed bottom-4 right-4 z-[60] flex max-w-[calc(100vw-32px)] items-center gap-3 rounded-md border border-border bg-card px-4 py-3 shadow-card [&_button]:pointer-events-auto"><CheckCircle2 className="h-5 w-5 text-success" /><span className="text-sm font-semibold">{toast}</span><Button variant="ghost" className="h-8 min-h-0 w-8 px-0" onClick={() => setToast("")} aria-label="Fechar aviso"><X className="h-4 w-4" /></Button></div>}
 
-        {detailMarket ? <MarketPanel key={detailMarket.id} market={detailMarket} markets={markets} onBack={() => { setDetailMarket(null); setActive("Visão geral"); }} onSwitch={setDetailMarket} notify={setToast} renderTab={(tab, market) => tab === "Estoque" ? <ProductsModule key={market.id} markets={markets} products={products} onChange={setProducts} notify={setToast} fixedMarketId={market.id} title="Estoque e produtos" /> : tab === "Gôndolas" || tab === "Depósito" ? <LocationsModule key={`${market.id}-${tab}`} data={locations} onChange={setLocations} market={market} markets={markets} notify={setToast} initialView={tab} /> : tab === "Recebimentos" ? <ReceivingModule key={market.id} receivings={receivings} onChange={setReceivings} notify={setToast} marketName={market.name} /> : tab === "Reposições" ? <ReplenishmentOverview market={market} onOpenStocker={onOpenStocker} notify={setToast} /> : null} /> : active === "Produtos" ? (
-          <section className="mx-auto max-w-[1680px] p-4 sm:p-6 lg:p-8"><ProductsModule markets={markets} products={products} onChange={setProducts} notify={setToast} /></section>
+        {detailMarket ? <MarketPanel key={detailMarket.id} market={detailMarket} markets={markets} onBack={() => { setDetailMarket(null); setActive("Visão geral"); }} onSwitch={setDetailMarket} notify={setToast} renderTab={(tab, market) => tab === "Estoque" ? <ProductsModule key={market.id} markets={markets} products={products} onChange={setProducts} notify={setToast} fixedMarketId={market.id} title="Estoque e produtos" /> : tab === "Gôndolas" || tab === "Depósito" ? <LocationsModule key={`${market.id}-${tab}`} data={locations} onChange={setLocations} market={market} markets={markets} notify={setToast} initialView={tab} /> : tab === "Recebimentos" ? <ReceivingModule key={market.id} receivings={receivings} onChange={setReceivings} notify={setToast} marketName={market.name} /> : tab === "Reposições" ? <ReplenishmentOverview market={market} onOpenStocker={onOpenStocker} notify={setToast} /> : null} /> : active === "Produtos" || active === "Estoque consolidado" || active === "Validades" ? (
+          <section className="mx-auto max-w-[1680px] p-4 sm:p-6 lg:p-8"><ProductsModule key={active} markets={markets} products={products} onChange={setProducts} notify={setToast} title={active} initialExpiryFilter={active === "Validades" ? "30" : "all"} /></section>
+        ) : active !== "Visão geral" && active !== "Meus mercados" ? (
+          <OwnerSection section={active} markets={markets} notify={setToast} />
         ) : (
           <DashboardOverview active={active} markets={markets} totals={totals} visibleMarkets={visibleMarkets} query={query} setQuery={setQuery} openMarket={openMarket} onAdd={() => { setToast(""); setAddingMarket(true); }} period={period} />
         )}
