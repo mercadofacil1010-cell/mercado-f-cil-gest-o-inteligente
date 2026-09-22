@@ -213,7 +213,7 @@ type FieldProps = {
   errors: Record<string, string>;
 };
 
-function Field({ label, field, error, optional, children }: { label: string; field: string; error?: string; optional?: boolean; children: React.ReactNode }) {
+function Field({ label, field, error, optional, children }: { label: string; field: string; error?: string | undefined; optional?: boolean | undefined; children: React.ReactNode }) {
   return <label className="block min-w-0"><span className="mb-2 block text-sm font-semibold">{label}{optional && <span className="font-normal text-muted-foreground"> (opcional)</span>}</span>{children}{error && <span className="mt-1.5 block text-sm font-medium text-critical" id={`${field}-error`}>{error}</span>}</label>;
 }
 const inputClass = "h-12 w-full rounded-md border border-input bg-card px-4 text-base outline-none transition focus:border-primary focus:ring-3 focus:ring-primary/15 aria-invalid:border-critical aria-invalid:ring-critical/10";
@@ -221,44 +221,44 @@ const selectClass = `${inputClass} appearance-none`;
 
 function ResponsibleFields({ data, update, inputProps, errors }: FieldProps) {
   return <div className="grid gap-5 sm:grid-cols-2">
-    <div className="sm:col-span-2"><Field label="Nome completo" field="name" error={errors.name}><input {...inputProps("name")} maxLength={120} autoComplete="name" placeholder="Nome e sobrenome" className={inputClass} /></Field></div>
-    <Field label="CPF" field="cpf" error={errors.cpf}><input {...inputProps("cpf", maskCpf)} inputMode="numeric" placeholder="000.000.000-00" className={inputClass} /></Field>
-    <Field label="Data de nascimento" field="birthDate" error={errors.birthDate}><input {...inputProps("birthDate")} type="date" className={inputClass} /></Field>
-    <Field label="Telefone/WhatsApp" field="whatsapp" error={errors.whatsapp}><input {...inputProps("whatsapp", maskPhone)} inputMode="tel" placeholder="(00) 00000-0000" className={inputClass} /></Field>
-    <Field label="E-mail" field="email" error={errors.email}><input {...inputProps("email")} type="email" maxLength={255} autoComplete="email" placeholder="voce@empresa.com.br" className={inputClass} /></Field>
-    <Field label="Senha" field="password" error={errors.password}><input {...inputProps("password")} type="password" maxLength={72} autoComplete="new-password" placeholder="Mínimo de 8 caracteres" className={inputClass} /></Field>
-    <Field label="Confirmação da senha" field="passwordConfirmation" error={errors.passwordConfirmation}><input {...inputProps("passwordConfirmation")} type="password" maxLength={72} autoComplete="new-password" placeholder="Repita a senha" className={inputClass} /></Field>
-    <div className="sm:col-span-2"><label className="flex items-start gap-3 rounded-md bg-muted p-4 text-sm leading-6"><input type="checkbox" checked={data.terms} onChange={(event) => update("terms", event.target.checked)} className="mt-1 h-4 w-4 shrink-0 accent-primary" /><span>Li e aceito os <strong className="text-primary">Termos de Uso</strong> e a <strong className="text-primary">Política de Privacidade</strong>.</span></label>{errors.terms && <span className="mt-1.5 block text-sm font-medium text-critical">{errors.terms}</span>}</div>
+    <div className="sm:col-span-2"><Field label="Nome completo" field="name" error={errors["name"]}><input {...inputProps("name")} maxLength={120} autoComplete="name" placeholder="Nome e sobrenome" className={inputClass} /></Field></div>
+    <Field label="CPF" field="cpf" error={errors["cpf"]}><input {...inputProps("cpf", maskCpf)} inputMode="numeric" placeholder="000.000.000-00" className={inputClass} /></Field>
+    <Field label="Data de nascimento" field="birthDate" error={errors["birthDate"]}><input {...inputProps("birthDate")} type="date" className={inputClass} /></Field>
+    <Field label="Telefone/WhatsApp" field="whatsapp" error={errors["whatsapp"]}><input {...inputProps("whatsapp", maskPhone)} inputMode="tel" placeholder="(00) 00000-0000" className={inputClass} /></Field>
+    <Field label="E-mail" field="email" error={errors["email"]}><input {...inputProps("email")} type="email" maxLength={255} autoComplete="email" placeholder="voce@empresa.com.br" className={inputClass} /></Field>
+    <Field label="Senha" field="password" error={errors["password"]}><input {...inputProps("password")} type="password" maxLength={72} autoComplete="new-password" placeholder="Mínimo de 8 caracteres" className={inputClass} /></Field>
+    <Field label="Confirmação da senha" field="passwordConfirmation" error={errors["passwordConfirmation"]}><input {...inputProps("passwordConfirmation")} type="password" maxLength={72} autoComplete="new-password" placeholder="Repita a senha" className={inputClass} /></Field>
+    <div className="sm:col-span-2"><label className="flex items-start gap-3 rounded-md bg-muted p-4 text-sm leading-6"><input type="checkbox" checked={data.terms} onChange={(event) => update("terms", event.target.checked)} className="mt-1 h-4 w-4 shrink-0 accent-primary" /><span>Li e aceito os <strong className="text-primary">Termos de Uso</strong> e a <strong className="text-primary">Política de Privacidade</strong>.</span></label>{errors["terms"] && <span className="mt-1.5 block text-sm font-medium text-critical">{errors["terms"]}</span>}</div>
   </div>;
 }
 
 function CompanyFields({ inputProps, errors }: FieldProps) {
   return <div className="grid gap-5 sm:grid-cols-2">
-    <div className="sm:col-span-2"><Field label="Razão social" field="legalName" error={errors.legalName}><input {...inputProps("legalName")} maxLength={160} className={inputClass} /></Field></div>
-    <Field label="Nome fantasia" field="tradeName" error={errors.tradeName}><input {...inputProps("tradeName")} maxLength={120} className={inputClass} /></Field>
-    <Field label="CNPJ" field="cnpj" error={errors.cnpj}><input {...inputProps("cnpj", maskCnpj)} inputMode="numeric" placeholder="00.000.000/0000-00" className={inputClass} /></Field>
-    <Field label="Inscrição estadual" field="stateRegistration" error={errors.stateRegistration}><input {...inputProps("stateRegistration")} maxLength={30} className={inputClass} /></Field>
-    <Field label="Telefone" field="companyPhone" error={errors.companyPhone}><input {...inputProps("companyPhone", maskPhone)} inputMode="tel" placeholder="(00) 00000-0000" className={inputClass} /></Field>
-    <div className="sm:col-span-2"><Field label="E-mail comercial" field="companyEmail" error={errors.companyEmail}><input {...inputProps("companyEmail")} type="email" maxLength={255} className={inputClass} /></Field></div>
-    <Field label="CEP" field="zipCode" error={errors.zipCode}><input {...inputProps("zipCode", maskZip)} inputMode="numeric" placeholder="00000-000" className={inputClass} /></Field>
-    <Field label="Endereço" field="address" error={errors.address}><input {...inputProps("address")} maxLength={160} className={inputClass} /></Field>
-    <Field label="Número" field="number" error={errors.number}><input {...inputProps("number")} maxLength={12} className={inputClass} /></Field>
+    <div className="sm:col-span-2"><Field label="Razão social" field="legalName" error={errors["legalName"]}><input {...inputProps("legalName")} maxLength={160} className={inputClass} /></Field></div>
+    <Field label="Nome fantasia" field="tradeName" error={errors["tradeName"]}><input {...inputProps("tradeName")} maxLength={120} className={inputClass} /></Field>
+    <Field label="CNPJ" field="cnpj" error={errors["cnpj"]}><input {...inputProps("cnpj", maskCnpj)} inputMode="numeric" placeholder="00.000.000/0000-00" className={inputClass} /></Field>
+    <Field label="Inscrição estadual" field="stateRegistration" error={errors["stateRegistration"]}><input {...inputProps("stateRegistration")} maxLength={30} className={inputClass} /></Field>
+    <Field label="Telefone" field="companyPhone" error={errors["companyPhone"]}><input {...inputProps("companyPhone", maskPhone)} inputMode="tel" placeholder="(00) 00000-0000" className={inputClass} /></Field>
+    <div className="sm:col-span-2"><Field label="E-mail comercial" field="companyEmail" error={errors["companyEmail"]}><input {...inputProps("companyEmail")} type="email" maxLength={255} className={inputClass} /></Field></div>
+    <Field label="CEP" field="zipCode" error={errors["zipCode"]}><input {...inputProps("zipCode", maskZip)} inputMode="numeric" placeholder="00000-000" className={inputClass} /></Field>
+    <Field label="Endereço" field="address" error={errors["address"]}><input {...inputProps("address")} maxLength={160} className={inputClass} /></Field>
+    <Field label="Número" field="number" error={errors["number"]}><input {...inputProps("number")} maxLength={12} className={inputClass} /></Field>
     <Field label="Complemento" field="complement" optional><input {...inputProps("complement")} maxLength={80} className={inputClass} /></Field>
-    <Field label="Bairro" field="district" error={errors.district}><input {...inputProps("district")} maxLength={80} className={inputClass} /></Field>
-    <Field label="Cidade" field="city" error={errors.city}><input {...inputProps("city")} maxLength={80} className={inputClass} /></Field>
-    <Field label="Estado" field="state" error={errors.state}><select value={String(inputProps("state").value)} onChange={(event) => inputProps("state").onChange(event as unknown as ChangeEvent<HTMLInputElement>)} className={selectClass}><option value="">Selecione</option>{["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"].map((state) => <option key={state}>{state}</option>)}</select></Field>
+    <Field label="Bairro" field="district" error={errors["district"]}><input {...inputProps("district")} maxLength={80} className={inputClass} /></Field>
+    <Field label="Cidade" field="city" error={errors["city"]}><input {...inputProps("city")} maxLength={80} className={inputClass} /></Field>
+    <Field label="Estado" field="state" error={errors["state"]}><select value={String(inputProps("state").value)} onChange={(event) => inputProps("state").onChange(event as unknown as ChangeEvent<HTMLInputElement>)} className={selectClass}><option value="">Selecione</option>{["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"].map((state) => <option key={state}>{state}</option>)}</select></Field>
   </div>;
 }
 
 function SetupFields({ data, update, errors }: Omit<FieldProps, "inputProps">) {
   const choices = (key: keyof FormData, options: string[]) => <div className="grid gap-3 sm:grid-cols-2">{options.map((option) => <label key={option} className={cn("flex min-h-12 cursor-pointer items-center gap-3 rounded-md border p-3.5 transition", data[key] === option ? "border-primary bg-primary-soft" : "border-border hover:border-primary/40")}><input type="radio" name={key} value={option} checked={data[key] === option} onChange={() => update(key, option as never)} className="h-4 w-4 accent-primary" /><span className="text-sm font-semibold">{option}</span></label>)}</div>;
   return <div className="grid gap-6 sm:grid-cols-2">
-    <Field label="Quantidade inicial de mercados" field="stores" error={errors.stores}><input type="number" min="1" max="999" value={data.stores} onChange={(event) => update("stores", event.target.value)} className={inputClass} /></Field>
-    <Field label="Segmento da empresa" field="segment" error={errors.segment}><select value={data.segment} onChange={(event) => update("segment", event.target.value)} className={selectClass}><option>Supermercado</option><option>Atacarejo</option><option>Mercado de bairro</option><option>Hortifrúti</option><option>Conveniência</option></select></Field>
-    <div className="sm:col-span-2"><Field label="Quantidade aproximada de produtos" field="products" error={errors.products}><select value={data.products} onChange={(event) => update("products", event.target.value)} className={selectClass}><option>Até 5.000</option><option>De 5.001 a 15.000</option><option>De 15.001 a 50.000</option><option>Mais de 50.000</option></select></Field></div>
-    <div className="sm:col-span-2"><Field label="Possui sistema de PDV?" field="hasPos" error={errors.hasPos}>{choices("hasPos", ["Sim", "Não"])}</Field></div>
-    {data.hasPos === "Sim" && <div className="sm:col-span-2"><Field label="Nome do sistema de PDV" field="posName" error={errors.posName}><input value={data.posName} onChange={(event) => update("posName", event.target.value)} maxLength={80} placeholder="Informe o sistema utilizado" className={inputClass} /></Field></div>}
-    <div className="sm:col-span-2"><Field label="Deseja iniciar um período de teste?" field="wantsTrial" error={errors.wantsTrial}>{choices("wantsTrial", ["Sim", "Não"])}</Field></div>
+    <Field label="Quantidade inicial de mercados" field="stores" error={errors["stores"]}><input type="number" min="1" max="999" value={data.stores} onChange={(event) => update("stores", event.target.value)} className={inputClass} /></Field>
+    <Field label="Segmento da empresa" field="segment" error={errors["segment"]}><select value={data.segment} onChange={(event) => update("segment", event.target.value)} className={selectClass}><option>Supermercado</option><option>Atacarejo</option><option>Mercado de bairro</option><option>Hortifrúti</option><option>Conveniência</option></select></Field>
+    <div className="sm:col-span-2"><Field label="Quantidade aproximada de produtos" field="products" error={errors["products"]}><select value={data.products} onChange={(event) => update("products", event.target.value)} className={selectClass}><option>Até 5.000</option><option>De 5.001 a 15.000</option><option>De 15.001 a 50.000</option><option>Mais de 50.000</option></select></Field></div>
+    <div className="sm:col-span-2"><Field label="Possui sistema de PDV?" field="hasPos" error={errors["hasPos"]}>{choices("hasPos", ["Sim", "Não"])}</Field></div>
+    {data.hasPos === "Sim" && <div className="sm:col-span-2"><Field label="Nome do sistema de PDV" field="posName" error={errors["posName"]}><input value={data.posName} onChange={(event) => update("posName", event.target.value)} maxLength={80} placeholder="Informe o sistema utilizado" className={inputClass} /></Field></div>}
+    <div className="sm:col-span-2"><Field label="Deseja iniciar um período de teste?" field="wantsTrial" error={errors["wantsTrial"]}>{choices("wantsTrial", ["Sim", "Não"])}</Field></div>
   </div>;
 }
 
