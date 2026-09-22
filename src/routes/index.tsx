@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 import {
   ArrowRight,
@@ -11,6 +11,7 @@ import { BrandLogo } from "@/components/brand-logo";
 import { Button } from "@/components/ui/button";
 import { SignupFlow } from "@/components/signup-flow";
 import { OwnerDashboard } from "@/components/owner-dashboard";
+import { StockerApp } from "@/components/stocker-app";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -26,13 +27,19 @@ export const Route = createFileRoute("/")({
   component: MercadoFacil,
 });
 
+type View = "login" | "signup" | "dashboard" | "stocker";
+
 function MercadoFacil() {
-  const [view, setView] = useState<"login" | "signup" | "dashboard">("login");
+  const [view, setView] = useState<View>("login");
+  const [stockerReturn, setStockerReturn] = useState<View>("login");
+  const openStocker = (from: View) => { setStockerReturn(from); setView("stocker"); window.scrollTo({ top: 0 }); };
   if (view === "signup") return <SignupFlow onBack={() => setView("login")} onComplete={() => setView("dashboard")} />;
-  return view === "dashboard" ? <OwnerDashboard onLogout={() => setView("login")} /> : <Login onLogin={() => setView("dashboard")} onSignup={() => setView("signup")} />;
+  if (view === "stocker") return <StockerApp onExit={() => setView(stockerReturn)} />;
+  return view === "dashboard" ? <OwnerDashboard onLogout={() => setView("login")} onOpenStocker={() => openStocker("dashboard")} /> : <Login onLogin={() => setView("dashboard")} onSignup={() => setView("signup")} onEmployee={() => openStocker("login")} />;
 }
 
-function Login({ onLogin, onSignup }: { onLogin: () => void; onSignup: () => void }) {
+function Login({ onLogin, onSignup, onEmployee }: { onLogin: () => void; onSignup: () => void; onEmployee: () => void }) {
+  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [notice, setNotice] = useState("");
 
@@ -106,12 +113,13 @@ function Login({ onLogin, onSignup }: { onLogin: () => void; onSignup: () => voi
 
           <div className="my-6 flex items-center gap-4 text-xs font-semibold uppercase text-muted-foreground before:h-px before:flex-1 before:bg-border after:h-px after:flex-1 after:bg-border">ou continue com</div>
           <div className="grid gap-3 sm:grid-cols-2">
-            <Button variant="outline" onClick={onLogin}><span className="text-lg font-extrabold text-google">G</span> Google</Button>
-            <Button variant="outline" onClick={onLogin}><span className="grid h-5 w-5 place-items-center rounded-full bg-facebook text-xs font-extrabold text-social-foreground">f</span> Facebook</Button>
+            <Button variant="outline" onClick={onLogin}><span className="text-lg font-extrabold text-google">G</span> Continuar com Google</Button>
+            <Button variant="outline" onClick={onLogin}><span className="grid h-5 w-5 place-items-center rounded-full bg-facebook text-xs font-extrabold text-social-foreground">f</span> Continuar com Facebook</Button>
           </div>
           <p className="mt-7 text-center text-sm text-muted-foreground">Ainda não possui acesso? <button type="button" onClick={onSignup} className="font-bold text-primary hover:underline">Criar minha conta</button></p>
-          <div className="mt-8 border-t border-border pt-6 text-center">
-            <button type="button" onClick={() => setNotice("Modo administrativo selecionado.")} className="text-sm font-semibold text-muted-foreground hover:text-foreground">Acesso administrativo</button>
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 border-t border-border pt-6 text-center">
+            <button type="button" onClick={onEmployee} className="text-sm font-semibold text-muted-foreground hover:text-foreground">Acesso do funcionário</button>
+            <button type="button" onClick={() => void navigate({ to: "/admin" })} className="text-sm font-semibold text-muted-foreground hover:text-foreground">Acesso administrativo</button>
           </div>
         </div>
       </section>
