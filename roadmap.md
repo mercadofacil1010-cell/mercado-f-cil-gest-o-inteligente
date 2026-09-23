@@ -13,7 +13,19 @@
 - [x] Prompt 9 — Aplicativo do repositor
 - [x] Prompt 10 — Painel administrativo da plataforma (`/admin`) e revisão geral
 
-## Próxima fase
+## Fase 2 — Fechamento do sistema (conforme a Documentação Funcional v1.0)
 
-- [ ] Revisão técnica e planejamento para deixar o sistema funcional
-  (banco de dados, autenticação, pagamentos e integrações)
+O plano completo está em `docs/PLANO_FECHAMENTO.md`, a rastreabilidade de cada requisito em
+`docs/CONTRAPROVA.md` e as decisões pendentes em `docs/DECISOES.md`.
+
+- [ ] B0 — Fundação e governança (banco inicial já criado: tabelas, RLS e cliente Supabase)
+- [ ] B1 — Acesso, empresa e equipe
+- [ ] B2 — Catálogo
+- [ ] B3 — Estoque, localização, lotes e validade
+- [ ] B4 — Recebimento com conferência cega
+- [ ] B5 — Reposição e aplicativo móvel
+- [ ] B6 — Inconsistências e alertas
+- [ ] B7 — Vendas e integração com PDV
+- [ ] B8 — Indicadores, relatórios e auditoria
+- [ ] B9 — Planos, assinatura, cobrança e administração
+- [ ] B10 — LGPD, segurança, backup, desempenho e piloto
