@@ -78,7 +78,15 @@ import {
   inactivateMarket,
 } from "@/lib/markets-api";
 import { supabase } from "@/integrations/supabase/client";
-import type { MemberRole } from "@/lib/invites-api";
+import { roleLabel, type MemberRole } from "@/lib/invites-api";
+
+const initials = (name: string) =>
+  name
+    .split(/[\s@]/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((word) => word[0]?.toUpperCase())
+    .join("");
 
 /** Converte o mercado (formato de tela) de volta no formato do formulário, para editar. */
 function marketToFormData(market: Market): NewMarketData {
@@ -137,6 +145,7 @@ export function OwnerDashboard({
   const { user } = useAuth();
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [callerRole, setCallerRole] = useState<MemberRole | null>(null);
+  const [callerName, setCallerName] = useState<string | null>(null);
   const [markets, setMarkets] = useState<Market[]>([]);
   const [loadingMarkets, setLoadingMarkets] = useState(true);
   const [addingMarket, setAddingMarket] = useState(false);
@@ -180,7 +189,7 @@ export function OwnerDashboard({
         setLoadingMarkets(false);
         return;
       }
-      const [list, { data: memberRow }] = await Promise.all([
+      const [list, { data: memberRow }, { data: profileRow }] = await Promise.all([
         listMarkets(id),
         supabase
           .from("company_members")
@@ -188,10 +197,12 @@ export function OwnerDashboard({
           .eq("company_id", id)
           .eq("user_id", user.id)
           .maybeSingle(),
+        supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle(),
       ]);
       if (!active) return;
       setMarkets(list);
       setCallerRole(memberRow?.role ?? null);
+      setCallerName(profileRow?.full_name ?? null);
       setLoadingMarkets(false);
     });
     return () => {
@@ -480,12 +491,14 @@ export function OwnerDashboard({
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="h-11 min-h-0 gap-2 px-1.5 sm:px-2">
                     <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-brand-panel text-sm font-bold text-sidebar-foreground">
-                      MA
+                      {initials(callerName ?? user?.email ?? "")}
                     </span>
                     <span className="hidden text-left sm:block">
-                      <strong className="block text-sm">Marina Alves</strong>
+                      <strong className="block text-sm">
+                        {callerName ?? user?.email ?? "Minha conta"}
+                      </strong>
                       <span className="block text-xs font-normal text-muted-foreground">
-                        Proprietária
+                        {callerRole ? roleLabel[callerRole] : ""}
                       </span>
                     </span>
                     <ChevronDown className="hidden h-4 w-4 text-muted-foreground sm:block" />
