@@ -6,7 +6,7 @@ Cada linha aponta a etapa do plano (`docs/PLANO_FECHAMENTO.md`) em que o item é
 **Status:** `Pendente` → `Em andamento` → `Feito` (com evidência). `Parcial` = começou, falta completar. `Adiado` = decisão formal de tirar da versão.  
 **Decisão?** `Sim` = o item tem [A DEFINIR]; a decisão precisa estar registrada em `docs/DECISOES.md` antes de codificar.
 
-Total de itens rastreados: **426** · Feito: **60** · Parcial: **5**
+Total de itens rastreados: **426** · Feito: **61** · Parcial: **5**
 
 | Bloco                          | Itens |
 | ------------------------------ | ----- |
@@ -154,10 +154,12 @@ acessar uma seção sem permissão.
 
 ## B2.1 — Fornecedores, categorias e marcas
 
+As tabelas `categories` e `brands` também foram criadas nesta etapa (mesmo padrão de `suppliers`: RLS, auditoria, sem exclusão física), mas ainda sem tela própria — entram como seletores no cadastro de produto (B2.2), onde ganham uma interface de verdade.
+
 | ID    | Item                                                                                                                                       | Decisão? | Status   | Evidência |
 | ----- | ------------------------------------------------------------------------------------------------------------------------------------------ | -------- | -------- | --------- |
-| PA-23 | Haverá módulo completo de compras? — Sugestão do documento: primeira versão gera alerta e sugestão; pedido formal pode ser fase posterior. | Sim      | Pendente |           |
-| G-01  | Lacuna: cadastro de fornecedores (usado em lote, recebimento e ponto de pedido)                                                            |          | Pendente |           |
+| PA-23 | Haverá módulo completo de compras? — Sugestão do documento: primeira versão gera alerta e sugestão; pedido formal pode ser fase posterior. | Sim      | Pendente | Decisão registrada (DECISOES.md): só alerta/sugestão por enquanto. Implementação depende do ponto de pedido (B2.3) e do estoque (B3) — ainda não construídos |
+| G-01  | Lacuna: cadastro de fornecedores (usado em lote, recebimento e ponto de pedido)                                                            |          | Feito    | PR B2.1 · tabela `suppliers` com RLS (dono/gerente) e auditoria; tela real em `src/components/owner-sections.tsx` (`src/lib/catalog-support-api.ts`), testado em `supabase/tests/60_catalog_support_test.sql` |
 
 ## B2.2 — Produtos, embalagens e conversões
 

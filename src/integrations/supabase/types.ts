@@ -82,6 +82,76 @@ export type Database = {
           },
         ]
       }
+      brands: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          name: string
+          status: Database["public"]["Enums"]["support_status"]
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          name: string
+          status?: Database["public"]["Enums"]["support_status"]
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+          status?: Database["public"]["Enums"]["support_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brands_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      categories: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          name: string
+          status: Database["public"]["Enums"]["support_status"]
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          name: string
+          status?: Database["public"]["Enums"]["support_status"]
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+          status?: Database["public"]["Enums"]["support_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "categories_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       companies: {
         Row: {
           account_status: Database["public"]["Enums"]["account_status"]
@@ -490,6 +560,56 @@ export type Database = {
         }
         Relationships: []
       }
+      suppliers: {
+        Row: {
+          cnpj: string | null
+          company_id: string
+          contact_name: string | null
+          created_at: string
+          email: string | null
+          id: string
+          lead_time_days: number | null
+          name: string
+          phone: string | null
+          status: Database["public"]["Enums"]["support_status"]
+          updated_at: string
+        }
+        Insert: {
+          cnpj?: string | null
+          company_id: string
+          contact_name?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          lead_time_days?: number | null
+          name: string
+          phone?: string | null
+          status?: Database["public"]["Enums"]["support_status"]
+          updated_at?: string
+        }
+        Update: {
+          cnpj?: string | null
+          company_id?: string
+          contact_name?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          lead_time_days?: number | null
+          name?: string
+          phone?: string | null
+          status?: Database["public"]["Enums"]["support_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "suppliers_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -581,6 +701,7 @@ export type Database = {
         | "suspended"
         | "cancelled"
         | "expired"
+      support_status: "active" | "inactive"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -728,6 +849,7 @@ export const Constants = {
         "cancelled",
         "expired",
       ],
+      support_status: ["active", "inactive"],
     },
   },
 } as const
