@@ -6,7 +6,7 @@ Cada linha aponta a etapa do plano (`docs/PLANO_FECHAMENTO.md`) em que o item é
 **Status:** `Pendente` → `Em andamento` → `Feito` (com evidência). `Parcial` = começou, falta completar. `Adiado` = decisão formal de tirar da versão.  
 **Decisão?** `Sim` = o item tem [A DEFINIR]; a decisão precisa estar registrada em `docs/DECISOES.md` antes de codificar.
 
-Total de itens rastreados: **426** · Feito: **38** · Parcial: **4**
+Total de itens rastreados: **426** · Feito: **47** · Parcial: **3**
 
 | Bloco | Itens |
 |---|---|
@@ -86,15 +86,15 @@ Total de itens rastreados: **426** · Feito: **38** · Parcial: **4**
 
 | ID | Item | Decisão? | Status | Evidência |
 |---|---|---|---|---|
-| RF-ACC-04 | Cadastrar responsável, empresa e configuração inicial. |  | Pendente |  |
-| RF-ACC-05 | Apresentar resumo e aceite antes da criação da empresa. |  | Pendente |  |
-| RF-ACC-07 | Permitir salvar e continuar depois. [A DEFINIR] | Sim | Pendente |  |
-| RN-ACC-01 | O primeiro usuário cadastrado torna-se dono da rede. |  | Parcial | Banco: create_company cria o dono |
-| RN-ACC-03 | CPF e CNPJ devem ser armazenados e exibidos com proteção adequada; mascaramento em telas [A DEFINIR]. | Sim | Pendente |  |
-| RN-ACC-06 | Cadastro incompleto não libera funções operacionais; validade do rascunho [A DEFINIR]. | Sim | Pendente |  |
-| RNF-LGPD-03 | Registrar aceites legais, versão, data, horário e origem. |  | Pendente |  |
-| D-07 | Divergência construída: inscrição estadual obrigatória na tela (é opcional) |  | Pendente |  |
-| F-5.1 | Fluxo: cadastro da empresa e primeiro acesso |  | Pendente |  |
+| RF-ACC-04 | Cadastrar responsável, empresa e configuração inicial. |  | Feito | PR B1.2 · `src/lib/complete-signup.ts` grava perfil (CPF/nascimento) e chama `create_company` de verdade |
+| RF-ACC-05 | Apresentar resumo e aceite antes da criação da empresa. |  | Feito | PR B1.2 · etapa "Confirmação" em `signup-flow.tsx`, com CPF mascarado (DEC-B1-08) |
+| RF-ACC-07 | Permitir salvar e continuar depois. [A DEFINIR] | Sim | Feito | Decisão (DEC-B1-05): 7 dias, no aparelho. `src/lib/signup-draft.ts` (nunca guarda a senha) |
+| RN-ACC-01 | O primeiro usuário cadastrado torna-se dono da rede. |  | Feito | PR B1.2 · cadastro real chama `create_company`, que cria o dono; testado em `supabase/tests/10_access_test.sql` |
+| RN-ACC-03 | CPF e CNPJ devem ser armazenados e exibidos com proteção adequada; mascaramento em telas [A DEFINIR]. | Sim | Feito | Decisão (DEC-B1-08): CPF mascarado (`displayMaskedCpf`), CNPJ não (registro público) |
+| RN-ACC-06 | Cadastro incompleto não libera funções operacionais; validade do rascunho [A DEFINIR]. | Sim | Feito | Mesma decisão de RF-ACC-07 (DEC-B1-05) — a empresa só existe depois do passo final |
+| RNF-LGPD-03 | Registrar aceites legais, versão, data, horário e origem. |  | Feito | PR B1.2 · `log_audit_event('legal_acceptance', ...)` com versão dos termos, data/hora e origem |
+| D-07 | Divergência construída: inscrição estadual obrigatória na tela (é opcional) |  | Feito | PR B1.2 · campo marcado "(opcional)" na tela, alinhado com o banco |
+| F-5.1 | Fluxo: cadastro da empresa e primeiro acesso |  | Feito | PR B1.2 · cadastro grava de verdade; com confirmação de e-mail pendente, a empresa é criada ao fazer login depois de confirmar |
 
 ## B1.3 — Login com Google e Facebook
 

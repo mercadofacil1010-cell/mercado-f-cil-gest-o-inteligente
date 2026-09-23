@@ -7,6 +7,8 @@ import {
   Check,
   CheckCircle2,
   CreditCard,
+  Loader2,
+  Mail,
   Save,
   ShieldCheck,
   Store,
@@ -15,6 +17,9 @@ import {
 import { BrandLogo } from "@/components/brand-logo";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { completeCompanySignup, type CompanySignupData } from "@/lib/complete-signup";
+import { saveSignupDraft, loadSignupDraft, clearSignupDraft } from "@/lib/signup-draft";
 
 type FormData = {
   name: string;
@@ -52,13 +57,31 @@ const initialData: FormData = {
   stores: "1", segment: "Supermercado", products: "Até 5.000", hasPos: "Sim", posName: "", wantsTrial: "Sim",
 };
 
+// Idade mínima do responsável (DEC-B1-04).
+const MINIMUM_AGE_YEARS = 18;
+function ageInYears(birthDate: string) {
+  const born = new Date(birthDate);
+  if (Number.isNaN(born.getTime())) return 0;
+  const today = new Date();
+  let age = today.getFullYear() - born.getFullYear();
+  const monthDiff = today.getMonth() - born.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < born.getDate())) age -= 1;
+  return age;
+}
+
 const responsibleSchema = z.object({
   name: z.string().trim().min(3, "Informe o nome completo").max(120),
   cpf: z.string().regex(/^\d{3}\.\d{3}\.\d{3}-\d{2}$/, "Informe um CPF válido"),
-  birthDate: z.string().min(1, "Informe a data de nascimento"),
+  birthDate: z.string().min(1, "Informe a data de nascimento").refine((value) => ageInYears(value) >= MINIMUM_AGE_YEARS, {
+    message: `É preciso ter ${MINIMUM_AGE_YEARS} anos ou mais para se cadastrar`,
+  }),
   whatsapp: z.string().min(14, "Informe um telefone válido"),
   email: z.string().trim().email("Informe um e-mail válido").max(255),
-  password: z.string().min(8, "Use pelo menos 8 caracteres").max(72),
+  // Regra de senha (DEC-B1-01): mínimo 8 caracteres, com letra e número.
+  password: z.string().min(8, "Use pelo menos 8 caracteres")
+    .regex(/[a-zA-Z]/, "A senha precisa ter pelo menos uma letra")
+    .regex(/[0-9]/, "A senha precisa ter pelo menos um número")
+    .max(72),
   passwordConfirmation: z.string(),
   terms: z.literal(true, { errorMap: () => ({ message: "Aceite os termos para continuar" }) }),
 }).refine((data) => data.password === data.passwordConfirmation, { message: "As senhas não coincidem", path: ["passwordConfirmation"] });
@@ -67,7 +90,8 @@ const companySchema = z.object({
   legalName: z.string().trim().min(3, "Informe a razão social").max(160),
   tradeName: z.string().trim().min(2, "Informe o nome fantasia").max(120),
   cnpj: z.string().regex(/^\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}$/, "Informe um CNPJ válido"),
-  stateRegistration: z.string().trim().min(3, "Informe a inscrição estadual").max(30),
+  // Inscrição estadual é opcional (D-07): nem toda empresa/segmento tem uma.
+  stateRegistration: z.string().trim().max(30),
   companyPhone: z.string().min(14, "Informe um telefone válido"),
   companyEmail: z.string().trim().email("Informe um e-mail comercial válido").max(255),
   zipCode: z.string().regex(/^\d{5}-\d{3}$/, "Informe um CEP válido"),
@@ -99,13 +123,35 @@ function maskCpf(value: string) { return onlyDigits(value).slice(0, 11).replace(
 function maskCnpj(value: string) { return onlyDigits(value).slice(0, 14).replace(/(\d{2})(\d)/, "$1.$2").replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d)/, "$1/$2").replace(/(\d{4})(\d{1,2})$/, "$1-$2"); }
 function maskPhone(value: string) { return onlyDigits(value).slice(0, 11).replace(/(\d{2})(\d)/, "($1) $2").replace(/(\d{5})(\d)/, "$1-$2"); }
 function maskZip(value: string) { return onlyDigits(value).slice(0, 8).replace(/(\d{5})(\d)/, "$1-$2"); }
+// CPF mascarado nas telas por padrão (DEC-B1-08); CNPJ não precisa, é registro público.
+function displayMaskedCpf(value: string) {
+  const digits = onlyDigits(value);
+  if (digits.length < 11) return value;
+  return `***.***.**${digits.slice(-2)}`;
+}
+
+// O rascunho salvo no aparelho nunca guarda a senha (RF-ACC-07): mesmo sendo
+// só neste dispositivo, não é seguro manter uma senha em texto puro salva por
+// até 7 dias no armazenamento do navegador.
+type DraftData = Omit<FormData, "password" | "passwordConfirmation">;
 
 export function SignupFlow({ onBack, onComplete }: { onBack: () => void; onComplete: () => void }) {
   const [step, setStep] = useState(0);
-  const [data, setData] = useState<FormData>(initialData);
+  const [data, setData] = useState<FormData>(() => {
+    const draft = loadSignupDraft<DraftData>();
+    return draft ? { ...initialData, ...draft.data } : initialData;
+  });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saved, setSaved] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+
+  function saveDraft() {
+    const { password: _password, passwordConfirmation: _passwordConfirmation, ...draftData } = data;
+    saveSignupDraft<DraftData>(draftData);
+  }
 
   const progress = ((step + 1) / steps.length) * 100;
   const currentTitle = ["Dados do responsável", "Dados da empresa", "Configuração inicial", "Revise e confirme"][step];
@@ -138,13 +184,75 @@ export function SignupFlow({ onBack, onComplete }: { onBack: () => void; onCompl
     if (step < 3 && validateCurrent()) { setStep((current) => current + 1); window.scrollTo({ top: 0, behavior: "smooth" }); }
   }
 
+  async function submit() {
+    setSubmitError("");
+    if (!responsibleSchema.safeParse(data).success || !companySchema.safeParse(data).success || !setupSchema.safeParse(data).success) {
+      setSubmitError("Revise as etapas anteriores: há algum dado pendente ou inválido.");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      // Confere o dígito verificador de verdade (não só o formato) antes de gravar.
+      const [{ data: cpfOk }, { data: cnpjOk }] = await Promise.all([
+        supabase.rpc("is_valid_cpf", { value: onlyDigits(data.cpf) }),
+        supabase.rpc("is_valid_cnpj", { value: onlyDigits(data.cnpj) }),
+      ]);
+      if (!cpfOk) { setSubmitError("O CPF informado não é válido."); return; }
+      if (!cnpjOk) { setSubmitError("O CNPJ informado não é válido."); return; }
+
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email: data.email.trim(),
+        password: data.password,
+        options: { data: { full_name: data.name.trim() } },
+      });
+      if (signUpError) {
+        setSubmitError(signUpError.message.toLowerCase().includes("already registered")
+          ? "Este e-mail já tem uma conta no Mercado Fácil."
+          : "Não foi possível criar sua conta agora. Tente novamente.");
+        return;
+      }
+
+      const { password: _password, passwordConfirmation: _passwordConfirmation, ...draftData } = data;
+
+      if (signUpData.session) {
+        // E-mail já confirmado (ou confirmação desligada no painel): segue direto.
+        const result = await completeCompanySignup(data);
+        if (!result.ok) { setSubmitError(result.message); return; }
+        clearSignupDraft();
+        setSuccess(true);
+      } else {
+        // Falta confirmar o e-mail (DEC-B1-02): guarda os dados da empresa para
+        // criar assim que o usuário confirmar e fizer login (ver auth-context).
+        saveSignupDraft<DraftData>(draftData, data.email.trim());
+        setAwaitingConfirmation(true);
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  if (awaitingConfirmation) {
+    return (
+      <main className="grid min-h-screen place-items-center bg-background px-5 py-10">
+        <section className="w-full max-w-xl rounded-lg border border-border bg-card p-7 text-center shadow-card sm:p-10">
+          <span className="mx-auto grid h-16 w-16 place-items-center rounded-lg bg-primary-soft text-primary"><Mail className="h-9 w-9" /></span>
+          <h1 className="mt-6 text-3xl font-extrabold tracking-normal">Confirme seu e-mail</h1>
+          <p className="mx-auto mt-3 max-w-md text-base leading-7 text-muted-foreground">
+            Enviamos um link de confirmação para <strong>{data.email}</strong>. Depois de confirmar, faça login que sua empresa "{data.tradeName}" é criada automaticamente.
+          </p>
+          <Button className="mt-7 w-full sm:w-auto" onClick={onBack}>Voltar para o login <ArrowRight className="h-4 w-4" /></Button>
+        </section>
+      </main>
+    );
+  }
+
   if (success) {
     return (
       <main className="grid min-h-screen place-items-center bg-background px-5 py-10">
         <section className="w-full max-w-xl rounded-lg border border-border bg-card p-7 text-center shadow-card sm:p-10">
           <span className="mx-auto grid h-16 w-16 place-items-center rounded-lg bg-highlight-soft text-success"><CheckCircle2 className="h-9 w-9" /></span>
           <h1 className="mt-6 text-3xl font-extrabold tracking-normal">Empresa cadastrada com sucesso!</h1>
-          <p className="mx-auto mt-3 max-w-md text-base leading-7 text-muted-foreground">Sua conta de demonstração está pronta. Agora você já pode conhecer a operação do Mercado Fácil.</p>
+          <p className="mx-auto mt-3 max-w-md text-base leading-7 text-muted-foreground">Sua conta e sua empresa já estão gravadas no Mercado Fácil.</p>
           <div className="mt-7 rounded-md bg-muted p-4 text-left"><span className="text-sm text-muted-foreground">Empresa</span><strong className="mt-1 block">{data.tradeName}</strong></div>
           <Button className="mt-7 w-full sm:w-auto" onClick={onComplete}>Acessar minha dashboard <ArrowRight className="h-4 w-4" /></Button>
         </section>
@@ -193,11 +301,14 @@ export function SignupFlow({ onBack, onComplete }: { onBack: () => void; onCompl
               {step === 3 && <Confirmation data={data} />}
             </div>
 
-            {saved && <p role="status" className="mt-4 rounded-md bg-primary-soft px-4 py-3 text-sm font-semibold text-primary">Progresso salvo nesta demonstração.</p>}
+            {saved && <p role="status" className="mt-4 rounded-md bg-primary-soft px-4 py-3 text-sm font-semibold text-primary">Progresso salvo neste aparelho por 7 dias.</p>}
+            {submitError && <p role="alert" className="mt-4 rounded-md bg-destructive/10 px-4 py-3 text-sm font-semibold text-destructive">{submitError}</p>}
             <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center">
               <Button variant="outline" onClick={step === 0 ? onBack : () => setStep((current) => current - 1)}><ArrowLeft className="h-4 w-4" /> Voltar</Button>
-              <Button variant="ghost" onClick={() => { setSaved(true); window.setTimeout(() => setSaved(false), 3000); }}><Save className="h-4 w-4" /> Salvar e continuar depois</Button>
-              <Button className="sm:ml-auto" onClick={step === 3 ? () => setSuccess(true) : next}>{step === 3 ? "Criar minha empresa" : "Continuar"} {step === 3 ? <Building2 className="h-4 w-4" /> : <ArrowRight className="h-4 w-4" />}</Button>
+              <Button variant="ghost" onClick={() => { saveDraft(); setSaved(true); window.setTimeout(() => setSaved(false), 3000); }}><Save className="h-4 w-4" /> Salvar e continuar depois</Button>
+              <Button className="sm:ml-auto" disabled={submitting} onClick={step === 3 ? () => void submit() : next}>
+                {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <>{step === 3 ? "Criar minha empresa" : "Continuar"} {step === 3 ? <Building2 className="h-4 w-4" /> : <ArrowRight className="h-4 w-4" />}</>}
+              </Button>
             </div>
           </section>
         </div>
@@ -237,7 +348,7 @@ function CompanyFields({ inputProps, errors }: FieldProps) {
     <div className="sm:col-span-2"><Field label="Razão social" field="legalName" error={errors["legalName"]}><input {...inputProps("legalName")} maxLength={160} className={inputClass} /></Field></div>
     <Field label="Nome fantasia" field="tradeName" error={errors["tradeName"]}><input {...inputProps("tradeName")} maxLength={120} className={inputClass} /></Field>
     <Field label="CNPJ" field="cnpj" error={errors["cnpj"]}><input {...inputProps("cnpj", maskCnpj)} inputMode="numeric" placeholder="00.000.000/0000-00" className={inputClass} /></Field>
-    <Field label="Inscrição estadual" field="stateRegistration" error={errors["stateRegistration"]}><input {...inputProps("stateRegistration")} maxLength={30} className={inputClass} /></Field>
+    <Field label="Inscrição estadual" field="stateRegistration" error={errors["stateRegistration"]} optional><input {...inputProps("stateRegistration")} maxLength={30} className={inputClass} /></Field>
     <Field label="Telefone" field="companyPhone" error={errors["companyPhone"]}><input {...inputProps("companyPhone", maskPhone)} inputMode="tel" placeholder="(00) 00000-0000" className={inputClass} /></Field>
     <div className="sm:col-span-2"><Field label="E-mail comercial" field="companyEmail" error={errors["companyEmail"]}><input {...inputProps("companyEmail")} type="email" maxLength={255} className={inputClass} /></Field></div>
     <Field label="CEP" field="zipCode" error={errors["zipCode"]}><input {...inputProps("zipCode", maskZip)} inputMode="numeric" placeholder="00000-000" className={inputClass} /></Field>
@@ -264,7 +375,7 @@ function SetupFields({ data, update, errors }: Omit<FieldProps, "inputProps">) {
 
 function Confirmation({ data }: { data: FormData }) {
   const groups = useMemo(() => [
-    { title: "Responsável", items: [["Nome", data.name], ["CPF", data.cpf], ["E-mail", data.email], ["WhatsApp", data.whatsapp]] },
+    { title: "Responsável", items: [["Nome", data.name], ["CPF", displayMaskedCpf(data.cpf)], ["E-mail", data.email], ["WhatsApp", data.whatsapp]] },
     { title: "Empresa", items: [["Nome fantasia", data.tradeName], ["Razão social", data.legalName], ["CNPJ", data.cnpj], ["Localização", `${data.city} · ${data.state}`]] },
     { title: "Configuração", items: [["Mercados", data.stores], ["Segmento", data.segment], ["Produtos", data.products], ["Sistema de PDV", data.hasPos === "Sim" ? data.posName : "Não possui"]] },
   ], [data]);

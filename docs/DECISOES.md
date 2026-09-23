@@ -47,6 +47,7 @@ Formato do registro: `Decisão:` + data + quem decidiu.
 |---|---|---|---|
 | DEC-B1-04 | Idade mínima do responsável | 18 anos. | **Aceita a sugestão** (23/09/2026, proprietário) |
 | DEC-B1-05 | 'Salvar e continuar depois' no cadastro: por quanto tempo o rascunho vale? | 7 dias, salvo no próprio aparelho. | **Aceita a sugestão** (23/09/2026, proprietário) |
+| DEC-B1-08 | CPF e CNPJ devem ser mascarados nas telas? (RN-ACC-03, surgiu ao codificar) | CPF mascarado por padrão (mostra só os 3 últimos dígitos); CNPJ não é mascarado, pois já é um registro público (Receita Federal). | **Aplicada a sugestão** (23/09/2026, decisão automática — avise se quiser mudar) |
 
 ### B1.5 — Convites e vínculos da equipe
 
