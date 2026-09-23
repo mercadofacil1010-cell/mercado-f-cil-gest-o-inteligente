@@ -1,6 +1,5 @@
 // Gerado a partir do banco Supabase (mercado_facil1010). Não edite manualmente:
 // após cada migração, gere novamente com o gerador de tipos do Supabase.
-
 export type Json =
   | string
   | number
@@ -17,6 +16,72 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_log: {
+        Row: {
+          action: Database["public"]["Enums"]["audit_action"]
+          actor_id: string | null
+          actor_role: string | null
+          after: Json | null
+          before: Json | null
+          changed_fields: string[] | null
+          company_id: string | null
+          context: Json
+          entity: string
+          entity_id: string | null
+          id: number
+          market_id: string | null
+          market_timezone: string | null
+          occurred_at: string
+        }
+        Insert: {
+          action: Database["public"]["Enums"]["audit_action"]
+          actor_id?: string | null
+          actor_role?: string | null
+          after?: Json | null
+          before?: Json | null
+          changed_fields?: string[] | null
+          company_id?: string | null
+          context?: Json
+          entity: string
+          entity_id?: string | null
+          id?: never
+          market_id?: string | null
+          market_timezone?: string | null
+          occurred_at?: string
+        }
+        Update: {
+          action?: Database["public"]["Enums"]["audit_action"]
+          actor_id?: string | null
+          actor_role?: string | null
+          after?: Json | null
+          before?: Json | null
+          changed_fields?: string[] | null
+          company_id?: string | null
+          context?: Json
+          entity?: string
+          entity_id?: string | null
+          id?: never
+          market_id?: string | null
+          market_timezone?: string | null
+          occurred_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_log_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_log_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "markets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       companies: {
         Row: {
           account_status: Database["public"]["Enums"]["account_status"]
@@ -135,6 +200,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      login_attempts: {
+        Row: {
+          attempted_at: string
+          email: string
+          id: number
+          success: boolean
+        }
+        Insert: {
+          attempted_at?: string
+          email: string
+          id?: never
+          success: boolean
+        }
+        Update: {
+          attempted_at?: string
+          email?: string
+          id?: never
+          success?: boolean
+        }
+        Relationships: []
       }
       markets: {
         Row: {
@@ -326,6 +412,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_login_lock: { Args: { p_email: string }; Returns: Json }
       create_company: {
         Args: {
           p_city?: string
@@ -351,9 +438,28 @@ export type Database = {
       }
       is_valid_cnpj: { Args: { value: string }; Returns: boolean }
       is_valid_cpf: { Args: { value: string }; Returns: boolean }
+      log_audit_event: {
+        Args: {
+          p_company_id?: string
+          p_details?: Json
+          p_entity: string
+          p_entity_id?: string
+          p_market_id?: string
+        }
+        Returns: number
+      }
+      log_security_event: {
+        Args: { p_details?: Json; p_entity: string }
+        Returns: number
+      }
+      register_login_attempt: {
+        Args: { p_email: string; p_success: boolean }
+        Returns: undefined
+      }
     }
     Enums: {
       account_status: "pending" | "active" | "blocked" | "cancelled"
+      audit_action: "insert" | "update" | "delete" | "event"
       market_status:
         | "draft"
         | "awaiting_billing"
@@ -497,6 +603,7 @@ export const Constants = {
   public: {
     Enums: {
       account_status: ["pending", "active", "blocked", "cancelled"],
+      audit_action: ["insert", "update", "delete", "event"],
       market_status: [
         "draft",
         "awaiting_billing",

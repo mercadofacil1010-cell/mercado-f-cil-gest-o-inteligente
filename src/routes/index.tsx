@@ -1,10 +1,11 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import {
   ArrowRight,
   Check,
   Eye,
   EyeOff,
+  Loader2,
 } from "lucide-react";
 import operationsImage from "@/assets/mercado-facil-operations.jpg";
 import { BrandLogo } from "@/components/brand-logo";
@@ -12,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { SignupFlow } from "@/components/signup-flow";
 import { OwnerDashboard } from "@/components/owner-dashboard";
 import { StockerApp } from "@/components/stocker-app";
+import { useAuth } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -30,22 +32,68 @@ export const Route = createFileRoute("/")({
 type View = "login" | "signup" | "dashboard" | "stocker";
 
 function MercadoFacil() {
+  const { session, loading, signOut } = useAuth();
   const [view, setView] = useState<View>("login");
   const [stockerReturn, setStockerReturn] = useState<View>("login");
+
+  // Sessão real (B1.1): quando ela existe (login ou recarregar a página com sessão salva),
+  // a dashboard aparece sem precisar passar pela tela de login de novo.
+  useEffect(() => {
+    if (session && view === "login") setView("dashboard");
+    if (!session && view === "dashboard") setView("login");
+  }, [session, view]);
+
   const openStocker = (from: View) => { setStockerReturn(from); setView("stocker"); window.scrollTo({ top: 0 }); };
+
+  if (loading) {
+    return (
+      <div className="grid min-h-screen place-items-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
   if (view === "signup") return <SignupFlow onBack={() => setView("login")} onComplete={() => setView("dashboard")} />;
   if (view === "stocker") return <StockerApp onExit={() => setView(stockerReturn)} />;
-  return view === "dashboard" ? <OwnerDashboard onLogout={() => setView("login")} onOpenStocker={() => openStocker("dashboard")} /> : <Login onLogin={() => setView("dashboard")} onSignup={() => setView("signup")} onEmployee={() => openStocker("login")} />;
+  return view === "dashboard" || session
+    ? <OwnerDashboard onLogout={() => { void signOut(); setView("login"); }} onOpenStocker={() => openStocker("dashboard")} />
+    : <Login onSignup={() => setView("signup")} onEmployee={() => openStocker("login")} />;
 }
 
-function Login({ onLogin, onSignup, onEmployee }: { onLogin: () => void; onSignup: () => void; onEmployee: () => void }) {
+function Login({ onSignup, onEmployee }: { onSignup: () => void; onEmployee: () => void }) {
   const navigate = useNavigate();
+  const { signIn, requestPasswordReset } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    onLogin();
+    setError("");
+    setNotice("");
+    setSubmitting(true);
+    const result = await signIn(email, password);
+    setSubmitting(false);
+    if (result.ok) return;
+    if (result.reason === "locked") {
+      const minutes = Math.ceil(result.retryAfterSeconds / 60);
+      setError(`Muitas tentativas erradas. Tente novamente em ${minutes} minuto${minutes === 1 ? "" : "s"}.`);
+      return;
+    }
+    setError(result.message);
+  }
+
+  async function handleForgotPassword() {
+    setError("");
+    if (!email.trim()) {
+      setError("Informe seu e-mail para recuperar a senha.");
+      return;
+    }
+    const result = await requestPasswordReset(email);
+    setNotice(result.message);
   }
 
   return (
@@ -87,15 +135,15 @@ function Login({ onLogin, onSignup, onEmployee }: { onLogin: () => void; onSignu
             <p className="mt-2 text-base text-muted-foreground">Entre com seus dados para continuar.</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={(event) => void handleSubmit(event)} className="space-y-5">
             <label className="block">
               <span className="mb-2 block text-sm font-semibold text-foreground">E-mail</span>
-              <input required type="email" defaultValue="gestor@mercadofacil.com.br" className="h-12 w-full rounded-md border border-input bg-card px-4 text-base text-foreground outline-none transition focus:border-primary focus:ring-3 focus:ring-primary/15" />
+              <input required type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="username" className="h-12 w-full rounded-md border border-input bg-card px-4 text-base text-foreground outline-none transition focus:border-primary focus:ring-3 focus:ring-primary/15" />
             </label>
             <label className="block">
               <span className="mb-2 block text-sm font-semibold text-foreground">Senha</span>
               <div className="relative">
-                <input required type={showPassword ? "text" : "password"} defaultValue="mercado123" className="h-12 w-full rounded-md border border-input bg-card px-4 pr-12 text-base text-foreground outline-none transition focus:border-primary focus:ring-3 focus:ring-primary/15" />
+                <input required type={showPassword ? "text" : "password"} value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" className="h-12 w-full rounded-md border border-input bg-card px-4 pr-12 text-base text-foreground outline-none transition focus:border-primary focus:ring-3 focus:ring-primary/15" />
                 <Button type="button" variant="ghost" className="absolute right-1 top-0 h-12 min-h-0 w-11 px-0" onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}>
                   {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </Button>
@@ -105,16 +153,19 @@ function Login({ onLogin, onSignup, onEmployee }: { onLogin: () => void; onSignu
               <label className="flex min-w-0 items-center gap-2.5 text-muted-foreground">
                 <input type="checkbox" defaultChecked className="h-4 w-4 shrink-0 accent-primary" /> Lembrar acesso
               </label>
-              <button type="button" onClick={() => setNotice("Enviaremos as instruções para o e-mail cadastrado.")} className="font-semibold text-primary hover:underline">Esqueci minha senha</button>
+              <button type="button" onClick={() => void handleForgotPassword()} className="font-semibold text-primary hover:underline">Esqueci minha senha</button>
             </div>
+            {error && <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
             {notice && <p role="status" className="rounded-md bg-accent px-3 py-2 text-sm text-accent-foreground">{notice}</p>}
-            <Button type="submit" className="w-full">Entrar <ArrowRight className="h-4 w-4" /></Button>
+            <Button type="submit" disabled={submitting} className="w-full">
+              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Entrar <ArrowRight className="h-4 w-4" /></>}
+            </Button>
           </form>
 
           <div className="my-6 flex items-center gap-4 text-xs font-semibold uppercase text-muted-foreground before:h-px before:flex-1 before:bg-border after:h-px after:flex-1 after:bg-border">ou continue com</div>
           <div className="grid gap-3 sm:grid-cols-2">
-            <Button variant="outline" onClick={onLogin}><span className="text-lg font-extrabold text-google">G</span> Continuar com Google</Button>
-            <Button variant="outline" onClick={onLogin}><span className="grid h-5 w-5 place-items-center rounded-full bg-facebook text-xs font-extrabold text-social-foreground">f</span> Continuar com Facebook</Button>
+            <Button variant="outline" onClick={() => setNotice("Login com Google chega na etapa B1.3.")}><span className="text-lg font-extrabold text-google">G</span> Continuar com Google</Button>
+            <Button variant="outline" onClick={() => setNotice("Login com Facebook chega na etapa B1.3.")}><span className="grid h-5 w-5 place-items-center rounded-full bg-facebook text-xs font-extrabold text-social-foreground">f</span> Continuar com Facebook</Button>
           </div>
           <p className="mt-7 text-center text-sm text-muted-foreground">Ainda não possui acesso? <button type="button" onClick={onSignup} className="font-bold text-primary hover:underline">Criar minha conta</button></p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 border-t border-border pt-6 text-center">
@@ -126,4 +177,3 @@ function Login({ onLogin, onSignup, onEmployee }: { onLogin: () => void; onSignu
     </main>
   );
 }
-

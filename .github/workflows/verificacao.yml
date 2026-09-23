@@ -1,0 +1,49 @@
+# Verificação automática a cada mudança (B0.3).
+# Roda tipos, formato, build e os testes das regras do banco.
+name: Verificação
+
+on:
+  push:
+    branches: [main, "claude/**"]
+  pull_request:
+    branches: [main]
+
+jobs:
+  app:
+    name: Tipos, lint e build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - name: Checagem de tipos
+        run: bunx tsc --noEmit
+      - name: Lint (sem regras de formatação)
+        run: bunx eslint src --rule '{"prettier/prettier":"off"}' --max-warnings 0
+      - name: Build de produção
+        run: bun run build
+
+  banco:
+    name: Regras do banco (RLS, gatilhos e auditoria)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+        ports: ["5432:5432"]
+    env:
+      PGHOST: localhost
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGPASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Instalar cliente do Postgres
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - name: Rodar os testes do banco
+        run: supabase/tests/run.sh
