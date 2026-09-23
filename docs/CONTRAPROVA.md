@@ -6,7 +6,7 @@ Cada linha aponta a etapa do plano (`docs/PLANO_FECHAMENTO.md`) em que o item é
 **Status:** `Pendente` → `Em andamento` → `Feito` (com evidência). `Parcial` = começou, falta completar. `Adiado` = decisão formal de tirar da versão.  
 **Decisão?** `Sim` = o item tem [A DEFINIR]; a decisão precisa estar registrada em `docs/DECISOES.md` antes de codificar.
 
-Total de itens rastreados: **426** · Feito: **107** · Parcial: **22**
+Total de itens rastreados: **426** · Feito: **112** · Parcial: **21**
 
 | Bloco                          | Itens |
 | ------------------------------ | ----- |
@@ -268,7 +268,7 @@ As tabelas `categories` e `brands` também foram criadas nesta etapa (mesmo padr
 | RN-CRT-VAL-02 | FIFO: para produto sem validade, sugerir primeiro a entrada mais antiga. Política obrigatória está [A DEFINIR].                                                         | Sim      | Feito    | PR B3.3 · decisão em DECISOES.md; mesma fórmula de ordenação usa `created_at` quando não há validade |
 | RN-CRT-VAL-03 | Alertar em 90, 60 e 30 dias antes do vencimento.                                                                                                                        |          | Parcial  | PR B3.3 · dado pronto na view `expiring_lots`; tela de alerta ainda não construída |
 | RN-CRT-VAL-04 | No vencimento, o produto deve sair da disponibilidade. Bloqueio automático de venda/movimentação está [A DEFINIR].                                                      | Sim      | Feito    | PR B3.3 · decisão em DECISOES.md (PA-19); lote vencido é recusado em saída, só aceita perda (descarte), testado |
-| RN-CRT-VAL-05 | Descarte exige movimento de perda, quantidade, motivo, responsável e aprovação conforme política.                                                                       |          | Parcial  | PR B3.3 · perda com motivo (`reference`) e responsável (auditoria) já existem; aprovação por limite é o próprio B3.4, ainda não construído |
+| RN-CRT-VAL-05 | Descarte exige movimento de perda, quantidade, motivo, responsável e aprovação conforme política.                                                                       |          | Feito    | PR B3.4 · perda/ajuste acima do limite da empresa fica pendente até aprovação (dono/gerente, nunca quem pediu), testado |
 | PA-18         | FEFO será obrigatório? — Sugestão do documento: obrigatório para produtos com validade, permitindo exceção autorizada.                                                  | Sim      | Feito    | PR B3.3 · decisão em DECISOES.md |
 | PA-19         | Produto vencido bloqueia venda automaticamente? — Sugestão do documento: bloquear disponibilidade e gerar tarefa de retirada; integração com PDV depende de capacidade. | Sim      | Feito    | PR B3.3 · decisão em DECISOES.md; "tarefa de retirada" = view `expiring_lots` filtrando vencidos com saldo |
 
@@ -276,10 +276,10 @@ As tabelas `categories` e `brands` também foram criadas nesta etapa (mesmo padr
 
 | ID        | Item                                                                                                              | Decisão? | Status   | Evidência |
 | --------- | ----------------------------------------------------------------------------------------------------------------- | -------- | -------- | --------- |
-| RF-LOT-05 | Registrar perda, motivo, quantidade, evidência e aprovação.                                                       |          | Pendente |           |
-| RN-LOT-05 | Perda aprovada reduz o saldo do lote e gera movimento imutável de saída por perda.                                |          | Pendente |           |
-| RN-EST-06 | Ajuste exige justificativa e aprovação conforme limite [A DEFINIR].                                               | Sim      | Pendente |           |
-| PA-21     | Como aprovar perdas e ajustes? — Sugestão do documento: limites por quantidade e valor, com foto acima do limite. | Sim      | Pendente |           |
+| RF-LOT-05 | Registrar perda, motivo, quantidade, evidência e aprovação.                                                       |          | Feito    | PR B3.4 · `pending_stock_adjustments` guarda motivo/evidência (texto) e fica pendente até aprovar; testado |
+| RN-LOT-05 | Perda aprovada reduz o saldo do lote e gera movimento imutável de saída por perda.                                |          | Feito    | PR B3.4 · `approve_pending_stock_adjustment` só então insere em `stock_movements` (ledger imutável), com o lote preservado; testado |
+| RN-EST-06 | Ajuste exige justificativa e aprovação conforme limite [A DEFINIR].                                               | Sim      | Feito    | PR B3.4 · decisão em DECISOES.md; ajuste (positivo ou negativo) acima do limite da empresa também passa por aprovação, testado |
+| PA-21     | Como aprovar perdas e ajustes? — Sugestão do documento: limites por quantidade e valor, com foto acima do limite. | Sim      | Feito    | PR B3.4 · decisão em DECISOES.md; limite só por quantidade (sem preço no catálogo ainda), evidência por texto (foto real fica pro B5.4) |
 
 ## B3.5 — Transferências internas e entre mercados
 

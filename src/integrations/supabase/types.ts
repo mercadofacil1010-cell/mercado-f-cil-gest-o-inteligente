@@ -165,6 +165,7 @@ export type Database = {
           has_pos: boolean
           id: string
           legal_name: string
+          loss_adjustment_approval_threshold: number
           number: string | null
           phone: string | null
           pos_name: string | null
@@ -191,6 +192,7 @@ export type Database = {
           has_pos?: boolean
           id?: string
           legal_name: string
+          loss_adjustment_approval_threshold?: number
           number?: string | null
           phone?: string | null
           pos_name?: string | null
@@ -217,6 +219,7 @@ export type Database = {
           has_pos?: boolean
           id?: string
           legal_name?: string
+          loss_adjustment_approval_threshold?: number
           number?: string | null
           phone?: string | null
           pos_name?: string | null
@@ -695,6 +698,89 @@ export type Database = {
           },
         ]
       }
+      pending_stock_adjustments: {
+        Row: {
+          created_at: string
+          id: string
+          lot_id: string | null
+          product_id: string
+          quantity: number
+          reason: string
+          reference: string | null
+          requested_by: string
+          resolution_note: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          resulting_movement_id: string | null
+          status: Database["public"]["Enums"]["pending_adjustment_status"]
+          type: Database["public"]["Enums"]["stock_movement_type"]
+          warehouse_address_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          lot_id?: string | null
+          product_id: string
+          quantity: number
+          reason: string
+          reference?: string | null
+          requested_by: string
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          resulting_movement_id?: string | null
+          status?: Database["public"]["Enums"]["pending_adjustment_status"]
+          type: Database["public"]["Enums"]["stock_movement_type"]
+          warehouse_address_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          lot_id?: string | null
+          product_id?: string
+          quantity?: number
+          reason?: string
+          reference?: string | null
+          requested_by?: string
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          resulting_movement_id?: string | null
+          status?: Database["public"]["Enums"]["pending_adjustment_status"]
+          type?: Database["public"]["Enums"]["stock_movement_type"]
+          warehouse_address_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pending_stock_adjustments_lot_id_fkey"
+            columns: ["lot_id"]
+            isOneToOne: false
+            referencedRelation: "lots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pending_stock_adjustments_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pending_stock_adjustments_resulting_movement_id_fkey"
+            columns: ["resulting_movement_id"]
+            isOneToOne: false
+            referencedRelation: "stock_movements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pending_stock_adjustments_warehouse_address_id_fkey"
+            columns: ["warehouse_address_id"]
+            isOneToOne: false
+            referencedRelation: "warehouse_addresses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       platform_admins: {
         Row: {
           created_at: string
@@ -1161,6 +1247,10 @@ export type Database = {
     }
     Functions: {
       accept_invite: { Args: { p_token: string }; Returns: string }
+      approve_pending_stock_adjustment: {
+        Args: { p_id: string; p_note?: string }
+        Returns: Database["public"]["Tables"]["stock_movements"]["Row"]
+      }
       check_login_lock: { Args: { p_email: string }; Returns: Json }
       create_company: {
         Args: {
@@ -1243,7 +1333,11 @@ export type Database = {
           p_type: Database["public"]["Enums"]["stock_movement_type"]
           p_warehouse_address_id: string
         }
-        Returns: Database["public"]["Tables"]["stock_movements"]["Row"]
+        Returns: Json
+      }
+      reject_pending_stock_adjustment: {
+        Args: { p_id: string; p_note: string }
+        Returns: Database["public"]["Tables"]["pending_stock_adjustments"]["Row"]
       }
       resend_invite: { Args: { p_invite_id: string }; Returns: undefined }
       reverse_stock_movement: {
@@ -1285,6 +1379,7 @@ export type Database = {
         | "inactive"
       member_role: "owner" | "manager" | "receiver" | "stocker"
       member_status: "active" | "invited" | "disabled"
+      pending_adjustment_status: "pending" | "approved" | "rejected"
       stock_movement_type:
         | "entrada"
         | "saida"
@@ -1440,6 +1535,7 @@ export const Constants = {
       ],
       member_role: ["owner", "manager", "receiver", "stocker"],
       member_status: ["active", "invited", "disabled"],
+      pending_adjustment_status: ["pending", "approved", "rejected"],
       stock_movement_type: [
         "entrada",
         "saida",

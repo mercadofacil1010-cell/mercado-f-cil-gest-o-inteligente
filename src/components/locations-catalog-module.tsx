@@ -39,11 +39,15 @@ import {
   type WarehouseAddressFormData,
 } from "@/lib/locations-api";
 import {
+  approvePendingAdjustment,
+  listPendingAdjustments,
   listStockBalances,
   listStockMovements,
   registerStockMovement,
+  rejectPendingAdjustment,
   reverseStockMovement,
   stockMovementTypeLabel,
+  type PendingAdjustment,
   type StockBalance,
   type StockMovement,
   type StockMovementType,
@@ -1053,6 +1057,7 @@ function MovementsDialog({
 }) {
   const [balances, setBalances] = useState<StockBalance[]>([]);
   const [movements, setMovements] = useState<StockMovement[]>([]);
+  const [pendingAdjustments, setPendingAdjustments] = useState<PendingAdjustment[]>([]);
   const [lots, setLots] = useState<Lot[]>([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState(emptyMovementForm);
@@ -1063,17 +1068,22 @@ function MovementsDialog({
   const [reversingId, setReversingId] = useState<string | null>(null);
   const [reverseReason, setReverseReason] = useState("");
   const [reversing, setReversing] = useState(false);
+  const [resolvingId, setResolvingId] = useState<string | null>(null);
+  const [resolveNote, setResolveNote] = useState("");
+  const [resolving, setResolving] = useState(false);
 
   const selectedProduct = products.find((product) => product.id === form.productId) ?? null;
 
   const reload = async () => {
     setLoading(true);
-    const [balanceList, movementList] = await Promise.all([
+    const [balanceList, movementList, pendingList] = await Promise.all([
       listStockBalances(address.id),
       listStockMovements(address.id),
+      listPendingAdjustments(address.id),
     ]);
     setBalances(balanceList);
     setMovements(movementList);
+    setPendingAdjustments(pendingList);
     setLoading(false);
   };
 
@@ -1158,10 +1168,35 @@ function MovementsDialog({
     setForm(emptyMovementForm);
     setNeedsReason(false);
     setCreatingLot(false);
-    notify("Movimento registrado.");
+    notify(
+      result.pending
+        ? "Acima do limite da empresa — enviado para aprovação. O estoque só muda quando for aprovado."
+        : "Movimento registrado.",
+    );
     void reload();
     if (selectedProduct?.tracksBatchExpiry)
       void listLots(address.id, selectedProduct.id).then(setLots);
+  };
+
+  const handleResolve = async (id: string, decision: "approve" | "reject") => {
+    if (decision === "reject" && !resolveNote.trim()) {
+      notify("Informe o motivo da recusa.");
+      return;
+    }
+    setResolving(true);
+    const result =
+      decision === "approve"
+        ? await approvePendingAdjustment(id, resolveNote || undefined)
+        : await rejectPendingAdjustment(id, resolveNote);
+    setResolving(false);
+    if (!result.ok) {
+      notify(result.message);
+      return;
+    }
+    setResolvingId(null);
+    setResolveNote("");
+    notify(decision === "approve" ? "Pedido aprovado." : "Pedido recusado.");
+    void reload();
   };
 
   const handleReverse = async (movementId: string) => {
@@ -1370,6 +1405,64 @@ function MovementsDialog({
                 </Button>
               </div>
             </div>
+            {pendingAdjustments.length > 0 && (
+              <div className="space-y-2 rounded-md border border-warning/40 bg-warning/5 p-3">
+                <p className="text-sm font-semibold">Pendentes de aprovação</p>
+                {pendingAdjustments.map((pending) => (
+                  <div
+                    key={pending.id}
+                    className="rounded-md border border-border bg-card p-2 text-sm"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div>
+                        <strong>{pending.productName}</strong>
+                        <span className="ml-2 text-muted-foreground">
+                          {stockMovementTypeLabel[pending.type]}
+                        </span>
+                        <div>
+                          {pending.quantity > 0 ? "+" : ""}
+                          {pending.quantity} · {pending.reason}
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() =>
+                          setResolvingId(resolvingId === pending.id ? null : pending.id)
+                        }
+                      >
+                        Analisar
+                      </Button>
+                    </div>
+                    {resolvingId === pending.id && (
+                      <div className="mt-2 flex gap-2">
+                        <input
+                          value={resolveNote}
+                          onChange={(event) => setResolveNote(event.target.value)}
+                          placeholder="Observação (obrigatória para recusar)"
+                          className="h-9 min-w-0 flex-1 rounded-md border border-input bg-card px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+                        />
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={resolving}
+                          onClick={() => void handleResolve(pending.id, "reject")}
+                        >
+                          Recusar
+                        </Button>
+                        <Button
+                          size="sm"
+                          disabled={resolving}
+                          onClick={() => void handleResolve(pending.id, "approve")}
+                        >
+                          {resolving ? <RefreshCw className="h-4 w-4 animate-spin" /> : "Aprovar"}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
             <div className="space-y-2">
               <p className="text-sm font-semibold">Extrato</p>
               {movements.length === 0 ? (
