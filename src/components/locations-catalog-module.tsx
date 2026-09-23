@@ -464,11 +464,12 @@ function AddressDialog({
             {field("Depósito", "warehouseName")}
             {field("Setor", "sector")}
           </div>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
             {field("Rua", "street")}
             {field("Corredor", "aisle")}
             {field("Estante", "shelf")}
-            {field("Nível/Posição", "position")}
+            {field("Nível", "level")}
+            {field("Posição", "position")}
           </div>
           <div className="grid grid-cols-2 gap-3">
             {field("Código único", "code")}
