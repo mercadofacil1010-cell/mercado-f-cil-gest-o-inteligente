@@ -121,3 +121,37 @@ estoques.
 **Status:** registrado como regra oficial. Aguardando os demais prompts do
 proprietário antes de reavaliar o impacto completo no plano e na
 documentação.
+
+## Correção 4 — Regra de conduta obrigatória para toda a construção (23/09/2026)
+
+Esta correção não é sobre a arquitetura do produto — é sobre **como eu (Claude)
+devo trabalhar** neste projeto a partir de agora. Vale para todo o resto do
+plano, não só para o que já foi decidido.
+
+**Proibido, sem autorização explícita do proprietário:**
+- Redesenhar o produto por conta própria.
+- Substituir uma função definida por uma alternativa que eu considere melhor.
+- Eliminar uma função por considerar desnecessária.
+- Inventar regra de negócio que não foi definida.
+- Simplificar um fluxo sem autorização.
+- Transformar o App do Repositor, o App do Conferente ou o App do Dono em
+  telas do painel administrativo (reforça a Correção 1).
+
+**Obrigatório:**
+- Quando faltar uma definição, marcar claramente como
+  **PENDÊNCIA DE DEFINIÇÃO** e não decidir sozinho — nem como "sugestão
+  aplicada automaticamente" (esse padrão usado em algumas decisões do B1,
+  como DEC-B1-08 e DEC-B1-09, fica descontinuado a partir de agora: essas
+  duas ficam valendo como estão, mas nenhuma decisão nova entra assim).
+- A futura Documentação Mestre é a fonte oficial de verdade do Mercado
+  Fácil. Toda implementação deve ser comparada com ela.
+- Construir o sistema exatamente como o proprietário definiu, não como um
+  modelo genérico de sistema de supermercado.
+
+**Efeito prático imediato:** em `docs/DECISOES.md`, itens sem decisão do
+proprietário continuam com sugestão registrada (para agilizar quando ele for
+decidir), mas passam a exigir resposta explícita antes de qualquer código —
+nunca mais "aplicada automaticamente". O mesmo vale para qualquer ponto novo
+que aparecer nas próximas etapas do plano.
+
+**Status:** registrado como regra de conduta oficial, em vigor imediatamente.
