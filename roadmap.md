@@ -13,7 +13,13 @@
 - [x] Prompt 9 — Aplicativo do repositor
 - [x] Prompt 10 — Painel administrativo da plataforma (`/admin`) e revisão geral
 
-## Próxima fase
+## Fase 2 — Sistema funcional
 
-- [ ] Revisão técnica e planejamento para deixar o sistema funcional
-  (banco de dados, autenticação, pagamentos e integrações)
+- [x] Etapa 1 — Fundação: Supabase conectado, estrutura multiempresa e regras de acesso (RLS)
+- [ ] Etapa 2 — Login e cadastro reais
+- [ ] Etapa 3 — Mercados e produtos no banco
+- [ ] Etapa 4 — Estoque e endereçamento
+- [ ] Etapa 5 — Recebimento com conferência cega
+- [ ] Etapa 6 — Aplicativo do repositor
+- [ ] Etapa 7 — Dashboards e relatórios com dados reais
+- [ ] Etapa 8 — Cobrança e administração da plataforma
