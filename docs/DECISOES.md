@@ -75,7 +75,8 @@ A "matriz de permissões (seção 2.2)" da Documentação Funcional Completa ori
 
 | ID | Pergunta | Sugestão | Decisão |
 |---|---|---|---|
-| PA-44 | Administrador pode acessar dados do cliente para suporte? | somente com consentimento, prazo, justificativa e auditoria. | _pendente_ |
+| G-08 | Como o administrador da plataforma é criado? | Já decidido desde o B0.1: só por SQL/painel do Supabase (comentário da tabela `platform_admins`), nunca por uma tela do site — evita abrir uma porta de escalação de privilégio. Não é uma decisão nova, só ficou sem uma rota que de fato a aplicasse até o B1.7. | **Aceita a sugestão** (23/09/2026, decisão já registrada desde o B0.1) |
+| PA-44 | Administrador pode acessar dados do cliente para suporte? | somente com consentimento, prazo, justificativa e auditoria. | **PENDÊNCIA DE DEFINIÇÃO** — o painel admin ainda não acessa nenhum dado real de cliente (só dados fictícios), então isso só precisa ser decidido quando essa integração for construída |
 
 
 ## Bloco B2
