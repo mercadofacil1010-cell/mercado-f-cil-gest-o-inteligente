@@ -6,7 +6,7 @@ Cada linha aponta a etapa do plano (`docs/PLANO_FECHAMENTO.md`) em que o item é
 **Status:** `Pendente` → `Em andamento` → `Feito` (com evidência). `Parcial` = começou, falta completar. `Adiado` = decisão formal de tirar da versão.  
 **Decisão?** `Sim` = o item tem [A DEFINIR]; a decisão precisa estar registrada em `docs/DECISOES.md` antes de codificar.
 
-Total de itens rastreados: **426** · Feito: **47** · Parcial: **3**
+Total de itens rastreados: **426** · Feito: **47** · Parcial: **5**
 
 | Bloco | Itens |
 |---|---|
@@ -100,8 +100,8 @@ Total de itens rastreados: **426** · Feito: **47** · Parcial: **3**
 
 | ID | Item | Decisão? | Status | Evidência |
 |---|---|---|---|---|
-| RF-ACC-02 | Disponibilizar login com conta Google e Facebook. |  | Pendente |  |
-| RN-ACC-04 | Login social deve associar a conta ao mesmo usuário quando o e-mail já existir; regra de confirmação [A DEFINIR]. | Sim | Pendente |  |
+| RF-ACC-02 | Disponibilizar login com conta Google e Facebook. |  | Parcial | PR B1.3 · código pronto (`signInWithProvider`); falta **ação manual do proprietário**: cadastrar as credenciais do Google/Facebook no painel do Supabase — não há API para isso |
+| RN-ACC-04 | Login social deve associar a conta ao mesmo usuário quando o e-mail já existir; regra de confirmação [A DEFINIR]. | Sim | Parcial | Decisão (DEC-B1-09): vincula automaticamente só com e-mail verificado pelo provedor (padrão do Supabase). Depende das credenciais acima para ser testado de ponta a ponta |
 
 ## B1.4 — Mercados reais (criar, editar, inativar, cards, troca de visão)
 

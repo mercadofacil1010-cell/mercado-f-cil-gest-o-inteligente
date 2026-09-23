@@ -57,6 +57,12 @@ Formato do registro: `Decisão:` + data + quem decidiu.
 | DEC-B1-06 | Prazo do convite | 7 dias; pode ser reenviado. | **Aceita a sugestão** (23/09/2026, proprietário) |
 | DEC-B1-07 | Gerente pode convidar quem? | Conferente e repositor, somente para os mercados dele. Gerente só é convidado pelo dono. | **Aceita a sugestão** (23/09/2026, proprietário) |
 
+### B1.3 — Login com Google e Facebook
+
+| ID | Pergunta | Sugestão | Decisão |
+|---|---|---|---|
+| DEC-B1-09 | Login social (RN-ACC-04): quando vincular à conta já existente com o mesmo e-mail? | Vincular automaticamente só quando o provedor confirma que o e-mail é verificado (padrão do Supabase; o Google sempre confirma, o Facebook nem sempre). Se não for possível confirmar, a pessoa entra primeiro com e-mail/senha e depois vincula — nunca cria duas contas silenciosamente para o mesmo e-mail. | **Aplicada a sugestão** (23/09/2026, decisão automática — avise se quiser mudar) |
+
 ### B1.7 — Acesso do administrador da plataforma
 
 | ID | Pergunta | Sugestão | Decisão |
