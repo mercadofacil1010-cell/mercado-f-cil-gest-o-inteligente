@@ -453,6 +453,54 @@ export type Database = {
         }
         Relationships: []
       }
+      lots: {
+        Row: {
+          batch_number: string
+          created_at: string
+          expires_at: string | null
+          id: string
+          product_id: string
+          status: Database["public"]["Enums"]["lot_status"]
+          updated_at: string
+          warehouse_address_id: string
+        }
+        Insert: {
+          batch_number: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          product_id: string
+          status?: Database["public"]["Enums"]["lot_status"]
+          updated_at?: string
+          warehouse_address_id: string
+        }
+        Update: {
+          batch_number?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          product_id?: string
+          status?: Database["public"]["Enums"]["lot_status"]
+          updated_at?: string
+          warehouse_address_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lots_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lots_warehouse_address_id_fkey"
+            columns: ["warehouse_address_id"]
+            isOneToOne: false
+            referencedRelation: "warehouse_addresses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       market_products: {
         Row: {
           created_at: string
@@ -817,6 +865,7 @@ export type Database = {
           created_at: string
           created_by: string
           id: string
+          lot_id: string | null
           product_id: string
           quantity: number
           reference: string | null
@@ -828,6 +877,7 @@ export type Database = {
           created_at?: string
           created_by: string
           id?: string
+          lot_id?: string | null
           product_id: string
           quantity: number
           reference?: string | null
@@ -839,6 +889,7 @@ export type Database = {
           created_at?: string
           created_by?: string
           id?: string
+          lot_id?: string | null
           product_id?: string
           quantity?: number
           reference?: string | null
@@ -847,6 +898,20 @@ export type Database = {
           warehouse_address_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "stock_movements_lot_id_fkey"
+            columns: ["lot_id"]
+            isOneToOne: false
+            referencedRelation: "expiring_lots"
+            referencedColumns: ["lot_id"]
+          },
+          {
+            foreignKeyName: "stock_movements_lot_id_fkey"
+            columns: ["lot_id"]
+            isOneToOne: false
+            referencedRelation: "lots"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "stock_movements_product_id_fkey"
             columns: ["product_id"]
@@ -981,6 +1046,72 @@ export type Database = {
       }
     }
     Views: {
+      expiring_lots: {
+        Row: {
+          balance: number | null
+          batch_number: string | null
+          days_until_expiry: number | null
+          expires_at: string | null
+          lot_id: string | null
+          product_id: string | null
+          status: Database["public"]["Enums"]["lot_status"] | null
+          warehouse_address_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lots_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lots_warehouse_address_id_fkey"
+            columns: ["warehouse_address_id"]
+            isOneToOne: false
+            referencedRelation: "warehouse_addresses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lot_balances: {
+        Row: {
+          balance: number | null
+          lot_id: string | null
+          product_id: string | null
+          warehouse_address_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_movements_lot_id_fkey"
+            columns: ["lot_id"]
+            isOneToOne: false
+            referencedRelation: "expiring_lots"
+            referencedColumns: ["lot_id"]
+          },
+          {
+            foreignKeyName: "stock_movements_lot_id_fkey"
+            columns: ["lot_id"]
+            isOneToOne: false
+            referencedRelation: "lots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movements_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movements_warehouse_address_id_fkey"
+            columns: ["warehouse_address_id"]
+            isOneToOne: false
+            referencedRelation: "warehouse_addresses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       market_product_balances: {
         Row: {
           balance: number | null
@@ -1073,6 +1204,15 @@ export type Database = {
           status: Database["public"]["Enums"]["invite_status"]
         }[]
       }
+      get_or_create_lot: {
+        Args: {
+          p_batch_number: string
+          p_expires_at?: string
+          p_product_id: string
+          p_warehouse_address_id: string
+        }
+        Returns: Database["public"]["Tables"]["lots"]["Row"]
+      }
       is_valid_cnpj: { Args: { value: string }; Returns: boolean }
       is_valid_cpf: { Args: { value: string }; Returns: boolean }
       log_audit_event: {
@@ -1095,6 +1235,7 @@ export type Database = {
       }
       register_stock_movement: {
         Args: {
+          p_lot_id?: string
           p_product_id: string
           p_quantity: number
           p_reason?: string
@@ -1121,6 +1262,10 @@ export type Database = {
         }
         Returns: Database["public"]["Tables"]["gondola_positions"]["Row"]
       }
+      update_lot_expiry: {
+        Args: { p_expires_at: string; p_id: string; p_reason: string }
+        Returns: Database["public"]["Tables"]["lots"]["Row"]
+      }
       update_warehouse_address_capacity: {
         Args: { p_capacity: number; p_id: string; p_reason: string }
         Returns: Database["public"]["Tables"]["warehouse_addresses"]["Row"]
@@ -1130,6 +1275,7 @@ export type Database = {
       account_status: "pending" | "active" | "blocked" | "cancelled"
       audit_action: "insert" | "update" | "delete" | "event"
       invite_status: "pending" | "accepted" | "revoked"
+      lot_status: "available" | "blocked"
       market_product_status: "active" | "blocked" | "inactive"
       market_status:
         | "draft"
@@ -1283,6 +1429,7 @@ export const Constants = {
       account_status: ["pending", "active", "blocked", "cancelled"],
       audit_action: ["insert", "update", "delete", "event"],
       invite_status: ["pending", "accepted", "revoked"],
+      lot_status: ["available", "blocked"],
       market_product_status: ["active", "blocked", "inactive"],
       market_status: [
         "draft",
