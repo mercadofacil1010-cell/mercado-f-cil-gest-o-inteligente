@@ -18,7 +18,7 @@
 O plano completo está em `docs/PLANO_FECHAMENTO.md`, a rastreabilidade de cada requisito em
 `docs/CONTRAPROVA.md` e as decisões pendentes em `docs/DECISOES.md`.
 
-- [ ] B0 — Fundação e governança (banco inicial já criado: tabelas, RLS e cliente Supabase)
+- [x] B0 — Fundação e governança — [checklist](docs/checklists/B0.md)
 - [ ] B1 — Acesso, empresa e equipe
 - [ ] B2 — Catálogo
 - [ ] B3 — Estoque, localização, lotes e validade
