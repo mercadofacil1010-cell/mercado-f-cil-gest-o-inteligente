@@ -125,6 +125,21 @@ export async function listProducts(companyId: string): Promise<Product[]> {
   );
 }
 
+/** Busca um produto pelo código de barras (usado pela importação de catálogo, B2.4, para casar linhas repetidas). */
+export async function findProductByBarcode(
+  companyId: string,
+  barcode: string,
+): Promise<Product | null> {
+  const { data, error } = await supabase
+    .from("products")
+    .select("*, categories(name), brands(name)")
+    .eq("company_id", companyId)
+    .eq("barcode", barcode)
+    .maybeSingle();
+  if (error || !data) return null;
+  return mapRowToProduct(data, data.categories?.name ?? "", data.brands?.name ?? "");
+}
+
 export async function listPackagings(productId: string): Promise<Packaging[]> {
   const { data, error } = await supabase
     .from("product_packagings")

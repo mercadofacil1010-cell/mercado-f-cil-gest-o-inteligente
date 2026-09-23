@@ -3,8 +3,8 @@
 // verdade (por mercado) ainda não existem — chegam no B2.3/B3. Esta tela
 // substitui, para "Produtos", os dados de demonstração do catálogo; "Estoque
 // consolidado" e "Validades" continuam com o módulo de demonstração até lá.
-import { useEffect, useState, type ReactNode } from "react";
-import { Package2, Plus, RefreshCw, Store, X } from "lucide-react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { Download, Package2, Plus, RefreshCw, Store, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -56,6 +56,12 @@ import {
   type MarketProductFormData,
   type MarketProductStatus,
 } from "@/lib/market-products-api";
+import {
+  buildTemplateCsv,
+  exportProductsCsv,
+  importProductsCsv,
+  type ImportResult,
+} from "@/lib/catalog-import-api";
 
 const emptyProductForm: ProductFormData = {
   name: "",
@@ -70,6 +76,16 @@ const emptyProductForm: ProductFormData = {
 };
 
 const NEW_OPTION = "__new__";
+
+function downloadCsv(filename: string, content: string) {
+  const blob = new Blob(["﻿" + content], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+}
 
 function Page({
   title,
@@ -112,6 +128,8 @@ export function ProductCatalogModule({
   const [editing, setEditing] = useState<Product | null>(null);
   const [managingPackagings, setManagingPackagings] = useState<Product | null>(null);
   const [managingMarketParams, setManagingMarketParams] = useState<Product | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   const reload = async () => {
     if (!companyId) {
@@ -153,15 +171,36 @@ export function ProductCatalogModule({
     void reload();
   };
 
+  const handleExport = async () => {
+    if (!companyId) return;
+    setExporting(true);
+    const csv = await exportProductsCsv(companyId);
+    setExporting(false);
+    downloadCsv("produtos.csv", csv);
+  };
+
   return (
     <Page
       title="Produtos"
       subtitle="Catálogo de produtos da rede: nome, categoria, marca e embalagens"
       action={
         companyId ? (
-          <Button onClick={() => setFormOpen(true)}>
-            <Plus className="h-4 w-4" /> Novo produto
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" disabled={exporting} onClick={() => void handleExport()}>
+              {exporting ? (
+                <RefreshCw className="h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4" />
+              )}{" "}
+              Exportar CSV
+            </Button>
+            <Button variant="outline" onClick={() => setImportOpen(true)}>
+              <Upload className="h-4 w-4" /> Importar CSV
+            </Button>
+            <Button onClick={() => setFormOpen(true)}>
+              <Plus className="h-4 w-4" /> Novo produto
+            </Button>
+          </div>
         ) : undefined
       }
     >
@@ -291,6 +330,15 @@ export function ProductCatalogModule({
           markets={markets}
           onClose={() => setManagingMarketParams(null)}
           notify={notify}
+        />
+      )}
+      {importOpen && companyId && (
+        <ImportCsvDialog
+          companyId={companyId}
+          onClose={() => setImportOpen(false)}
+          onImported={() => {
+            void reload();
+          }}
         />
       )}
     </Page>
@@ -1196,5 +1244,109 @@ function MarketParamForm({
         </Button>
       </div>
     </div>
+  );
+}
+
+function ImportCsvDialog({
+  companyId,
+  onClose,
+  onImported,
+}: {
+  companyId: string;
+  onClose: () => void;
+  onImported: () => void;
+}) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [fileName, setFileName] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [result, setResult] = useState<ImportResult | null>(null);
+  const [error, setError] = useState("");
+
+  const handleDownloadTemplate = () => {
+    downloadCsv("modelo-produtos.csv", buildTemplateCsv());
+  };
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setFileName(file.name);
+    setError("");
+    setResult(null);
+    setSubmitting(true);
+    const text = await file.text();
+    const importResult = await importProductsCsv(companyId, text);
+    setSubmitting(false);
+    setResult(importResult);
+    if (importResult.created + importResult.updated > 0) onImported();
+  };
+
+  return (
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
+      <DialogContent className="max-h-[85vh] max-w-[560px] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Importar produtos por CSV</DialogTitle>
+          <DialogDescription>
+            Cada linha vira um produto. Se o código de barras já existir, o produto é atualizado em
+            vez de duplicado.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <Button variant="outline" onClick={handleDownloadTemplate}>
+            <Download className="h-4 w-4" /> Baixar planilha modelo
+          </Button>
+          <div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv,text/csv"
+              onChange={(event) => void handleFileChange(event)}
+              className="block w-full text-sm file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-2 file:text-sm file:font-semibold file:text-primary-foreground"
+            />
+            {fileName && <p className="mt-1 text-xs text-muted-foreground">{fileName}</p>}
+          </div>
+          {submitting && (
+            <div className="grid place-items-center p-4">
+              <RefreshCw className="h-5 w-5 animate-spin text-muted-foreground" />
+            </div>
+          )}
+          {error && (
+            <p
+              role="alert"
+              className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive"
+            >
+              {error}
+            </p>
+          )}
+          {result && (
+            <div className="space-y-2 rounded-md border border-border p-3 text-sm">
+              <p>
+                <strong>{result.created}</strong> produto(s) criado(s),{" "}
+                <strong>{result.updated}</strong> atualizado(s),{" "}
+                <strong>{result.errors.length}</strong> erro(s).
+              </p>
+              {result.errors.length > 0 && (
+                <div className="max-h-[220px] space-y-1 overflow-y-auto">
+                  {result.errors.map((err, index) => (
+                    <p key={index} className="text-destructive">
+                      Linha {err.line}: {err.message}
+                    </p>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose}>
+            Fechar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

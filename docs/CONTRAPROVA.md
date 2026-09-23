@@ -6,7 +6,7 @@ Cada linha aponta a etapa do plano (`docs/PLANO_FECHAMENTO.md`) em que o item é
 **Status:** `Pendente` → `Em andamento` → `Feito` (com evidência). `Parcial` = começou, falta completar. `Adiado` = decisão formal de tirar da versão.  
 **Decisão?** `Sim` = o item tem [A DEFINIR]; a decisão precisa estar registrada em `docs/DECISOES.md` antes de codificar.
 
-Total de itens rastreados: **426** · Feito: **75** · Parcial: **8**
+Total de itens rastreados: **426** · Feito: **76** · Parcial: **9**
 
 | Bloco                          | Itens |
 | ------------------------------ | ----- |
@@ -205,8 +205,8 @@ As tabelas `categories` e `brands` também foram criadas nesta etapa (mesmo padr
 
 | ID         | Item                                                                                                                     | Decisão? | Status   | Evidência |
 | ---------- | ------------------------------------------------------------------------------------------------------------------------ | -------- | -------- | --------- |
-| RF-PROD-08 | Importar e exportar catálogo [A DEFINIR].                                                                                | Sim      | Pendente |           |
-| PA-45      | Haverá importação inicial de produtos e estoque? — Sugestão do documento: sim, com modelo validado e relatório de erros. | Sim      | Pendente |           |
+| RF-PROD-08 | Importar e exportar catálogo [A DEFINIR].                                                                                | Sim      | Feito    | PR B2.4 · decisões em DECISOES.md; `src/lib/catalog-import-api.ts` (CSV, planilha modelo, relatório de erros por linha); botões "Exportar CSV"/"Importar CSV" em `src/components/product-catalog-module.tsx` |
+| PA-45      | Haverá importação inicial de produtos e estoque? — Sugestão do documento: sim, com modelo validado e relatório de erros. | Sim      | Parcial  | Importação de produtos feita (PR B2.4); "estoque" ainda não existe de verdade (depende do B3) |
 
 ## B3.1 — Endereços de depósito e gôndola
 

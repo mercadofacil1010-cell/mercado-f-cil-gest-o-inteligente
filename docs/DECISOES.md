@@ -132,6 +132,9 @@ A "matriz de permissões (seção 2.2)" da Documentação Funcional Completa ori
 |---|---|---|---|
 | PA-45 | Haverá importação inicial de produtos e estoque? | sim, com modelo validado e relatório de erros. | **Aceita a sugestão** (23/09/2026, proprietário) |
 | RF-PROD-08 | Como deve funcionar a importação/exportação do catálogo? | Planilha modelo (CSV) para importar, com relatório de erros por linha; exportação também em CSV. | **Aceita a sugestão** (23/09/2026, proprietário) |
+| RF-PROD-08 (escopo) | A importação inclui só o produto ou também embalagens/conversões? | Só os dados do produto por enquanto (nome, código de barras, SKU, categoria, marca, unidade base, pesável, controla lote); a embalagem-base nasce automática, as demais continuam manuais. | **Aceita a sugestão** (23/09/2026, proprietário) |
+| RF-PROD-08 (duplicado) | Linha com código de barras já cadastrado na empresa: atualiza ou rejeita? | Atualiza o produto existente casando pelo código de barras; sem código de barras, sempre cria um produto novo. | **Aceita a sugestão** (23/09/2026, proprietário) |
+| RF-PROD-08 (categoria/marca nova) | Linha cita categoria/marca que ainda não existe: cria ou rejeita? | Cria automaticamente a categoria/marca pelo nome informado. | **Aceita a sugestão** (23/09/2026, proprietário) |
 
 
 ## Bloco B3
