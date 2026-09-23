@@ -5,14 +5,24 @@ import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { loadSignupDraft, clearSignupDraft } from "@/lib/signup-draft";
-import { completeCompanySignup, userHasCompany, type CompanySignupData } from "@/lib/complete-signup";
+import {
+  completeCompanySignup,
+  userHasCompany,
+  type CompanySignupData,
+} from "@/lib/complete-signup";
+import { loadPendingInvite, clearPendingInvite } from "@/lib/pending-invite";
+import { acceptInvite } from "@/lib/invites-api";
 
 type AuditRpc = "log_security_event" | "register_login_attempt";
 
 type LoginResult =
   | { ok: true }
   | { ok: false; reason: "locked"; retryAfterSeconds: number }
-  | { ok: false; reason: "invalid_credentials" | "email_not_confirmed" | "unknown"; message: string };
+  | {
+      ok: false;
+      reason: "invalid_credentials" | "email_not_confirmed" | "unknown";
+      message: string;
+    };
 
 type AuthContextValue = {
   session: Session | null;
@@ -21,7 +31,9 @@ type AuthContextValue = {
   signIn: (email: string, password: string) => Promise<LoginResult>;
   // Login social (B1.3, RF-ACC-02): redireciona para o provedor; a sessão volta
   // pela própria URL de retorno (detectSessionInUrl já configurado no cliente).
-  signInWithProvider: (provider: "google" | "facebook") => Promise<{ ok: boolean; message?: string }>;
+  signInWithProvider: (
+    provider: "google" | "facebook",
+  ) => Promise<{ ok: boolean; message?: string }>;
   signOut: () => Promise<void>;
   requestPasswordReset: (email: string) => Promise<{ ok: boolean; message: string }>;
   updatePassword: (newPassword: string) => Promise<{ ok: boolean; message: string }>;
@@ -39,7 +51,10 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 // Importante: no supabase-js, o "builder" retornado por .rpc(...) só dispara
 // a requisição quando é aguardado (await/.then); `void supabase.rpc(...)`
 // não envia nada. Por isso este auxiliar sempre aguarda, só engolindo o erro.
-async function logAuthEvent<T extends AuditRpc>(name: T, args: Database["public"]["Functions"][T]["Args"]) {
+async function logAuthEvent<T extends AuditRpc>(
+  name: T,
+  args: Database["public"]["Functions"][T]["Args"],
+) {
   try {
     await supabase.rpc(name, args);
   } catch {
@@ -59,7 +74,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const email = nextSession.user.email;
     if (!email) return;
     const draft = loadSignupDraft<CompanySignupData>();
-    if (!draft?.pendingCompanyForEmail || draft.pendingCompanyForEmail.toLowerCase() !== email.toLowerCase()) return;
+    if (
+      !draft?.pendingCompanyForEmail ||
+      draft.pendingCompanyForEmail.toLowerCase() !== email.toLowerCase()
+    )
+      return;
     if (await userHasCompany(nextSession.user.id)) {
       clearSignupDraft();
       return;
@@ -72,24 +91,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Se falhar, o rascunho continua salvo (até os 7 dias) para tentar de novo no próximo login.
   }
 
+  // Retoma o aceite de um convite (B1.5) que ficou pendente de confirmação de
+  // e-mail: assim que existir sessão, tenta aceitar com o token guardado.
+  async function resumePendingInvite() {
+    const token = loadPendingInvite();
+    if (!token) return;
+    const result = await acceptInvite(token);
+    if (result.ok) clearPendingInvite();
+    // Se falhar (token vencido, e-mail não bate etc.), o token continua salvo
+    // até expirar (7 dias) — a tela de convite mostra o erro se a pessoa voltar.
+  }
+
   useEffect(() => {
     let active = true;
     void supabase.auth.getSession().then(({ data }) => {
       if (!active) return;
       setSession(data.session);
       setLoading(false);
-      if (data.session) void resumePendingSignup(data.session);
+      if (data.session) {
+        void resumePendingSignup(data.session);
+        void resumePendingInvite();
+      }
     });
     const { data: subscription } = supabase.auth.onAuthStateChange((event, nextSession) => {
       setSession(nextSession);
       setLoading(false);
       if (event === "SIGNED_IN" && nextSession) {
         void resumePendingSignup(nextSession);
+        void resumePendingInvite();
         // Login por e-mail/senha já registra o próprio evento em signIn(); aqui
         // só o retorno do provedor social (Google/Facebook, RF-ACC-02).
         const provider = nextSession.user.app_metadata["provider"];
         if (typeof provider === "string" && provider !== "email") {
-          void logAuthEvent("log_security_event", { p_entity: "auth_login_success", p_details: { provider } });
+          void logAuthEvent("log_security_event", {
+            p_entity: "auth_login_success",
+            p_details: { provider },
+          });
         }
       }
     });
@@ -99,81 +136,130 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const value = useMemo<AuthContextValue>(() => ({
-    session,
-    user: session?.user ?? null,
-    loading,
+  const value = useMemo<AuthContextValue>(
+    () => ({
+      session,
+      user: session?.user ?? null,
+      loading,
 
-    async signIn(email, password) {
-      const normalizedEmail = email.trim();
+      async signIn(email, password) {
+        const normalizedEmail = email.trim();
 
-      // O bloqueio é decidido pelo banco (DEC-B1-01): consulta antes de tentar.
-      const { data: lockData, error: lockError } = await supabase.rpc("check_login_lock", {
-        p_email: normalizedEmail,
-      });
-      if (!lockError && lockData && typeof lockData === "object" && "locked" in lockData && lockData["locked"]) {
-        const retryAfterSecondsValue = lockData["retry_after_seconds"];
-        const retryAfterSeconds = typeof retryAfterSecondsValue === "number" ? retryAfterSecondsValue : 900;
-        await logAuthEvent("log_security_event", { p_entity: "auth_login_locked", p_details: { email: normalizedEmail } });
-        return { ok: false, reason: "locked", retryAfterSeconds };
-      }
-
-      const { error } = await supabase.auth.signInWithPassword({ email: normalizedEmail, password });
-
-      // Registra o resultado para o bloqueio e a auditoria (AUD-01). Aguardado de
-      // propósito: sem await, o supabase-js nem chega a enviar a requisição.
-      await logAuthEvent("register_login_attempt", { p_email: normalizedEmail, p_success: !error });
-
-      if (error) {
-        await logAuthEvent("log_security_event", { p_entity: "auth_login_failed", p_details: { email: normalizedEmail } });
-        if (error.message.toLowerCase().includes("email not confirmed")) {
-          return { ok: false, reason: "email_not_confirmed", message: "Confirme seu e-mail antes de entrar. Verifique sua caixa de entrada." };
+        // O bloqueio é decidido pelo banco (DEC-B1-01): consulta antes de tentar.
+        const { data: lockData, error: lockError } = await supabase.rpc("check_login_lock", {
+          p_email: normalizedEmail,
+        });
+        if (
+          !lockError &&
+          lockData &&
+          typeof lockData === "object" &&
+          "locked" in lockData &&
+          lockData["locked"]
+        ) {
+          const retryAfterSecondsValue = lockData["retry_after_seconds"];
+          const retryAfterSeconds =
+            typeof retryAfterSecondsValue === "number" ? retryAfterSecondsValue : 900;
+          await logAuthEvent("log_security_event", {
+            p_entity: "auth_login_locked",
+            p_details: { email: normalizedEmail },
+          });
+          return { ok: false, reason: "locked", retryAfterSeconds };
         }
-        return { ok: false, reason: "invalid_credentials", message: "E-mail ou senha incorretos." };
-      }
-      await logAuthEvent("log_security_event", { p_entity: "auth_login_success" });
-      return { ok: true };
-    },
 
-    async signInWithProvider(provider) {
-      const redirectTo = typeof window !== "undefined" ? window.location.origin : undefined;
-      const { error } = await supabase.auth.signInWithOAuth({ provider, ...(redirectTo ? { options: { redirectTo } } : {}) });
-      if (error) {
-        return { ok: false, message: "Não foi possível iniciar o login. Verifique se o provedor está configurado." };
-      }
-      // O navegador é redirecionado para o provedor; nada mais a fazer aqui.
-      return { ok: true };
-    },
+        const { error } = await supabase.auth.signInWithPassword({
+          email: normalizedEmail,
+          password,
+        });
 
-    async signOut() {
-      await logAuthEvent("log_security_event", { p_entity: "auth_logout" });
-      await supabase.auth.signOut();
-    },
+        // Registra o resultado para o bloqueio e a auditoria (AUD-01). Aguardado de
+        // propósito: sem await, o supabase-js nem chega a enviar a requisição.
+        await logAuthEvent("register_login_attempt", {
+          p_email: normalizedEmail,
+          p_success: !error,
+        });
 
-    async requestPasswordReset(email) {
-      const redirectTo = typeof window !== "undefined" ? `${window.location.origin}/redefinir-senha` : undefined;
-      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), redirectTo ? { redirectTo } : undefined);
-      await logAuthEvent("log_security_event", { p_entity: "auth_password_reset_requested", p_details: { email: email.trim() } });
-      if (error) {
-        return { ok: false, message: "Não foi possível enviar o e-mail agora. Tente novamente em instantes." };
-      }
-      return { ok: true, message: "Se o e-mail existir, enviamos um link para redefinir a senha." };
-    },
+        if (error) {
+          await logAuthEvent("log_security_event", {
+            p_entity: "auth_login_failed",
+            p_details: { email: normalizedEmail },
+          });
+          if (error.message.toLowerCase().includes("email not confirmed")) {
+            return {
+              ok: false,
+              reason: "email_not_confirmed",
+              message: "Confirme seu e-mail antes de entrar. Verifique sua caixa de entrada.",
+            };
+          }
+          return {
+            ok: false,
+            reason: "invalid_credentials",
+            message: "E-mail ou senha incorretos.",
+          };
+        }
+        await logAuthEvent("log_security_event", { p_entity: "auth_login_success" });
+        return { ok: true };
+      },
 
-    async updatePassword(newPassword) {
-      const { error } = await supabase.auth.updateUser({ password: newPassword });
-      if (error) {
-        return { ok: false, message: error.message };
-      }
-      await logAuthEvent("log_security_event", { p_entity: "auth_password_updated" });
-      return { ok: true, message: "Senha atualizada." };
-    },
+      async signInWithProvider(provider) {
+        const redirectTo = typeof window !== "undefined" ? window.location.origin : undefined;
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider,
+          ...(redirectTo ? { options: { redirectTo } } : {}),
+        });
+        if (error) {
+          return {
+            ok: false,
+            message: "Não foi possível iniciar o login. Verifique se o provedor está configurado.",
+          };
+        }
+        // O navegador é redirecionado para o provedor; nada mais a fazer aqui.
+        return { ok: true };
+      },
 
-    pendingSignupNotice,
-    clearPendingSignupNotice() {
-      setPendingSignupNotice(null);
-    },
-  }), [session, loading, pendingSignupNotice]);
+      async signOut() {
+        await logAuthEvent("log_security_event", { p_entity: "auth_logout" });
+        await supabase.auth.signOut();
+      },
+
+      async requestPasswordReset(email) {
+        const redirectTo =
+          typeof window !== "undefined" ? `${window.location.origin}/redefinir-senha` : undefined;
+        const { error } = await supabase.auth.resetPasswordForEmail(
+          email.trim(),
+          redirectTo ? { redirectTo } : undefined,
+        );
+        await logAuthEvent("log_security_event", {
+          p_entity: "auth_password_reset_requested",
+          p_details: { email: email.trim() },
+        });
+        if (error) {
+          return {
+            ok: false,
+            message: "Não foi possível enviar o e-mail agora. Tente novamente em instantes.",
+          };
+        }
+        return {
+          ok: true,
+          message: "Se o e-mail existir, enviamos um link para redefinir a senha.",
+        };
+      },
+
+      async updatePassword(newPassword) {
+        const { error } = await supabase.auth.updateUser({ password: newPassword });
+        if (error) {
+          return { ok: false, message: error.message };
+        }
+        await logAuthEvent("log_security_event", { p_entity: "auth_password_updated" });
+        return { ok: true, message: "Senha atualizada." };
+      },
+
+      pendingSignupNotice,
+      clearPendingSignupNotice() {
+        setPendingSignupNotice(null);
+      },
+    }),
+    [session, loading, pendingSignupNotice],
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
