@@ -85,19 +85,28 @@ A "matriz de permissões (seção 2.2)" da Documentação Funcional Completa ori
 
 | ID | Pergunta | Sugestão | Decisão |
 |---|---|---|---|
-| PA-23 | Haverá módulo completo de compras? | primeira versão gera alerta e sugestão; pedido formal pode ser fase posterior. | _pendente_ |
+| PA-23 | Haverá módulo completo de compras? | primeira versão gera alerta e sugestão; pedido formal pode ser fase posterior. | **Aceita a sugestão** (23/09/2026, proprietário) |
 
 ### B2.2 — Produtos, embalagens e conversões
 
 | ID | Pergunta | Sugestão | Decisão |
 |---|---|---|---|
-| PA-04 | Quem pode cadastrar/alterar produto? | dono e gerente; outros por permissão específica. | _pendente_ |
+| PA-04 | Quem pode cadastrar/alterar produto? | dono e gerente; outros por permissão específica. | **Aceita a sugestão** (23/09/2026, proprietário — já consistente com a matriz de perfis do DEC-B1-10) |
+| RN-PROD-02 / RN-CRT-EMB-04 | Quando muda o fator de conversão de uma embalagem, a partir de quando vale? | Só para movimentos novos; o histórico já registrado mantém a conversão antiga (nunca reescreve o passado). | **Aceita a sugestão** (23/09/2026, proprietário) |
+| RN-PROD-06 / RN-CRT-EMB-04 | Quantas casas decimais para produtos vendidos por peso (kg) ou volume (litro)? | 3 casas decimais, arredondamento padrão (0,5 para cima). | **Aceita a sugestão** (23/09/2026, proprietário) |
+
+### B2.3 — Parâmetros por mercado e ciclo do produto
+
+| ID | Pergunta | Sugestão | Decisão |
+|---|---|---|---|
+| RN-PROD-04 | Produto inativado não recebe novos movimentos — e um estorno de correção do passado? | Dono ou gerente pode registrar um estorno pontual, com justificativa (fica na auditoria); nenhuma venda/entrada nova é permitida. | **Aceita a sugestão** (23/09/2026, proprietário) |
 
 ### B2.4 — Importação e exportação do catálogo
 
 | ID | Pergunta | Sugestão | Decisão |
 |---|---|---|---|
-| PA-45 | Haverá importação inicial de produtos e estoque? | sim, com modelo validado e relatório de erros. | _pendente_ |
+| PA-45 | Haverá importação inicial de produtos e estoque? | sim, com modelo validado e relatório de erros. | **Aceita a sugestão** (23/09/2026, proprietário) |
+| RF-PROD-08 | Como deve funcionar a importação/exportação do catálogo? | Planilha modelo (CSV) para importar, com relatório de erros por linha; exportação também em CSV. | **Aceita a sugestão** (23/09/2026, proprietário) |
 
 
 ## Bloco B3

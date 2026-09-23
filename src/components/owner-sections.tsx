@@ -34,7 +34,7 @@ import {
 import { AlertPill, Metric, type Tone } from "@/components/dashboard-ui";
 import { inconsistencies } from "@/data/market-operations";
 import { money, type Market } from "@/data/markets";
-import { helpTopics, purchaseOrders, reports, supplierList } from "@/data/owner";
+import { helpTopics, purchaseOrders, reports } from "@/data/owner";
 import { cn } from "@/lib/utils";
 import {
   createInvite,
@@ -48,6 +48,14 @@ import {
   type TeamInvite,
   type TeamMember,
 } from "@/lib/invites-api";
+import {
+  createSupplier,
+  inactivateSupplier,
+  listSuppliers,
+  updateSupplier,
+  type Supplier,
+  type SupplierFormData,
+} from "@/lib/catalog-support-api";
 
 /** Seções gerais do menu do dono que não pertencem a um módulo específico. */
 export function OwnerSection({
@@ -64,7 +72,7 @@ export function OwnerSection({
   notify: (message: string) => void;
 }) {
   if (section === "Compras") return <Purchases notify={notify} />;
-  if (section === "Fornecedores") return <Suppliers notify={notify} />;
+  if (section === "Fornecedores") return <Suppliers companyId={companyId} notify={notify} />;
   if (section === "Inconsistências") return <Inconsistencies notify={notify} />;
   if (section === "Relatórios") return <Reports notify={notify} />;
   if (section === "Equipe e acessos")
@@ -162,32 +170,271 @@ function Purchases({ notify }: { notify: (message: string) => void }) {
   );
 }
 
-function Suppliers({ notify }: { notify: (message: string) => void }) {
+function formatCnpjDisplay(digits: string) {
+  if (digits.length !== 14) return digits;
+  return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8, 12)}-${digits.slice(12)}`;
+}
+
+function formatPhoneDisplay(digits: string) {
+  if (digits.length === 11)
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+  if (digits.length === 10)
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+  return digits;
+}
+
+const emptySupplierForm: SupplierFormData = {
+  name: "",
+  cnpj: "",
+  contactName: "",
+  phone: "",
+  email: "",
+  leadTimeDays: "",
+};
+
+function Suppliers({
+  companyId,
+  notify,
+}: {
+  companyId: string | null;
+  notify: (message: string) => void;
+}) {
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [formOpen, setFormOpen] = useState(false);
+  const [editing, setEditing] = useState<Supplier | null>(null);
+
+  const reload = async () => {
+    if (!companyId) {
+      setSuppliers([]);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    setSuppliers(await listSuppliers(companyId));
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    void reload();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- recarrega só quando a empresa muda
+  }, [companyId]);
+
+  const requestInactivate = async (supplier: Supplier) => {
+    if (!window.confirm(`Inativar "${supplier.name}"? Essa ação não pode ser desfeita por aqui.`))
+      return;
+    const result = await inactivateSupplier(supplier.id);
+    if (!result.ok) {
+      notify(result.message);
+      return;
+    }
+    notify(`${supplier.name} foi inativado.`);
+    void reload();
+  };
+
   return (
     <Page
       title="Fornecedores"
       subtitle="Parceiros que abastecem seus mercados"
       action={
-        <Button onClick={() => notify("Cadastro de fornecedor iniciado (simulação).")}>
-          <Plus className="h-4 w-4" /> Novo fornecedor
-        </Button>
+        companyId ? (
+          <Button onClick={() => setFormOpen(true)}>
+            <Plus className="h-4 w-4" /> Novo fornecedor
+          </Button>
+        ) : undefined
       }
     >
-      <Table
-        headers={["Fornecedor", "CNPJ", "Contato", "Prazo de entrega", "Avaliação", "Entregas"]}
-        rows={supplierList.map((supplier) => [
-          <strong key="n">{supplier.name}</strong>,
-          supplier.cnpj,
-          supplier.contact,
-          supplier.leadTime,
-          <span key="r" className="inline-flex items-center gap-1 font-semibold">
-            <Star className="h-4 w-4 fill-warning text-warning" />
-            {supplier.rating.toLocaleString("pt-BR")}
-          </span>,
-          supplier.deliveries,
-        ])}
-      />
+      {loading ? (
+        <div className="grid place-items-center rounded-lg border border-border bg-card p-10">
+          <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      ) : suppliers.length === 0 ? (
+        <div className="rounded-lg border border-dashed border-border bg-card p-10 text-center">
+          <h3 className="font-bold">Nenhum fornecedor cadastrado</h3>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Clique em "Novo fornecedor" para começar.
+          </p>
+        </div>
+      ) : (
+        <Table
+          headers={["Fornecedor", "CNPJ", "Contato", "Prazo de entrega", ""]}
+          rows={suppliers.map((supplier) => [
+            <strong key="n">{supplier.name}</strong>,
+            supplier.cnpj ? formatCnpjDisplay(supplier.cnpj) : "—",
+            [supplier.contactName, supplier.phone ? formatPhoneDisplay(supplier.phone) : ""]
+              .filter(Boolean)
+              .join(" · ") || "—",
+            supplier.leadTimeDays != null
+              ? `${supplier.leadTimeDays} ${supplier.leadTimeDays === 1 ? "dia" : "dias"}`
+              : "—",
+            <div key="a" className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => setEditing(supplier)}>
+                Editar
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => void requestInactivate(supplier)}>
+                Inativar
+              </Button>
+            </div>,
+          ])}
+        />
+      )}
+      {(formOpen || editing) && companyId && (
+        <SupplierDialog
+          companyId={companyId}
+          supplier={editing}
+          onClose={() => {
+            setFormOpen(false);
+            setEditing(null);
+          }}
+          onSaved={(verb) => {
+            setFormOpen(false);
+            setEditing(null);
+            notify(`Fornecedor ${verb} com sucesso.`);
+            void reload();
+          }}
+        />
+      )}
     </Page>
+  );
+}
+
+function SupplierDialog({
+  companyId,
+  supplier,
+  onClose,
+  onSaved,
+}: {
+  companyId: string;
+  supplier: Supplier | null;
+  onClose: () => void;
+  onSaved: (verb: "adicionado" | "atualizado") => void;
+}) {
+  const [form, setForm] = useState<SupplierFormData>(
+    supplier
+      ? {
+          name: supplier.name,
+          cnpj: supplier.cnpj,
+          contactName: supplier.contactName,
+          phone: supplier.phone,
+          email: supplier.email,
+          leadTimeDays: supplier.leadTimeDays != null ? String(supplier.leadTimeDays) : "",
+        }
+      : emptySupplierForm,
+  );
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
+  const update = (patch: Partial<SupplierFormData>) =>
+    setForm((current) => ({ ...current, ...patch }));
+
+  const handleSubmit = async () => {
+    setError("");
+    if (!form.name.trim()) {
+      setError("Informe o nome do fornecedor.");
+      return;
+    }
+    setSubmitting(true);
+    const result = supplier
+      ? await updateSupplier(supplier.id, form)
+      : await createSupplier(companyId, form);
+    setSubmitting(false);
+    if (!result.ok) {
+      setError(result.message);
+      return;
+    }
+    onSaved(supplier ? "atualizado" : "adicionado");
+  };
+
+  return (
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
+      <DialogContent className="max-w-[480px]">
+        <DialogHeader>
+          <DialogTitle>{supplier ? "Editar fornecedor" : "Novo fornecedor"}</DialogTitle>
+          <DialogDescription>
+            Só nome é obrigatório — o resto ajuda no recebimento e nos pedidos.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <label className="block text-sm">
+            <span className="mb-1.5 block font-semibold">Nome</span>
+            <input
+              value={form.name}
+              onChange={(event) => update({ name: event.target.value })}
+              className="h-11 w-full rounded-md border border-input bg-card px-3.5 text-base outline-none focus:ring-2 focus:ring-ring"
+            />
+          </label>
+          <label className="block text-sm">
+            <span className="mb-1.5 block font-semibold">CNPJ (opcional)</span>
+            <input
+              value={form.cnpj}
+              onChange={(event) => update({ cnpj: event.target.value })}
+              placeholder="00.000.000/0000-00"
+              className="h-11 w-full rounded-md border border-input bg-card px-3.5 text-base outline-none focus:ring-2 focus:ring-ring"
+            />
+          </label>
+          <label className="block text-sm">
+            <span className="mb-1.5 block font-semibold">Contato (opcional)</span>
+            <input
+              value={form.contactName}
+              onChange={(event) => update({ contactName: event.target.value })}
+              className="h-11 w-full rounded-md border border-input bg-card px-3.5 text-base outline-none focus:ring-2 focus:ring-ring"
+            />
+          </label>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="block text-sm">
+              <span className="mb-1.5 block font-semibold">Telefone (opcional)</span>
+              <input
+                value={form.phone}
+                onChange={(event) => update({ phone: event.target.value })}
+                className="h-11 w-full rounded-md border border-input bg-card px-3.5 text-base outline-none focus:ring-2 focus:ring-ring"
+              />
+            </label>
+            <label className="block text-sm">
+              <span className="mb-1.5 block font-semibold">
+                Prazo de entrega, em dias (opcional)
+              </span>
+              <input
+                type="number"
+                min="0"
+                value={form.leadTimeDays}
+                onChange={(event) => update({ leadTimeDays: event.target.value })}
+                className="h-11 w-full rounded-md border border-input bg-card px-3.5 text-base outline-none focus:ring-2 focus:ring-ring"
+              />
+            </label>
+          </div>
+          <label className="block text-sm">
+            <span className="mb-1.5 block font-semibold">E-mail (opcional)</span>
+            <input
+              type="email"
+              value={form.email}
+              onChange={(event) => update({ email: event.target.value })}
+              className="h-11 w-full rounded-md border border-input bg-card px-3.5 text-base outline-none focus:ring-2 focus:ring-ring"
+            />
+          </label>
+          {error && (
+            <p
+              role="alert"
+              className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive"
+            >
+              {error}
+            </p>
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose}>
+            <X className="h-4 w-4" /> Cancelar
+          </Button>
+          <Button disabled={submitting} onClick={() => void handleSubmit()}>
+            {submitting ? <RefreshCw className="h-4 w-4 animate-spin" /> : "Salvar fornecedor"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
