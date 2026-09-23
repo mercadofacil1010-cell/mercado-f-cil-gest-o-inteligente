@@ -19,6 +19,7 @@ export type Database = {
     Tables: {
       companies: {
         Row: {
+          account_status: Database["public"]["Enums"]["account_status"]
           city: string | null
           cnpj: string
           complement: string | null
@@ -36,14 +37,15 @@ export type Database = {
           segment: string | null
           state: string | null
           state_registration: string | null
-          status: Database["public"]["Enums"]["company_status"]
           street: string | null
+          subscription_status: Database["public"]["Enums"]["subscription_status"]
           trade_name: string
           trial_ends_at: string | null
           updated_at: string
           zip_code: string | null
         }
         Insert: {
+          account_status?: Database["public"]["Enums"]["account_status"]
           city?: string | null
           cnpj: string
           complement?: string | null
@@ -61,14 +63,15 @@ export type Database = {
           segment?: string | null
           state?: string | null
           state_registration?: string | null
-          status?: Database["public"]["Enums"]["company_status"]
           street?: string | null
+          subscription_status?: Database["public"]["Enums"]["subscription_status"]
           trade_name: string
           trial_ends_at?: string | null
           updated_at?: string
           zip_code?: string | null
         }
         Update: {
+          account_status?: Database["public"]["Enums"]["account_status"]
           city?: string | null
           cnpj?: string
           complement?: string | null
@@ -86,8 +89,8 @@ export type Database = {
           segment?: string | null
           state?: string | null
           state_registration?: string | null
-          status?: Database["public"]["Enums"]["company_status"]
           street?: string | null
+          subscription_status?: Database["public"]["Enums"]["subscription_status"]
           trade_name?: string
           trial_ends_at?: string | null
           updated_at?: string
@@ -100,7 +103,6 @@ export type Database = {
           company_id: string
           created_at: string
           id: string
-          market_id: string | null
           role: Database["public"]["Enums"]["member_role"]
           status: Database["public"]["Enums"]["member_status"]
           updated_at: string
@@ -110,7 +112,6 @@ export type Database = {
           company_id: string
           created_at?: string
           id?: string
-          market_id?: string | null
           role: Database["public"]["Enums"]["member_role"]
           status?: Database["public"]["Enums"]["member_status"]
           updated_at?: string
@@ -120,7 +121,6 @@ export type Database = {
           company_id?: string
           created_at?: string
           id?: string
-          market_id?: string | null
           role?: Database["public"]["Enums"]["member_role"]
           status?: Database["public"]["Enums"]["member_status"]
           updated_at?: string
@@ -132,13 +132,6 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "company_members_market_id_fkey"
-            columns: ["market_id"]
-            isOneToOne: false
-            referencedRelation: "markets"
             referencedColumns: ["id"]
           },
         ]
@@ -158,7 +151,8 @@ export type Database = {
           has_barcode_readers: boolean
           has_label_printer: boolean
           id: string
-          internal_code: string
+          internal_code: string | null
+          is_open: boolean
           legal_name: string | null
           name: string
           number: string | null
@@ -169,6 +163,7 @@ export type Database = {
           state: string | null
           status: Database["public"]["Enums"]["market_status"]
           street: string | null
+          timezone: string
           updated_at: string
           uses_parent_cnpj: boolean
           warehouses: number | null
@@ -188,7 +183,8 @@ export type Database = {
           has_barcode_readers?: boolean
           has_label_printer?: boolean
           id?: string
-          internal_code: string
+          internal_code?: string | null
+          is_open?: boolean
           legal_name?: string | null
           name: string
           number?: string | null
@@ -199,6 +195,7 @@ export type Database = {
           state?: string | null
           status?: Database["public"]["Enums"]["market_status"]
           street?: string | null
+          timezone?: string
           updated_at?: string
           uses_parent_cnpj?: boolean
           warehouses?: number | null
@@ -218,7 +215,8 @@ export type Database = {
           has_barcode_readers?: boolean
           has_label_printer?: boolean
           id?: string
-          internal_code?: string
+          internal_code?: string | null
+          is_open?: boolean
           legal_name?: string | null
           name?: string
           number?: string | null
@@ -229,6 +227,7 @@ export type Database = {
           state?: string | null
           status?: Database["public"]["Enums"]["market_status"]
           street?: string | null
+          timezone?: string
           updated_at?: string
           uses_parent_cnpj?: boolean
           warehouses?: number | null
@@ -240,6 +239,39 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      member_markets: {
+        Row: {
+          created_at: string
+          market_id: string
+          member_id: string
+        }
+        Insert: {
+          created_at?: string
+          market_id: string
+          member_id: string
+        }
+        Update: {
+          created_at?: string
+          market_id?: string
+          member_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_markets_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "markets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "member_markets_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "company_members"
             referencedColumns: ["id"]
           },
         ]
@@ -317,17 +349,26 @@ export type Database = {
         }
         Returns: string
       }
+      is_valid_cnpj: { Args: { value: string }; Returns: boolean }
+      is_valid_cpf: { Args: { value: string }; Returns: boolean }
     }
     Enums: {
-      company_status:
+      account_status: "pending" | "active" | "blocked" | "cancelled"
+      market_status:
+        | "draft"
+        | "awaiting_billing"
+        | "active"
+        | "suspended"
+        | "inactive"
+      member_role: "owner" | "manager" | "receiver" | "stocker"
+      member_status: "active" | "invited" | "disabled"
+      subscription_status:
         | "trial"
         | "active"
         | "past_due"
         | "suspended"
         | "cancelled"
-      market_status: "open" | "closed" | "inactive"
-      member_role: "owner" | "manager" | "receiver" | "stocker"
-      member_status: "active" | "invited" | "disabled"
+        | "expired"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -455,10 +496,24 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      company_status: ["trial", "active", "past_due", "suspended", "cancelled"],
-      market_status: ["open", "closed", "inactive"],
+      account_status: ["pending", "active", "blocked", "cancelled"],
+      market_status: [
+        "draft",
+        "awaiting_billing",
+        "active",
+        "suspended",
+        "inactive",
+      ],
       member_role: ["owner", "manager", "receiver", "stocker"],
       member_status: ["active", "invited", "disabled"],
+      subscription_status: [
+        "trial",
+        "active",
+        "past_due",
+        "suspended",
+        "cancelled",
+        "expired",
+      ],
     },
   },
 } as const

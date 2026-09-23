@@ -26,29 +26,29 @@ Total de itens rastreados: **426**
 
 | ID | Item | Decisão? | Status | Evidência |
 |---|---|---|---|---|
-| RN-ACL-01 | Todo usuário de cliente pertence a uma empresa e só pode acessar dados dessa empresa. |  | Parcial | Banco: RLS por empresa testada |
-| RN-ACL-02 | Dono da rede acessa a empresa inteira e todos os mercados dela. |  | Parcial | Banco: dono vê empresa inteira |
-| RN-ACL-03 | Gerente, conferente e repositor acessam apenas os mercados aos quais estão vinculados. |  | Parcial | Banco: vínculo por mercado (só 1 mercado — ver B0.1) |
-| RN-ACL-04 | Uma pessoa pode ser vinculada a mais de um mercado; os limites por perfil ainda exigem decisão. [A DEFINIR] | Sim | Pendente |  |
-| RN-ACL-06 | Exclusões que alterem histórico de estoque, recebimento, cobrança ou auditoria não devem apagar a evidência; devem cancelar, inativar ou estornar. |  | Pendente |  |
-| RN-ACC-02 | Uma empresa deve possuir ao menos um dono ativo. |  | Pendente |  |
-| RN-ORG-03 | Inativar mercado não apaga histórico de estoque, vendas, usuários ou auditoria. |  | Pendente |  |
-| RN-ORG-05 | O gerente pode ser responsável por mais de um mercado [A DEFINIR]. | Sim | Pendente |  |
-| RN-ADM-05 | Dados de um cliente não podem ser expostos a outro cliente. |  | Pendente |  |
-| RNF-SEC-01 | Autenticar usuários e aplicar autorização por empresa, mercado, perfil e ação. |  | Parcial | Banco: autorização por empresa/mercado/perfil |
-| RNF-MULTI-01 | Isolar integralmente os dados de cada cliente em consultas, relatórios, arquivos, integrações e notificações. |  | Parcial | Banco: RLS nas 5 tabelas |
-| RNF-MULTI-02 | Impedir que identificadores manipulados concedam acesso a outra empresa ou mercado. |  | Parcial | Banco: RLS testada contra IDs de outra empresa |
-| PA-03 | Gerente pode administrar mais de um mercado? — Sugestão do documento: sim, por vínculos explícitos. | Sim | Pendente |  |
-| PA-49 | Qual fuso horário será usado? — Sugestão do documento: fuso configurado no mercado e horário absoluto preservado na auditoria. | Sim | Pendente |  |
-| E-03 | Incoerência: 3 ciclos de status do cliente (conta 3.1, assinatura 3.12, cliente 3.13) — separar situação da conta e da assinatura |  | Pendente |  |
-| D-01 | Divergência construída: gerente só com 1 mercado ou todos (precisa de vários) |  | Pendente |  |
-| D-02 | Divergência construída: exclusão real de mercado/membro (deve inativar) |  | Pendente |  |
-| D-03 | Divergência construída: status do mercado mistura aberto/fechado com ciclo de vida |  | Pendente |  |
-| D-04 | Divergência construída: código interno do mercado obrigatório (deve ser opcional e único) |  | Pendente |  |
-| D-05 | Divergência construída: nome do mercado pode repetir na empresa |  | Pendente |  |
-| D-06 | Divergência construída: CPF/CNPJ validam só o formato (faltam dígitos verificadores) |  | Pendente |  |
-| D-08 | Divergência construída: garantir sempre ao menos um dono ativo |  | Pendente |  |
-| D-09 | Divergência construída: administrador vê perfis com CPF (restringir a dados comerciais) |  | Pendente |  |
+| RN-ACL-01 | Todo usuário de cliente pertence a uma empresa e só pode acessar dados dessa empresa. |  | Feito | PR B0.1 · teste `supabase/tests/10_access_test.sql` — isolamento entre empresas (6 testes) |
+| RN-ACL-02 | Dono da rede acessa a empresa inteira e todos os mercados dela. |  | Feito | PR B0.1 · teste `supabase/tests/10_access_test.sql` — dono vê/gerencia todos os mercados |
+| RN-ACL-03 | Gerente, conferente e repositor acessam apenas os mercados aos quais estão vinculados. |  | Feito | PR B0.1 · teste `supabase/tests/10_access_test.sql` — gerente/conferente/repositor só nos mercados vinculados |
+| RN-ACL-04 | Uma pessoa pode ser vinculada a mais de um mercado; os limites por perfil ainda exigem decisão. [A DEFINIR] | Sim | Feito | PR B0.1 · teste `supabase/tests/10_access_test.sql` — tabela member_markets; limites por perfil no B1.5 |
+| RN-ACL-06 | Exclusões que alterem histórico de estoque, recebimento, cobrança ou auditoria não devem apagar a evidência; devem cancelar, inativar ou estornar. |  | Feito | PR B0.1 · teste `supabase/tests/10_access_test.sql` — DELETE revogado; FKs restrict |
+| RN-ACC-02 | Uma empresa deve possuir ao menos um dono ativo. |  | Feito | PR B0.1 · teste `supabase/tests/10_access_test.sql` — gatilho ensure_active_owner |
+| RN-ORG-03 | Inativar mercado não apaga histórico de estoque, vendas, usuários ou auditoria. |  | Feito | PR B0.1 · teste `supabase/tests/10_access_test.sql` — mercado só inativa (ciclo de vida) |
+| RN-ORG-05 | O gerente pode ser responsável por mais de um mercado [A DEFINIR]. | Sim | Feito | PR B0.1 · teste `supabase/tests/10_access_test.sql` — gerente com 2 mercados testado |
+| RN-ADM-05 | Dados de um cliente não podem ser expostos a outro cliente. |  | Feito | PR B0.1 · teste `supabase/tests/10_access_test.sql` — isolamento testado; administrador sem CPF |
+| RNF-SEC-01 | Autenticar usuários e aplicar autorização por empresa, mercado, perfil e ação. |  | Feito | PR B0.1 · teste `supabase/tests/10_access_test.sql` — autorização por empresa/mercado/perfil (autenticação: ver RNF-SEC-01b no B1.1) |
+| RNF-MULTI-01 | Isolar integralmente os dados de cada cliente em consultas, relatórios, arquivos, integrações e notificações. |  | Feito | PR B0.1 · teste `supabase/tests/10_access_test.sql` — camada de dados isolada; relatórios/integrações serão reverificados no B7/B8 |
+| RNF-MULTI-02 | Impedir que identificadores manipulados concedam acesso a outra empresa ou mercado. |  | Feito | PR B0.1 · teste `supabase/tests/10_access_test.sql` — IDs de outra empresa não dão acesso (testado) |
+| PA-03 | Gerente pode administrar mais de um mercado? — Sugestão do documento: sim, por vínculos explícitos. | Sim | Feito | PR B0.1 · teste `supabase/tests/10_access_test.sql` — decisão aceita e aplicada |
+| PA-49 | Qual fuso horário será usado? — Sugestão do documento: fuso configurado no mercado e horário absoluto preservado na auditoria. | Sim | Feito | PR B0.1 · teste `supabase/tests/10_access_test.sql` — coluna markets.timezone (padrão America/Sao_Paulo) |
+| E-03 | Incoerência: 3 ciclos de status do cliente (conta 3.1, assinatura 3.12, cliente 3.13) — separar situação da conta e da assinatura |  | Feito | PR B0.1 · teste `supabase/tests/10_access_test.sql` — account_status + subscription_status |
+| D-01 | Divergência construída: gerente só com 1 mercado ou todos (precisa de vários) |  | Feito | PR B0.1 · teste `supabase/tests/10_access_test.sql` — member_markets |
+| D-02 | Divergência construída: exclusão real de mercado/membro (deve inativar) |  | Feito | PR B0.1 · teste `supabase/tests/10_access_test.sql` — DELETE revogado |
+| D-03 | Divergência construída: status do mercado mistura aberto/fechado com ciclo de vida |  | Feito | PR B0.1 · teste `supabase/tests/10_access_test.sql` — markets.status (ciclo) + is_open |
+| D-04 | Divergência construída: código interno do mercado obrigatório (deve ser opcional e único) |  | Feito | PR B0.1 · teste `supabase/tests/10_access_test.sql` — internal_code opcional, único por empresa |
+| D-05 | Divergência construída: nome do mercado pode repetir na empresa |  | Feito | PR B0.1 · teste `supabase/tests/10_access_test.sql` — índice único do nome |
+| D-06 | Divergência construída: CPF/CNPJ validam só o formato (faltam dígitos verificadores) |  | Feito | PR B0.1 · teste `supabase/tests/10_access_test.sql` — is_valid_cpf / is_valid_cnpj |
+| D-08 | Divergência construída: garantir sempre ao menos um dono ativo |  | Feito | PR B0.1 · teste `supabase/tests/10_access_test.sql` — gatilho ensure_active_owner |
+| D-09 | Divergência construída: administrador vê perfis com CPF (restringir a dados comerciais) |  | Feito | PR B0.1 · teste `supabase/tests/10_access_test.sql` — política profiles_select sem administrador |
 
 ## B0.2 — Trilha de auditoria no banco
 
@@ -75,6 +75,7 @@ Total de itens rastreados: **426**
 
 | ID | Item | Decisão? | Status | Evidência |
 |---|---|---|---|---|
+| RNF-SEC-01b | Autenticação de usuários (parte de RNF-SEC-01) |  | Pendente |  |
 | RF-ACC-01 | Permitir login por e-mail e senha. |  | Pendente |  |
 | RF-ACC-03 | Permitir recuperação de senha. |  | Pendente |  |
 | RF-ACC-08 | Validar e-mail e telefone antes da ativação. Método [A DEFINIR]. | Sim | Pendente |  |

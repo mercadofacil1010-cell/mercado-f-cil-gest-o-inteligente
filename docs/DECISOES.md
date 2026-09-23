@@ -12,23 +12,23 @@ Formato do registro: `Decisão:` + data + quem decidiu.
 
 | ID | Pergunta | Sugestão | Decisão |
 |---|---|---|---|
-| PA-03 | Gerente pode administrar mais de um mercado? | sim, por vínculos explícitos. | _pendente_ |
-| PA-49 | Qual fuso horário será usado? | fuso configurado no mercado e horário absoluto preservado na auditoria. | _pendente_ |
-| DEC-B0-01 | CNPJ da empresa pode se repetir em outra empresa da plataforma? | Não: um CNPJ por empresa (hoje o banco já impede). | _pendente_ |
-| DEC-B0-02 | Um mercado (filial) pode usar o mesmo CNPJ de outro mercado da empresa? | Sim, quando marcado como 'CNPJ da matriz'. | _pendente_ |
+| PA-03 | Gerente pode administrar mais de um mercado? | sim, por vínculos explícitos. | **Aceita a sugestão** (23/09/2026, proprietário) |
+| PA-49 | Qual fuso horário será usado? | fuso configurado no mercado e horário absoluto preservado na auditoria. | **Aceita a sugestão** (23/09/2026, proprietário) |
+| DEC-B0-01 | CNPJ da empresa pode se repetir em outra empresa da plataforma? | Não: um CNPJ por empresa (hoje o banco já impede). | **Aceita a sugestão** (23/09/2026, proprietário) |
+| DEC-B0-02 | Um mercado (filial) pode usar o mesmo CNPJ de outro mercado da empresa? | Sim, quando marcado como 'CNPJ da matriz'. | **Aceita a sugestão** (23/09/2026, proprietário) |
 
 ### B0.2 — Trilha de auditoria no banco
 
 | ID | Pergunta | Sugestão | Decisão |
 |---|---|---|---|
-| PA-43 | Tempo de retenção da auditoria? | 5 anos (prazo comum para registros fiscais e comerciais); revisar com o jurídico. | _pendente_ |
-| DEC-B0-03 | O que é 'dispositivo' na auditoria? | Navegador/aparelho + endereço IP + identificador do app instalado. | _pendente_ |
+| PA-43 | Tempo de retenção da auditoria? | 5 anos (prazo comum para registros fiscais e comerciais); revisar com o jurídico. | **Aceita a sugestão** (23/09/2026, proprietário) |
+| DEC-B0-03 | O que é 'dispositivo' na auditoria? | Navegador/aparelho + endereço IP + identificador do app instalado. | **Aceita a sugestão** (23/09/2026, proprietário) |
 
 ### B0.3 — Testes automáticos e verificação contínua
 
 | ID | Pergunta | Sugestão | Decisão |
 |---|---|---|---|
-| PA-01 | Qual é o MVP exato? | acesso, empresa/mercados, produtos, localizações, recebimento, estoque, reposição, alertas, PDV inicial e administração de assinatura. | _pendente_ |
+| PA-01 | Qual é o MVP exato? | acesso, empresa/mercados, produtos, localizações, recebimento, estoque, reposição, alertas, PDV inicial e administração de assinatura. | **Aceita a sugestão** (23/09/2026, proprietário) |
 
 
 ## Bloco B1
