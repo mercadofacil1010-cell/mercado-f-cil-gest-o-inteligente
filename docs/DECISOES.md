@@ -168,7 +168,9 @@ A "matriz de permissões (seção 2.2)" da Documentação Funcional Completa ori
 
 | ID | Pergunta | Sugestão | Decisão |
 |---|---|---|---|
-| PA-21 | Como aprovar perdas e ajustes? | limites por quantidade e valor, com foto acima do limite. | _pendente_ |
+| PA-21 / RN-CRT-VAL-05 | Como aprovar perdas e ajustes? | Como o catálogo ainda não tem preço/custo, o limite é só por quantidade (por empresa); acima dele, o movimento fica pendente e não abate o estoque até dono ou gerente (nunca quem pediu) aprovar. Limite por valor fica para quando houver preço. | **Aceita a sugestão** (23/09/2026, proprietário) |
+| PA-21 (aprovador) | Quem pode aprovar um pedido pendente? | Dono ou gerente do mercado (mesmo padrão de permissão já usado no sistema); quem registrou o pedido nunca pode aprovar/recusar o próprio. | **Aceita a sugestão** (23/09/2026, proprietário) |
+| PA-21 (evidência) | O que conta como "evidência" citada no plano? | Por enquanto, o texto do motivo (já obrigatório para valores altos). Câmera/foto real fica para o B5.4, que já é dedicado a isso (câmera do app mobile). | **Aceita a sugestão** (23/09/2026, proprietário) |
 
 ### B3.5 — Transferências internas e entre mercados
 

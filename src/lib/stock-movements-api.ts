@@ -83,7 +83,14 @@ export async function listStockBalances(warehouseAddressId: string): Promise<Sto
 }
 
 function friendlyStockError(message: string): string {
-  if (message.includes("saldo negativo") || message.includes("lote")) return message;
+  if (
+    message.includes("saldo negativo") ||
+    message.includes("lote") ||
+    message.includes("limite de aprovação") ||
+    message.includes("próprio pedido") ||
+    message.includes("motivo da recusa")
+  )
+    return message;
   if (message.toLowerCase().includes("row-level security") || message.includes("Sem permissão"))
     return "Você não tem acesso a este mercado para registrar movimentos.";
   if (message) return message;
@@ -98,8 +105,10 @@ export async function registerStockMovement(
   reference: string,
   reason?: string,
   lotId?: string,
-): Promise<{ ok: true } | { ok: false; message: string; needsReason?: boolean }> {
-  const { error } = await supabase.rpc("register_stock_movement", {
+): Promise<
+  { ok: true; pending?: boolean } | { ok: false; message: string; needsReason?: boolean }
+> {
+  const { data, error } = await supabase.rpc("register_stock_movement", {
     p_warehouse_address_id: warehouseAddressId,
     p_product_id: productId,
     p_type: type,
@@ -110,9 +119,78 @@ export async function registerStockMovement(
   });
   if (error) {
     const needsReason =
-      error.message.includes("saldo negativo") || error.message.includes("ordem de saída");
+      error.message.includes("saldo negativo") ||
+      error.message.includes("ordem de saída") ||
+      error.message.includes("limite de aprovação");
     return { ok: false, message: friendlyStockError(error.message), needsReason };
   }
+  const pending = (data as { status?: string } | null)?.status === "pending";
+  return { ok: true, pending };
+}
+
+export type PendingAdjustmentStatus = Database["public"]["Enums"]["pending_adjustment_status"];
+
+export type PendingAdjustment = {
+  id: string;
+  warehouseAddressId: string;
+  productId: string;
+  productName: string;
+  type: StockMovementType;
+  quantity: number;
+  reference: string;
+  reason: string;
+  status: PendingAdjustmentStatus;
+  requestedBy: string;
+  createdAt: string;
+};
+
+/** Fila de perdas/ajustes acima do limite da empresa, aguardando aprovação (RN-CRT-VAL-05). */
+export async function listPendingAdjustments(
+  warehouseAddressId: string,
+): Promise<PendingAdjustment[]> {
+  const { data, error } = await supabase
+    .from("pending_stock_adjustments")
+    .select("*, products(name)")
+    .eq("warehouse_address_id", warehouseAddressId)
+    .eq("status", "pending")
+    .order("created_at", { ascending: true });
+  if (error || !data) return [];
+  return data.map((row) => ({
+    id: row.id,
+    warehouseAddressId: row.warehouse_address_id,
+    productId: row.product_id,
+    productName: (row as { products?: { name: string } | null }).products?.name ?? "",
+    type: row.type,
+    quantity: row.quantity,
+    reference: row.reference ?? "",
+    reason: row.reason,
+    status: row.status,
+    requestedBy: row.requested_by,
+    createdAt: row.created_at,
+  }));
+}
+
+export async function approvePendingAdjustment(
+  id: string,
+  note?: string,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const { error } = await supabase.rpc("approve_pending_stock_adjustment", {
+    p_id: id,
+    ...(note ? { p_note: note } : {}),
+  });
+  if (error) return { ok: false, message: friendlyStockError(error.message) };
+  return { ok: true };
+}
+
+export async function rejectPendingAdjustment(
+  id: string,
+  note: string,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const { error } = await supabase.rpc("reject_pending_stock_adjustment", {
+    p_id: id,
+    p_note: note,
+  });
+  if (error) return { ok: false, message: friendlyStockError(error.message) };
   return { ok: true };
 }
 
