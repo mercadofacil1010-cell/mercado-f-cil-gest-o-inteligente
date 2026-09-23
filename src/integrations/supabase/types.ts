@@ -530,6 +530,126 @@ export type Database = {
         }
         Relationships: []
       }
+      product_packagings: {
+        Row: {
+          barcode: string | null
+          conversion_factor: number
+          created_at: string
+          id: string
+          is_base: boolean
+          name: string
+          product_id: string
+          status: Database["public"]["Enums"]["support_status"]
+          updated_at: string
+        }
+        Insert: {
+          barcode?: string | null
+          conversion_factor: number
+          created_at?: string
+          id?: string
+          is_base?: boolean
+          name: string
+          product_id: string
+          status?: Database["public"]["Enums"]["support_status"]
+          updated_at?: string
+        }
+        Update: {
+          barcode?: string | null
+          conversion_factor?: number
+          created_at?: string
+          id?: string
+          is_base?: boolean
+          name?: string
+          product_id?: string
+          status?: Database["public"]["Enums"]["support_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_packagings_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      products: {
+        Row: {
+          barcode: string | null
+          base_unit: string
+          brand_id: string | null
+          category_id: string | null
+          company_id: string
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          is_weighable: boolean
+          name: string
+          sku: string | null
+          status: Database["public"]["Enums"]["support_status"]
+          tracks_batch_expiry: boolean
+          updated_at: string
+        }
+        Insert: {
+          barcode?: string | null
+          base_unit: string
+          brand_id?: string | null
+          category_id?: string | null
+          company_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_weighable?: boolean
+          name: string
+          sku?: string | null
+          status?: Database["public"]["Enums"]["support_status"]
+          tracks_batch_expiry?: boolean
+          updated_at?: string
+        }
+        Update: {
+          barcode?: string | null
+          base_unit?: string
+          brand_id?: string | null
+          category_id?: string | null
+          company_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_weighable?: boolean
+          name?: string
+          sku?: string | null
+          status?: Database["public"]["Enums"]["support_status"]
+          tracks_batch_expiry?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "products_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "brands"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           birth_date: string | null
