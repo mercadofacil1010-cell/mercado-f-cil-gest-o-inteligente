@@ -62,6 +62,7 @@ import {
 } from "@/components/dashboard-ui";
 import { MarketPanel } from "@/components/market-panel";
 import { ProductsModule } from "@/components/products-module";
+import { ProductCatalogModule } from "@/components/product-catalog-module";
 import { LocationsModule, type LocationsData } from "@/components/locations-module";
 import { initialAddresses, initialGondolas, initialMovements } from "@/data/locations";
 import { ReceivingModule } from "@/components/receiving-module";
@@ -646,7 +647,9 @@ export function OwnerDashboard({
           />
         ) : !canAccessSection(callerRole, active) ? (
           <AccessDenied />
-        ) : active === "Produtos" || active === "Estoque consolidado" || active === "Validades" ? (
+        ) : active === "Produtos" ? (
+          <ProductCatalogModule companyId={companyId} notify={setToast} />
+        ) : active === "Estoque consolidado" || active === "Validades" ? (
           <section className="mx-auto max-w-[1680px] p-4 sm:p-6 lg:p-8">
             <ProductsModule
               key={active}

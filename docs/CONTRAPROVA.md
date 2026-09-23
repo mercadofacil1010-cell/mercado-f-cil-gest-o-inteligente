@@ -6,7 +6,7 @@ Cada linha aponta a etapa do plano (`docs/PLANO_FECHAMENTO.md`) em que o item é
 **Status:** `Pendente` → `Em andamento` → `Feito` (com evidência). `Parcial` = começou, falta completar. `Adiado` = decisão formal de tirar da versão.  
 **Decisão?** `Sim` = o item tem [A DEFINIR]; a decisão precisa estar registrada em `docs/DECISOES.md` antes de codificar.
 
-Total de itens rastreados: **426** · Feito: **61** · Parcial: **5**
+Total de itens rastreados: **426** · Feito: **74** · Parcial: **7**
 
 | Bloco                          | Itens |
 | ------------------------------ | ----- |
@@ -165,25 +165,25 @@ As tabelas `categories` e `brands` também foram criadas nesta etapa (mesmo padr
 
 | ID            | Item                                                                                                                | Decisão? | Status   | Evidência |
 | ------------- | ------------------------------------------------------------------------------------------------------------------- | -------- | -------- | --------- |
-| RF-PROD-01    | Cadastrar produto com código, descrição, marca, categoria e imagem.                                                 |          | Pendente |           |
-| RF-PROD-02    | Cadastrar código de barras e SKU.                                                                                   |          | Pendente |           |
-| RF-PROD-03    | Cadastrar unidade base e embalagens alternativas.                                                                   |          | Pendente |           |
-| RF-PROD-04    | Definir conversão de caixa, fardo e pacote para a unidade base.                                                     |          | Pendente |           |
-| RF-PROD-05    | Suportar unidade, pacote, caixa, fardo, quilograma e litro.                                                         |          | Pendente |           |
-| RF-PROD-06    | Identificar produtos pesáveis ou de medida fracionada.                                                              |          | Pendente |           |
-| RF-PROD-07    | Configurar controle por lote e validade.                                                                            |          | Pendente |           |
-| RN-PROD-01    | Todo saldo deve ser normalizado para a unidade base do produto.                                                     |          | Pendente |           |
-| RN-PROD-02    | A alteração do fator de conversão não pode modificar movimentos históricos; vigência da nova conversão [A DEFINIR]. | Sim      | Pendente |           |
-| RN-PROD-03    | Embalagem não pode possuir fator zero ou negativo.                                                                  |          | Pendente |           |
-| RN-PROD-06    | Precisão para kg e litro, arredondamento e quantidade de casas decimais estão [A DEFINIR].                          | Sim      | Pendente |           |
-| RN-CRT-EMB-01 | Toda embalagem deve possuir fator em relação à unidade base.                                                        |          | Pendente |           |
-| RN-CRT-EMB-02 | Movimentos e comparações usam unidade base, preservando a embalagem originalmente informada para auditoria.         |          | Pendente |           |
-| RN-CRT-EMB-03 | Fatores podem formar cadeia, mas o resultado final deve chegar à unidade base.                                      |          | Pendente |           |
-| RN-CRT-EMB-04 | Arredondamento de kg/litro e venda fracionada está [A DEFINIR].                                                     | Sim      | Pendente |           |
-| RNF-PERF-02   | Listagens devem usar paginação e filtros para catálogos e históricos extensos.                                      |          | Pendente |           |
-| PA-04         | Quem pode cadastrar/alterar produto? — Sugestão do documento: dono e gerente; outros por permissão específica.      | Sim      | Pendente |           |
-| G-05          | Lacuna: origem do custo do produto (perdas em R$, giro, divergências)                                               |          | Pendente |           |
-| AUD-04        | Evento de auditoria: Produto, embalagem, conversão, lote, validade e localização (seção 8.1)                        |          | Pendente |           |
+| RF-PROD-01    | Cadastrar produto com código, descrição, marca, categoria e imagem.                                                 |          | Parcial  | PR B2.2 · código de barras, descrição, marca e categoria reais; coluna `image_url` já existe no banco, mas a tela ainda não tem campo de imagem |
+| RF-PROD-02    | Cadastrar código de barras e SKU.                                                                                   |          | Feito    | PR B2.2 · `src/lib/products-api.ts`, testado em `supabase/tests/70_products_test.sql` (código único por empresa) |
+| RF-PROD-03    | Cadastrar unidade base e embalagens alternativas.                                                                   |          | Feito    | PR B2.2 · unidade base no cadastro do produto; embalagens geridas na tela "Embalagens" |
+| RF-PROD-04    | Definir conversão de caixa, fardo e pacote para a unidade base.                                                     |          | Feito    | PR B2.2 · `product_packagings.conversion_factor`, nome livre (Caixa/Fardo/Pacote/...) |
+| RF-PROD-05    | Suportar unidade, pacote, caixa, fardo, quilograma e litro.                                                         |          | Feito    | PR B2.2 · unidade base restrita a unidade/kg/litro; embalagens aceitam qualquer nome (pacote, caixa, fardo...) |
+| RF-PROD-06    | Identificar produtos pesáveis ou de medida fracionada.                                                              |          | Feito    | PR B2.2 · campo "Produto pesável" no cadastro |
+| RF-PROD-07    | Configurar controle por lote e validade.                                                                            |          | Feito    | PR B2.2 · campo "Controla lote e validade" no cadastro (a operação em si — registrar lotes — é do B3.3) |
+| RN-PROD-01    | Todo saldo deve ser normalizado para a unidade base do produto.                                                     |          | Pendente | Depende de existir saldo de estoque (B3) — a conversão para a base já está pronta, falta o saldo em si |
+| RN-PROD-02    | A alteração do fator de conversão não pode modificar movimentos históricos; vigência da nova conversão [A DEFINIR]. | Sim      | Feito    | PR B2.2 · decisão em DECISOES.md; `updatePackagingFactor` inativa a linha antiga e cria uma nova em vez de sobrescrever, testado |
+| RN-PROD-03    | Embalagem não pode possuir fator zero ou negativo.                                                                  |          | Feito    | PR B2.2 · `check (conversion_factor > 0)`, testado |
+| RN-PROD-06    | Precisão para kg e litro, arredondamento e quantidade de casas decimais estão [A DEFINIR].                          | Sim      | Feito    | PR B2.2 · decisão em DECISOES.md (3 casas decimais); `numeric(12,3)` |
+| RN-CRT-EMB-01 | Toda embalagem deve possuir fator em relação à unidade base.                                                        |          | Feito    | PR B2.2 · `conversion_factor` obrigatório em `product_packagings` |
+| RN-CRT-EMB-02 | Movimentos e comparações usam unidade base, preservando a embalagem originalmente informada para auditoria.         |          | Pendente | Depende de movimentos de estoque existirem (B3) |
+| RN-CRT-EMB-03 | Fatores podem formar cadeia, mas o resultado final deve chegar à unidade base.                                      |          | Feito    | PR B2.2 · cada embalagem guarda o fator direto até a unidade base (mais simples que uma cadeia literal, mas sempre resolve à base) |
+| RN-CRT-EMB-04 | Arredondamento de kg/litro e venda fracionada está [A DEFINIR].                                                     | Sim      | Feito    | PR B2.2 · mesma decisão do RN-PROD-06 (3 casas decimais) |
+| RNF-PERF-02   | Listagens devem usar paginação e filtros para catálogos e históricos extensos.                                      |          | Pendente | Lista de produtos ainda sem paginação (só busca simples nas outras telas) |
+| PA-04         | Quem pode cadastrar/alterar produto? — Sugestão do documento: dono e gerente; outros por permissão específica.      | Sim      | Feito    | PR B2.2 · decisão em DECISOES.md; RLS restrita a dono/gerente, testado |
+| G-05          | Lacuna: origem do custo do produto (perdas em R$, giro, divergências)                                               |          | Pendente | Sem preço/custo nesta etapa — é assunto de estoque e vendas (B3+), fora do escopo do cadastro de catálogo |
+| AUD-04        | Evento de auditoria: Produto, embalagem, conversão, lote, validade e localização (seção 8.1)                        |          | Parcial  | PR B2.2 · produto e embalagem auditados; lote, validade e localização chegam com o B3 |
 
 ## B2.3 — Parâmetros por mercado e ciclo do produto
 
