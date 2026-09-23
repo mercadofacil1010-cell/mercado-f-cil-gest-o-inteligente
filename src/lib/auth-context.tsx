@@ -3,6 +3,9 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
+
+type AuditRpc = "log_security_event" | "register_login_attempt";
 
 type LoginResult =
   | { ok: true }
@@ -20,6 +23,19 @@ type AuthContextValue = {
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
+
+// As chamadas de auditoria não podem travar a ação principal (login, logout,
+// recuperação de senha) se falharem — mas PRECISAM ser de fato enviadas.
+// Importante: no supabase-js, o "builder" retornado por .rpc(...) só dispara
+// a requisição quando é aguardado (await/.then); `void supabase.rpc(...)`
+// não envia nada. Por isso este auxiliar sempre aguarda, só engolindo o erro.
+async function logAuthEvent<T extends AuditRpc>(name: T, args: Database["public"]["Functions"][T]["Args"]) {
+  try {
+    await supabase.rpc(name, args);
+  } catch {
+    // Não bloqueia login/logout/recuperação por falha no registro de auditoria.
+  }
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
@@ -57,36 +73,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!lockError && lockData && typeof lockData === "object" && "locked" in lockData && lockData["locked"]) {
         const retryAfterSecondsValue = lockData["retry_after_seconds"];
         const retryAfterSeconds = typeof retryAfterSecondsValue === "number" ? retryAfterSecondsValue : 900;
-        void supabase.rpc("log_security_event", { p_entity: "auth_login_locked", p_details: { email: normalizedEmail } });
+        await logAuthEvent("log_security_event", { p_entity: "auth_login_locked", p_details: { email: normalizedEmail } });
         return { ok: false, reason: "locked", retryAfterSeconds };
       }
 
       const { error } = await supabase.auth.signInWithPassword({ email: normalizedEmail, password });
 
-      // Registra o resultado para o bloqueio e a auditoria (AUD-01), sem travar
-      // o retorno se essas chamadas falharem.
-      void supabase.rpc("register_login_attempt", { p_email: normalizedEmail, p_success: !error });
+      // Registra o resultado para o bloqueio e a auditoria (AUD-01). Aguardado de
+      // propósito: sem await, o supabase-js nem chega a enviar a requisição.
+      await logAuthEvent("register_login_attempt", { p_email: normalizedEmail, p_success: !error });
 
       if (error) {
-        void supabase.rpc("log_security_event", { p_entity: "auth_login_failed", p_details: { email: normalizedEmail } });
+        await logAuthEvent("log_security_event", { p_entity: "auth_login_failed", p_details: { email: normalizedEmail } });
         if (error.message.toLowerCase().includes("email not confirmed")) {
           return { ok: false, reason: "email_not_confirmed", message: "Confirme seu e-mail antes de entrar. Verifique sua caixa de entrada." };
         }
         return { ok: false, reason: "invalid_credentials", message: "E-mail ou senha incorretos." };
       }
-      void supabase.rpc("log_security_event", { p_entity: "auth_login_success" });
+      await logAuthEvent("log_security_event", { p_entity: "auth_login_success" });
       return { ok: true };
     },
 
     async signOut() {
-      await supabase.rpc("log_security_event", { p_entity: "auth_logout" });
+      await logAuthEvent("log_security_event", { p_entity: "auth_logout" });
       await supabase.auth.signOut();
     },
 
     async requestPasswordReset(email) {
       const redirectTo = typeof window !== "undefined" ? `${window.location.origin}/redefinir-senha` : undefined;
       const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), redirectTo ? { redirectTo } : undefined);
-      void supabase.rpc("log_security_event", { p_entity: "auth_password_reset_requested", p_details: { email: email.trim() } });
+      await logAuthEvent("log_security_event", { p_entity: "auth_password_reset_requested", p_details: { email: email.trim() } });
       if (error) {
         return { ok: false, message: "Não foi possível enviar o e-mail agora. Tente novamente em instantes." };
       }
@@ -98,7 +114,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (error) {
         return { ok: false, message: error.message };
       }
-      void supabase.rpc("log_security_event", { p_entity: "auth_password_updated" });
+      await logAuthEvent("log_security_event", { p_entity: "auth_password_updated" });
       return { ok: true, message: "Senha atualizada." };
     },
   }), [session, loading]);
