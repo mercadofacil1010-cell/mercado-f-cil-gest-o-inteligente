@@ -139,6 +139,14 @@ A "matriz de permissões (seção 2.2)" da Documentação Funcional Completa ori
 
 ## Bloco B3
 
+### B3.1 — Endereços de depósito e gôndola
+
+| ID | Pergunta | Sugestão | Decisão |
+|---|---|---|---|
+| RN-LOC-04 | Um endereço pode conter múltiplos produtos ou lotes? | Endereço de depósito: pode guardar vários produtos/lotes ao mesmo tempo, como uma prateleira real. Posição de gôndola: sempre um único produto-alvo por posição, com mínimo/ideal/máximo próprios (como um planograma). | **Aceita a sugestão** (23/09/2026, proprietário) |
+| RN-LOC-05 | Quantidade acima da capacidade deve ser bloqueada ou apenas alertada? | Só alerta, sem bloqueio automático — mesma linha da decisão de tolerância de recebimento (PA-06). | **Aceita a sugestão** (23/09/2026, proprietário) |
+| RN-LOC-06 | Mudança de limites (capacidade/mínimo/ideal/máximo) deve registrar o quê? | Valor anterior, novo valor, responsável e justificativa — usa o mecanismo de auditoria já existente (before/after/ator) mais um campo de justificativa obrigatório na troca. | **Aceita a sugestão** (23/09/2026, proprietário — instrução já totalmente especificada pelo próprio documento, sem alternativa de negócio) |
+
 ### B3.2 — Livro de movimentos e saldos
 
 | ID | Pergunta | Sugestão | Decisão |

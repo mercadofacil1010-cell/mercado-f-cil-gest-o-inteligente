@@ -6,7 +6,7 @@ Cada linha aponta a etapa do plano (`docs/PLANO_FECHAMENTO.md`) em que o item é
 **Status:** `Pendente` → `Em andamento` → `Feito` (com evidência). `Parcial` = começou, falta completar. `Adiado` = decisão formal de tirar da versão.  
 **Decisão?** `Sim` = o item tem [A DEFINIR]; a decisão precisa estar registrada em `docs/DECISOES.md` antes de codificar.
 
-Total de itens rastreados: **426** · Feito: **76** · Parcial: **9**
+Total de itens rastreados: **426** · Feito: **84** · Parcial: **12**
 
 | Bloco                          | Itens |
 | ------------------------------ | ----- |
@@ -212,20 +212,20 @@ As tabelas `categories` e `brands` também foram criadas nesta etapa (mesmo padr
 
 | ID        | Item                                                                                                   | Decisão? | Status   | Evidência |
 | --------- | ------------------------------------------------------------------------------------------------------ | -------- | -------- | --------- |
-| RF-LOC-01 | Cadastrar depósito, setor, rua, corredor, estante, nível e posição.                                    |          | Pendente |           |
-| RF-LOC-02 | Cadastrar setor, corredor, gôndola, lado, módulo, prateleira e posição.                                |          | Pendente |           |
-| RF-LOC-03 | Associar produto e lote a endereços.                                                                   |          | Pendente |           |
-| RF-LOC-04 | Definir capacidade e ocupação do endereço.                                                             |          | Pendente |           |
-| RF-LOC-05 | Definir mínimo, ideal e máximo por posição de gôndola.                                                 |          | Pendente |           |
-| RF-LOC-06 | Representar visualmente gôndolas e níveis de abastecimento.                                            |          | Pendente |           |
+| RF-LOC-01 | Cadastrar depósito, setor, rua, corredor, estante, nível e posição.                                    |          | Feito    | PR B3.1 · tabela `warehouse_addresses`, tela real em `src/components/locations-catalog-module.tsx` |
+| RF-LOC-02 | Cadastrar setor, corredor, gôndola, lado, módulo, prateleira e posição.                                |          | Feito    | PR B3.1 · tabela `gondola_positions` |
+| RF-LOC-03 | Associar produto e lote a endereços.                                                                   |          | Parcial  | PR B3.1 · posição de gôndola já tem produto-alvo; lote ainda não existe (B3.3) e a ocupação real de produto/lote no depósito depende do livro de movimentos (B3.2) |
+| RF-LOC-04 | Definir capacidade e ocupação do endereço.                                                             |          | Parcial  | PR B3.1 · capacidade definida e editável (com justificativa); ocupação real depende do estoque de verdade (B3.2) |
+| RF-LOC-05 | Definir mínimo, ideal e máximo por posição de gôndola.                                                 |          | Feito    | PR B3.1 · `gondola_positions.min/ideal/max_quantity`, testado |
+| RF-LOC-06 | Representar visualmente gôndolas e níveis de abastecimento.                                            |          | Parcial  | PR B3.1 · CRUD real em lista; a representação visual (grade de gôndola) do protótipo ainda não foi refeita com dados reais |
 | RF-LOC-07 | Permitir leitura do endereço por código ou scanner.                                                    |          | Pendente |           |
-| RF-LOC-08 | Manter histórico de localização e movimentação.                                                        |          | Pendente |           |
-| RN-LOC-01 | Deve valer mínimo &lt;= ideal &lt;= máximo.                                                            |          | Pendente |           |
-| RN-LOC-02 | Um endereço inativo não recebe novos movimentos.                                                       |          | Pendente |           |
-| RN-LOC-03 | O mesmo produto pode ocupar múltiplos endereços.                                                       |          | Pendente |           |
-| RN-LOC-04 | Um endereço pode conter múltiplos produtos ou lotes [A DEFINIR].                                       | Sim      | Pendente |           |
-| RN-LOC-05 | Quantidade acima da capacidade deve ser bloqueada ou apenas alertada [A DEFINIR].                      | Sim      | Pendente |           |
-| RN-LOC-06 | Mudança de limites deve registrar valor anterior, novo valor, responsável e justificativa [A DEFINIR]. | Sim      | Pendente |           |
+| RF-LOC-08 | Manter histórico de localização e movimentação.                                                        |          | Pendente | Depende do livro de movimentos (B3.2); a criação/edição do endereço já fica na auditoria |
+| RN-LOC-01 | Deve valer mínimo &lt;= ideal &lt;= máximo.                                                            |          | Feito    | PR B3.1 · `check` em `gondola_positions`, testado |
+| RN-LOC-02 | Um endereço inativo não recebe novos movimentos.                                                       |          | Pendente | Depende do livro de movimentos existir (B3.2) |
+| RN-LOC-03 | O mesmo produto pode ocupar múltiplos endereços.                                                       |          | Feito    | PR B3.1 · nenhuma restrição de unicidade em `product_id`, um produto pode ser o alvo de várias posições |
+| RN-LOC-04 | Um endereço pode conter múltiplos produtos ou lotes [A DEFINIR].                                       | Sim      | Feito    | PR B3.1 · decisão em DECISOES.md; depósito guarda vários produtos (estrutura pronta para o B3.2/B3.3), gôndola tem produto único por posição |
+| RN-LOC-05 | Quantidade acima da capacidade deve ser bloqueada ou apenas alertada [A DEFINIR].                      | Sim      | Feito    | PR B3.1 · decisão em DECISOES.md: só alerta (responsabilidade da tela quando o estoque existir, B3.2), sem bloqueio no banco |
+| RN-LOC-06 | Mudança de limites deve registrar valor anterior, novo valor, responsável e justificativa [A DEFINIR]. | Sim      | Feito    | PR B3.1 · decisão em DECISOES.md; `update_warehouse_address_capacity`/`update_gondola_position_limits` exigem justificativa, gravada na auditoria junto com antes/depois/responsável, testado |
 
 ## B3.2 — Livro de movimentos e saldos
 
