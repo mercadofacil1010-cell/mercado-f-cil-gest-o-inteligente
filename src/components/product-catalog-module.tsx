@@ -299,44 +299,62 @@ function ProductDialog({
         }
       : emptyProductForm,
   );
+  const [creatingCategory, setCreatingCategory] = useState(false);
+  const [creatingBrand, setCreatingBrand] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newBrandName, setNewBrandName] = useState("");
+  const [savingCategory, setSavingCategory] = useState(false);
+  const [savingBrand, setSavingBrand] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
   const update = (patch: Partial<ProductFormData>) =>
     setForm((current) => ({ ...current, ...patch }));
 
-  const handleCategoryChange = async (value: string) => {
-    if (value !== NEW_OPTION) {
-      update({ categoryId: value });
+  const handleCategoryChange = (value: string) => {
+    if (value === NEW_OPTION) {
+      setCreatingCategory(true);
       return;
     }
-    const name = window.prompt("Nome da nova categoria:");
-    if (!name?.trim()) return;
-    const created = await createCategory(companyId, name);
+    update({ categoryId: value });
+  };
+
+  const handleBrandChange = (value: string) => {
+    if (value === NEW_OPTION) {
+      setCreatingBrand(true);
+      return;
+    }
+    update({ brandId: value });
+  };
+
+  const handleCreateCategory = async () => {
+    if (!newCategoryName.trim()) return;
+    setSavingCategory(true);
+    const created = await createCategory(companyId, newCategoryName);
+    setSavingCategory(false);
     if (!created) {
       setError("Não foi possível criar a categoria.");
       return;
     }
     onCategoryCreated(created);
     update({ categoryId: created.id });
+    setCreatingCategory(false);
+    setNewCategoryName("");
   };
 
-  const handleBrandChange = async (value: string) => {
-    if (value !== NEW_OPTION) {
-      update({ brandId: value });
-      return;
-    }
-    const name = window.prompt("Nome da nova marca:");
-    if (!name?.trim()) return;
-    const created = await createBrand(companyId, name);
+  const handleCreateBrand = async () => {
+    if (!newBrandName.trim()) return;
+    setSavingBrand(true);
+    const created = await createBrand(companyId, newBrandName);
+    setSavingBrand(false);
     if (!created) {
       setError("Não foi possível criar a marca.");
       return;
     }
     onBrandCreated(created);
     update({ brandId: created.id });
+    setCreatingBrand(false);
+    setNewBrandName("");
   };
 
   const handleSubmit = async () => {
@@ -387,44 +405,116 @@ function ProductDialog({
             />
           </label>
           <div className="grid grid-cols-2 gap-3">
-            <label className="block text-sm">
+            <div className="text-sm">
               <span className="mb-1.5 block font-semibold">Categoria (opcional)</span>
-              <Select
-                value={form.categoryId ?? ""}
-                onValueChange={(value) => void handleCategoryChange(value)}
-              >
-                <SelectTrigger className="h-11 bg-card">
-                  <SelectValue placeholder="Selecionar" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((item) => (
-                    <SelectItem key={item.id} value={item.id}>
-                      {item.name}
-                    </SelectItem>
-                  ))}
-                  <SelectItem value={NEW_OPTION}>+ Criar nova categoria</SelectItem>
-                </SelectContent>
-              </Select>
-            </label>
-            <label className="block text-sm">
+              {creatingCategory ? (
+                <div className="flex gap-1.5">
+                  <input
+                    autoFocus
+                    value={newCategoryName}
+                    onChange={(event) => setNewCategoryName(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        event.preventDefault();
+                        void handleCreateCategory();
+                      }
+                    }}
+                    placeholder="Nome da categoria"
+                    className="h-11 min-w-0 flex-1 rounded-md border border-input bg-card px-3.5 text-base outline-none focus:ring-2 focus:ring-ring"
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="h-11"
+                    disabled={savingCategory}
+                    onClick={() => void handleCreateCategory()}
+                  >
+                    {savingCategory ? <RefreshCw className="h-4 w-4 animate-spin" /> : "Criar"}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-11"
+                    onClick={() => {
+                      setCreatingCategory(false);
+                      setNewCategoryName("");
+                    }}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <Select value={form.categoryId ?? ""} onValueChange={handleCategoryChange}>
+                  <SelectTrigger className="h-11 bg-card">
+                    <SelectValue placeholder="Selecionar" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((item) => (
+                      <SelectItem key={item.id} value={item.id}>
+                        {item.name}
+                      </SelectItem>
+                    ))}
+                    <SelectItem value={NEW_OPTION}>+ Criar nova categoria</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+            <div className="text-sm">
               <span className="mb-1.5 block font-semibold">Marca (opcional)</span>
-              <Select
-                value={form.brandId ?? ""}
-                onValueChange={(value) => void handleBrandChange(value)}
-              >
-                <SelectTrigger className="h-11 bg-card">
-                  <SelectValue placeholder="Selecionar" />
-                </SelectTrigger>
-                <SelectContent>
-                  {brands.map((item) => (
-                    <SelectItem key={item.id} value={item.id}>
-                      {item.name}
-                    </SelectItem>
-                  ))}
-                  <SelectItem value={NEW_OPTION}>+ Criar nova marca</SelectItem>
-                </SelectContent>
-              </Select>
-            </label>
+              {creatingBrand ? (
+                <div className="flex gap-1.5">
+                  <input
+                    autoFocus
+                    value={newBrandName}
+                    onChange={(event) => setNewBrandName(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        event.preventDefault();
+                        void handleCreateBrand();
+                      }
+                    }}
+                    placeholder="Nome da marca"
+                    className="h-11 min-w-0 flex-1 rounded-md border border-input bg-card px-3.5 text-base outline-none focus:ring-2 focus:ring-ring"
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="h-11"
+                    disabled={savingBrand}
+                    onClick={() => void handleCreateBrand()}
+                  >
+                    {savingBrand ? <RefreshCw className="h-4 w-4 animate-spin" /> : "Criar"}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-11"
+                    onClick={() => {
+                      setCreatingBrand(false);
+                      setNewBrandName("");
+                    }}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <Select value={form.brandId ?? ""} onValueChange={handleBrandChange}>
+                  <SelectTrigger className="h-11 bg-card">
+                    <SelectValue placeholder="Selecionar" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {brands.map((item) => (
+                      <SelectItem key={item.id} value={item.id}>
+                        {item.name}
+                      </SelectItem>
+                    ))}
+                    <SelectItem value={NEW_OPTION}>+ Criar nova marca</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <label className="block text-sm">
