@@ -5,6 +5,28 @@ A coluna *Sugestão* traz a recomendação da própria documentação (ou minha,
 
 Formato do registro: `Decisão:` + data + quem decidiu.
 
+## Arquitetura transversal — rede vs. mercado (análise pedida pelo proprietário em 23/09/2026)
+
+Análise ponta a ponta do painel do dono para responder: o que deve ser cadastro **compartilhado da rede** e o que deve ser **individual por mercado**?
+
+**Regra fixada a partir de agora, para todos os blocos B3 em diante:** catálogo (produto, fornecedor, categoria, marca) é cadastrado uma vez para a rede toda; tudo que é **operação** (estoque, movimentos, recebimento, reposição, inconsistências, compras, relatórios) é individual por mercado desde a modelagem do banco (coluna `market_id` obrigatória), mesmo quando a tela mostra um total consolidado da rede. Esse padrão já está em uso desde o B2.3 (`market_products`: mínimo/ideal/máximo/ponto de pedido por mercado) e deve continuar.
+
+| Seção do painel do dono | Estado em 23/09/2026 | Classificação |
+|---|---|---|
+| Produtos, Categorias, Marcas | Real, compartilhado pela rede (B2.1/B2.2) | Rede (correto) |
+| Parâmetros por loja (dentro de Produtos) | Real, por mercado (B2.3) | Por mercado (correto) |
+| Fornecedores | Real, compartilhado pela rede (B2.1) | Rede (confirmado nesta análise — ver decisão abaixo) |
+| Equipe e acessos | Real; conta é da empresa, acesso a mercados é vinculado por pessoa (B1.5, `member_markets`) | Rede + permissão por mercado (correto) |
+| Assinatura, Configurações | Da empresa toda | Rede (correto) |
+| Estoque consolidado, Validades | Dado fictício (mock), sem estoque real ainda | Vai nascer por mercado quando o B3 existir — não é falha atual |
+| Compras | Dado fictício, mas o mock já tem campo `market` por pedido | Confirma que o design previa por mercado; falta implementar (B2.5/B3+) |
+| Relatórios | Dado fictício, textos já falam em "por mercado/unidade" | Confirma intenção por mercado; falta implementar (B8) |
+| Inconsistências | Dado fictício **sem nenhum campo de mercado** | Único ponto sem previsão de mercado no modelo atual — corrigir quando implementado de verdade (B3.4/B4): incluir `market_id` desde a primeira migração |
+
+| ID | Pergunta | Sugestão | Decisão |
+|---|---|---|---|
+| DEC-ARQ-01 | Fornecedor é cadastro da rede ou pode ser exclusivo de um mercado? | Manter compartilhado pela rede: um cadastro só de fornecedores; no recebimento (B4) cada mercado escolhe qual fornecedor usar naquela entrega, sem duplicar cadastro. | **Aceita a sugestão** (23/09/2026, proprietário) |
+| DEC-ARQ-02 | O sistema deve atender outros ramos de comércio com estoque (farmácia, loja em geral), não só supermercado? | A modelagem de dados (produto, categoria, fornecedor, unidade) já é genérica e serve a qualquer comércio com estoque sem mudança de banco; só a linguagem das telas usa "mercado". Registrar como possível ajuste futuro de nome/marca, sem alterar o cronograma atual. | **Aceita a sugestão, fica como PENDÊNCIA DE DEFINIÇÃO para tratar mais adiante** (23/09/2026, proprietário) |
 
 ## Bloco B0
 
