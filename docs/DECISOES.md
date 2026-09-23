@@ -37,24 +37,24 @@ Formato do registro: `Decisão:` + data + quem decidiu.
 
 | ID | Pergunta | Sugestão | Decisão |
 |---|---|---|---|
-| DEC-B1-01 | Regra de senha | Mínimo 8 caracteres, com letra e número; bloqueio temporário após 5 tentativas erradas. | _pendente_ |
-| DEC-B1-02 | Confirmar e-mail antes de liberar o acesso? | Sim, por link no e-mail. Telefone/WhatsApp fica para depois. | _pendente_ |
-| DEC-B1-03 | Qual serviço envia os e-mails (convite, senha, alertas)? | Envio padrão do Supabase no início; serviço próprio (ex.: Resend) antes do piloto. | _pendente_ |
+| DEC-B1-01 | Regra de senha | Mínimo 8 caracteres, com letra e número; bloqueio temporário após 5 tentativas erradas. | **Aceita a sugestão** (23/09/2026, proprietário) |
+| DEC-B1-02 | Confirmar e-mail antes de liberar o acesso? | Sim, por link no e-mail. Telefone/WhatsApp fica para depois. | **Aceita a sugestão** (23/09/2026, proprietário) |
+| DEC-B1-03 | Qual serviço envia os e-mails (convite, senha, alertas)? | Envio padrão do Supabase no início; serviço próprio (ex.: Resend) antes do piloto. | **Aceita a sugestão** (23/09/2026, proprietário) |
 
 ### B1.2 — Cadastro real do dono e da empresa + aceites legais
 
 | ID | Pergunta | Sugestão | Decisão |
 |---|---|---|---|
-| DEC-B1-04 | Idade mínima do responsável | 18 anos. | _pendente_ |
-| DEC-B1-05 | 'Salvar e continuar depois' no cadastro: por quanto tempo o rascunho vale? | 7 dias, salvo no próprio aparelho. | _pendente_ |
+| DEC-B1-04 | Idade mínima do responsável | 18 anos. | **Aceita a sugestão** (23/09/2026, proprietário) |
+| DEC-B1-05 | 'Salvar e continuar depois' no cadastro: por quanto tempo o rascunho vale? | 7 dias, salvo no próprio aparelho. | **Aceita a sugestão** (23/09/2026, proprietário) |
 
 ### B1.5 — Convites e vínculos da equipe
 
 | ID | Pergunta | Sugestão | Decisão |
 |---|---|---|---|
 | PA-02 | Quais perfis adicionais existirão? | comprador, estoquista/auditor, financeiro do cliente e suporte da plataforma somente quando houver necessidade real. | _pendente_ |
-| DEC-B1-06 | Prazo do convite | 7 dias; pode ser reenviado. | _pendente_ |
-| DEC-B1-07 | Gerente pode convidar quem? | Conferente e repositor, somente para os mercados dele. Gerente só é convidado pelo dono. | _pendente_ |
+| DEC-B1-06 | Prazo do convite | 7 dias; pode ser reenviado. | **Aceita a sugestão** (23/09/2026, proprietário) |
+| DEC-B1-07 | Gerente pode convidar quem? | Conferente e repositor, somente para os mercados dele. Gerente só é convidado pelo dono. | **Aceita a sugestão** (23/09/2026, proprietário) |
 
 ### B1.7 — Acesso do administrador da plataforma
 
