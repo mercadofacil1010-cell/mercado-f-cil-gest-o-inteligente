@@ -45,3 +45,39 @@ distintas**, não três:
 **Status:** registrado como regra oficial. Aguardando os demais prompts do
 proprietário antes de reavaliar o impacto completo no plano e na
 documentação.
+
+## Correção 2 — Padrão de experiência dos apps mobile (23/09/2026)
+
+**Regra oficial:** App do Dono, App do Repositor e App do Conferente devem
+parecer e se comportar como um aplicativo nativo de celular, não como um
+site "espremido" na tela pequena.
+
+- **Navegação principal em menu inferior** (barra fixa na parte de baixo da
+  tela), com ícone + nome simples para cada área principal do app.
+- **Prioridades de experiência, nesta ordem de importância implícita no
+  pedido:**
+  1. poucos passos para concluir uma tarefa;
+  2. botões grandes e fáceis de identificar;
+  3. textos simples;
+  4. telas limpas, sem excesso de informação;
+  5. menus simples (nada de submenus complicados);
+  6. funções importantes sempre fáceis de encontrar;
+  7. feedback claro depois de qualquer ação;
+  8. uso confortável com uma mão só;
+  9. adequado para quem não tem familiaridade com tecnologia.
+- **Princípio geral:** a complexidade do sistema fica nas regras internas
+  (backend/banco), nunca na tela. Muitas funções não é desculpa para uma
+  interface complicada.
+
+**Implicações a avaliar quando a documentação for revisada:**
+- `stocker-app.tsx` (tela atual de demonstração) usa navegação por abas no
+  topo, não menu inferior — não segue esta regra e precisa ser refeita
+  quando o App do Repositor/Conferente forem construídos de verdade (B5 e
+  B4, respectivamente).
+- Essa regra vale só para os 3 apps mobile; o Painel Web (dono/gestão) e o
+  Painel Admin continuam com navegação lateral (padrão desktop), como já
+  estão hoje.
+
+**Status:** registrado como regra oficial. Aguardando os demais prompts do
+proprietário antes de reavaliar o impacto completo no plano e na
+documentação.
