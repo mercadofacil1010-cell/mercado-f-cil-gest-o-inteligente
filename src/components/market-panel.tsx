@@ -66,9 +66,11 @@ type MarketPanelProps = {
   notify: (message: string) => void;
   /** Permite que módulos específicos substituam o conteúdo de uma aba. */
   renderTab?: ((tab: MarketTab, market: Market) => ReactNode) | undefined;
+  onEdit?: (() => void) | undefined;
+  onInactivate?: (() => void) | undefined;
 };
 
-export function MarketPanel({ market, markets, onBack, onSwitch, notify, renderTab }: MarketPanelProps) {
+export function MarketPanel({ market, markets, onBack, onSwitch, notify, renderTab, onEdit, onInactivate }: MarketPanelProps) {
   const [tab, setTab] = useState<MarketTab>("Visão geral");
   const operation = useMemo(() => getMarketOperation(market), [market]);
   const custom = tab === "Visão geral" ? null : renderTab?.(tab, market);
@@ -102,8 +104,11 @@ export function MarketPanel({ market, markets, onBack, onSwitch, notify, renderT
               <SelectTrigger className="h-11 bg-card sm:w-[210px]" aria-label="Trocar de unidade"><Store className="mr-2 h-4 w-4 text-primary" /><SelectValue /></SelectTrigger>
               <SelectContent>{markets.map((item) => <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>)}</SelectContent>
             </Select>
-            <Button variant="outline" onClick={() => notify(`Edição de ${market.name} aberta em modo demonstrativo.`)}><Pencil className="h-4 w-4" /> Editar mercado</Button>
-            <Button onClick={() => notify(`Convite de acesso a ${market.name} gerado (simulação).`)}><Share2 className="h-4 w-4" /> Compartilhar acesso</Button>
+            <Button variant="outline" onClick={onEdit}><Pencil className="h-4 w-4" /> Editar mercado</Button>
+            {onInactivate && market.lifecycleStatus !== "inactive" && (
+              <Button variant="outline" className="text-destructive hover:text-destructive" onClick={onInactivate}><PackageX className="h-4 w-4" /> Inativar mercado</Button>
+            )}
+            <Button onClick={() => notify(`Convite de acesso a ${market.name} chega na etapa B1.5 (equipe).`)}><Share2 className="h-4 w-4" /> Compartilhar acesso</Button>
           </div>
         </div>
       </div>

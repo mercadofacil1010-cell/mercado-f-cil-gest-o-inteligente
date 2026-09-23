@@ -6,7 +6,7 @@ Cada linha aponta a etapa do plano (`docs/PLANO_FECHAMENTO.md`) em que o item é
 **Status:** `Pendente` → `Em andamento` → `Feito` (com evidência). `Parcial` = começou, falta completar. `Adiado` = decisão formal de tirar da versão.  
 **Decisão?** `Sim` = o item tem [A DEFINIR]; a decisão precisa estar registrada em `docs/DECISOES.md` antes de codificar.
 
-Total de itens rastreados: **426** · Feito: **47** · Parcial: **5**
+Total de itens rastreados: **426** · Feito: **53** · Parcial: **5**
 
 | Bloco | Itens |
 |---|---|
@@ -107,13 +107,13 @@ Total de itens rastreados: **426** · Feito: **47** · Parcial: **5**
 
 | ID | Item | Decisão? | Status | Evidência |
 |---|---|---|---|---|
-| RF-ORG-01 | Exibir cards separados para cada mercado. |  | Pendente |  |
-| RF-ORG-02 | Permitir adicionar, editar, inativar e consultar mercado. |  | Pendente |  |
-| RF-ORG-03 | Mostrar no card nome, endereço, telefone, gerente, faturamento do dia e alertas. |  | Pendente |  |
-| RF-ORG-04 | Abrir ambiente individual ao selecionar um card. |  | Pendente |  |
-| RF-ORG-06 | Permitir que o dono troque entre visão consolidada e visão por unidade. |  | Pendente |  |
-| RF-ORG-07 | Registrar estrutura da unidade, horários, caixas, depósitos e informações do PDV. |  | Pendente |  |
-| RN-ORG-01 | Todo mercado pertence a exatamente uma empresa. |  | Parcial | Banco: mercado pertence a 1 empresa (gatilho) |
+| RF-ORG-01 | Exibir cards separados para cada mercado. |  | Feito | PR B1.4 · cards vêm do Supabase (`listMarkets`), não mais de dados fictícios |
+| RF-ORG-02 | Permitir adicionar, editar, inativar e consultar mercado. |  | Feito | PR B1.4 · `createMarket`/`updateMarket`/`inactivateMarket` em `src/lib/markets-api.ts`, testado no banco desde o B0.1 (ciclo de vida do mercado) |
+| RF-ORG-03 | Mostrar no card nome, endereço, telefone, gerente, faturamento do dia e alertas. |  | Parcial | Nome/endereço/telefone reais. "Gerente" mostra "Sem gerente vinculado" até o B1.5 (convites); faturamento e alertas ficam em 0 até estoque/PDV existirem (B2–B5) — números fictícios seriam mentira, não uma pendência |
+| RF-ORG-04 | Abrir ambiente individual ao selecionar um card. |  | Feito | PR B1.4 · painel do mercado já usa os dados reais |
+| RF-ORG-06 | Permitir que o dono troque entre visão consolidada e visão por unidade. |  | Feito | PR B1.4 · seletor "Todos os mercados"/por unidade já opera sobre os dados reais |
+| RF-ORG-07 | Registrar estrutura da unidade, horários, caixas, depósitos e informações do PDV. |  | Feito | PR B1.4 · `checkouts`, `warehouses`, `employees`, `area_m2`, `pos_system`, `opening_hours` gravados de verdade |
+| RN-ORG-01 | Todo mercado pertence a exatamente uma empresa. |  | Feito | PR B1.4 · fluxo real usa `company_id` da empresa do usuário logado; regra do banco testada desde o B0.1 |
 
 ## B1.5 — Convites e vínculos da equipe
 
