@@ -6,7 +6,7 @@ Cada linha aponta a etapa do plano (`docs/PLANO_FECHAMENTO.md`) em que o item é
 **Status:** `Pendente` → `Em andamento` → `Feito` (com evidência). `Parcial` = começou, falta completar. `Adiado` = decisão formal de tirar da versão.  
 **Decisão?** `Sim` = o item tem [A DEFINIR]; a decisão precisa estar registrada em `docs/DECISOES.md` antes de codificar.
 
-Total de itens rastreados: **426** · Feito: **74** · Parcial: **7**
+Total de itens rastreados: **426** · Feito: **75** · Parcial: **8**
 
 | Bloco                          | Itens |
 | ------------------------------ | ----- |
@@ -158,7 +158,7 @@ As tabelas `categories` e `brands` também foram criadas nesta etapa (mesmo padr
 
 | ID    | Item                                                                                                                                       | Decisão? | Status   | Evidência |
 | ----- | ------------------------------------------------------------------------------------------------------------------------------------------ | -------- | -------- | --------- |
-| PA-23 | Haverá módulo completo de compras? — Sugestão do documento: primeira versão gera alerta e sugestão; pedido formal pode ser fase posterior. | Sim      | Pendente | Decisão registrada (DECISOES.md): só alerta/sugestão por enquanto. Implementação depende do ponto de pedido (B2.3) e do estoque (B3) — ainda não construídos |
+| PA-23 | Haverá módulo completo de compras? — Sugestão do documento: primeira versão gera alerta e sugestão; pedido formal pode ser fase posterior. | Sim      | Pendente | Decisão registrada (DECISOES.md): só alerta/sugestão por enquanto. O ponto de pedido por mercado já existe (B2.3); o alerta em si depende do estoque de verdade (B3) — ainda não construído |
 | G-01  | Lacuna: cadastro de fornecedores (usado em lote, recebimento e ponto de pedido)                                                            |          | Feito    | PR B2.1 · tabela `suppliers` com RLS (dono/gerente) e auditoria; tela real em `src/components/owner-sections.tsx` (`src/lib/catalog-support-api.ts`), testado em `supabase/tests/60_catalog_support_test.sql` |
 
 ## B2.2 — Produtos, embalagens e conversões
@@ -189,8 +189,8 @@ As tabelas `categories` e `brands` também foram criadas nesta etapa (mesmo padr
 
 | ID         | Item                                                                                       | Decisão? | Status   | Evidência |
 | ---------- | ------------------------------------------------------------------------------------------ | -------- | -------- | --------- |
-| RN-PROD-04 | Produto inativado não pode receber novos movimentos, salvo estorno autorizado [A DEFINIR]. | Sim      | Pendente |           |
-| RN-PROD-05 | O mesmo produto pode ter parâmetros de estoque e gôndola diferentes em cada mercado.       |          | Pendente |           |
+| RN-PROD-04 | Produto inativado não pode receber novos movimentos, salvo estorno autorizado [A DEFINIR]. | Sim      | Parcial  | Decisão registrada em DECISOES.md; a regra em si (bloquear movimentos e liberar estorno com justificativa) depende do livro de movimentos, que só existe no B3 |
+| RN-PROD-05 | O mesmo produto pode ter parâmetros de estoque e gôndola diferentes em cada mercado.       | Sim      | Feito    | PR B2.3 · tabela `market_products` (mínimo, ideal, máximo, ponto de pedido, situação ativo/bloqueado/inativo por mercado); decisões em DECISOES.md; testado em `supabase/tests/80_market_products_test.sql`; tela em `src/components/product-catalog-module.tsx` ("Parâmetros por loja") |
 
 ## B2.4 — Importação e exportação do catálogo
 

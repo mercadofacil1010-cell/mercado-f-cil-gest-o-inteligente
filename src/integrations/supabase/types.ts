@@ -375,6 +375,60 @@ export type Database = {
         }
         Relationships: []
       }
+      market_products: {
+        Row: {
+          created_at: string
+          id: string
+          ideal_quantity: number
+          market_id: string
+          max_quantity: number
+          min_quantity: number
+          product_id: string
+          reorder_point: number
+          status: Database["public"]["Enums"]["market_product_status"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ideal_quantity: number
+          market_id: string
+          max_quantity: number
+          min_quantity?: number
+          product_id: string
+          reorder_point?: number
+          status?: Database["public"]["Enums"]["market_product_status"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ideal_quantity?: number
+          market_id?: string
+          max_quantity?: number
+          min_quantity?: number
+          product_id?: string
+          reorder_point?: number
+          status?: Database["public"]["Enums"]["market_product_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "market_products_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "markets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "market_products_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       markets: {
         Row: {
           area_m2: number | null
@@ -806,6 +860,7 @@ export type Database = {
       account_status: "pending" | "active" | "blocked" | "cancelled"
       audit_action: "insert" | "update" | "delete" | "event"
       invite_status: "pending" | "accepted" | "revoked"
+      market_product_status: "active" | "blocked" | "inactive"
       market_status:
         | "draft"
         | "awaiting_billing"
@@ -952,6 +1007,7 @@ export const Constants = {
       account_status: ["pending", "active", "blocked", "cancelled"],
       audit_action: ["insert", "update", "delete", "event"],
       invite_status: ["pending", "accepted", "revoked"],
+      market_product_status: ["active", "blocked", "inactive"],
       market_status: [
         "draft",
         "awaiting_billing",

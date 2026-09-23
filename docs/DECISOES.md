@@ -100,6 +100,9 @@ A "matriz de permissões (seção 2.2)" da Documentação Funcional Completa ori
 | ID | Pergunta | Sugestão | Decisão |
 |---|---|---|---|
 | RN-PROD-04 | Produto inativado não recebe novos movimentos — e um estorno de correção do passado? | Dono ou gerente pode registrar um estorno pontual, com justificativa (fica na auditoria); nenhuma venda/entrada nova é permitida. | **Aceita a sugestão** (23/09/2026, proprietário) |
+| RN-PROD-05 (ponto de pedido) | O que é "ponto de pedido" por mercado, em relação ao mínimo? | Campo próprio, configurável, preenchido com o mesmo valor do mínimo ao cadastrar (o usuário pode depois divergir). | **Aceita a sugestão** (23/09/2026, proprietário) |
+| RN-PROD-05 (situação "bloqueado") | O que "bloqueado" impede, na situação do produto por mercado (ativo/inativo/bloqueado)? | Bloqueado é uma pausa reversível: mantém estoque e histórico visíveis, mas não gera alerta/tarefa de reposição nem permite reabastecer enquanto durar. Inativo é o desligamento mais definitivo do produto naquele mercado. | **Aceita a sugestão** (23/09/2026, proprietário) |
+| RN-PROD-05 (permissão) | Quem edita mínimo/ideal/máximo/ponto de pedido/situação por mercado? | Dono e gerente, mesma regra do cadastro do produto (PA-04). | **Aceita a sugestão** (23/09/2026, proprietário) |
 
 ### B2.4 — Importação e exportação do catálogo
 
