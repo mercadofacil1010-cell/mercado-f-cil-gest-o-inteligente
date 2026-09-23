@@ -28,7 +28,7 @@ Total de itens rastreados: **426** · Feito: **58** · Parcial: **5**
 | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------ |
 | RN-ACL-01    | Todo usuário de cliente pertence a uma empresa e só pode acessar dados dessa empresa.                                                              |          | Feito  | PR B0.1 · teste `supabase/tests/10_access_test.sql` — isolamento entre empresas (6 testes)                                           |
 | RN-ACL-02    | Dono da rede acessa a empresa inteira e todos os mercados dela.                                                                                    |          | Feito  | PR B0.1 · teste `supabase/tests/10_access_test.sql` — dono vê/gerencia todos os mercados                                             |
-| RN-ACL-03    | Gerente, conferente e repositor acessam apenas os mercados aos quais estão vinculados.                                                             |          | Feito  | PR B0.1 · teste `supabase/tests/10_access_test.sql` — gerente/conferente/repositor só nos mercados vinculados                        |
+| RN-ACL-03    | Gerente, conferente e repositor acessam apenas os mercados aos quais estão vinculados.                                                             |          | Feito  | PR B0.1 · teste `supabase/tests/10_access_test.sql` — gerente/conferente/repositor só nos mercados vinculados; PR B1.6 estende a mesma regra ao menu (DEC-B1-10) |
 | RN-ACL-04    | Uma pessoa pode ser vinculada a mais de um mercado; os limites por perfil ainda exigem decisão. [A DEFINIR]                                        | Sim      | Feito  | PR B0.1 · teste `supabase/tests/10_access_test.sql` — tabela member_markets; limites por perfil no B1.5                              |
 | RN-ACL-06    | Exclusões que alterem histórico de estoque, recebimento, cobrança ou auditoria não devem apagar a evidência; devem cancelar, inativar ou estornar. |          | Feito  | PR B0.1 · teste `supabase/tests/10_access_test.sql` — DELETE revogado; FKs restrict                                                  |
 | RN-ACC-02    | Uma empresa deve possuir ao menos um dono ativo.                                                                                                   |          | Feito  | PR B0.1 · teste `supabase/tests/10_access_test.sql` — gatilho ensure_active_owner                                                    |
@@ -128,10 +128,17 @@ Total de itens rastreados: **426** · Feito: **58** · Parcial: **5**
 
 ## B1.6 — Permissões por perfil nas telas
 
+A "matriz de permissões (seção 2.2)" citada no plano não está registrada em nenhum arquivo deste
+repositório — ver **DEC-B1-10** em `docs/DECISOES.md`: matriz proposta por mim e aprovada
+explicitamente pelo proprietário (não é um dos 426 itens originais, por isso não tem ID própria
+aqui). Entregue em PR B1.6: menu lateral e itens do menu de conta filtrados por perfil, mais uma
+tela de "sem acesso" (`AccessDenied` em `src/components/owner-dashboard.tsx`) para quem tenta
+acessar uma seção sem permissão.
+
 | ID         | Item                                                                                 | Decisão? | Status   | Evidência |
 | ---------- | ------------------------------------------------------------------------------------ | -------- | -------- | --------- |
 | RNF-ACC-01 | Interface deve ser legível, responsiva, com contraste e alvos adequados a uso móvel. |          | Pendente |           |
-| AUD-03     | Evento de auditoria: Alteração de perfil e permissão (seção 8.1)                     |          | Pendente |           |
+| AUD-03     | Evento de auditoria: Alteração de perfil e permissão (seção 8.1)                     |          | Pendente | Ainda não existe uma tela para alterar o papel de um membro já ativo (só a criação via convite, B1.5) — nada para auditar ainda |
 
 ## B1.7 — Acesso do administrador da plataforma
 

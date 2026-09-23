@@ -63,6 +63,14 @@ Formato do registro: `Decisão:` + data + quem decidiu.
 |---|---|---|---|
 | DEC-B1-09 | Login social (RN-ACC-04): quando vincular à conta já existente com o mesmo e-mail? | Vincular automaticamente só quando o provedor confirma que o e-mail é verificado (padrão do Supabase; o Google sempre confirma, o Facebook nem sempre). Se não for possível confirmar, a pessoa entra primeiro com e-mail/senha e depois vincula — nunca cria duas contas silenciosamente para o mesmo e-mail. | **Aplicada a sugestão** (23/09/2026, decisão automática — avise se quiser mudar) |
 
+### B1.6 — Permissões por perfil nas telas
+
+A "matriz de permissões (seção 2.2)" da Documentação Funcional Completa original não está registrada em nenhum arquivo deste repositório. Marcado como **PENDÊNCIA DE DEFINIÇÃO** (Correção 4) até o proprietário decidir; a matriz abaixo foi proposta por mim e aprovada explicitamente pelo proprietário nesta conversa.
+
+| ID | Pergunta | Sugestão | Decisão |
+|---|---|---|---|
+| DEC-B1-10 | Quais telas do menu cada perfil vê? (matriz de permissões, seção 2.2, não documentada no repositório) | Dono: todas as telas. Gerente: todas menos Assinatura e Configurações. Conferente e Repositor: só Visão geral, Meus mercados e Ajuda e suporte (as telas de trabalho reais deles ainda não existem — App do Conferente/Repositor, B4/B5). Quem tenta acessar uma tela sem permissão vê uma mensagem de "sem acesso". | **Aceita a sugestão** (23/09/2026, proprietário) |
+
 ### B1.7 — Acesso do administrador da plataforma
 
 | ID | Pergunta | Sugestão | Decisão |
