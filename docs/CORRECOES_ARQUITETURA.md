@@ -81,3 +81,43 @@ site "espremido" na tela pequena.
 **Status:** registrado como regra oficial. Aguardando os demais prompts do
 proprietário antes de reavaliar o impacto completo no plano e na
 documentação.
+
+## Correção 3 — Fluxos do Conferente e do Repositor, integrados ao mesmo sistema (23/09/2026)
+
+**Regra oficial:**
+
+**App do Conferente** — aplicativo operacional próprio, usado no recebimento
+de mercadorias, parte do fluxo real de entrada de produtos. A documentação
+completa (a ser escrita depois) precisa detalhar: recebimento, conferência
+cega, leitura/identificação dos produtos, quantidades, lotes, validade,
+divergências, confirmação da conferência e entrada correta no estoque.
+
+**App do Repositor** — aplicativo operacional próprio, usado no trabalho
+físico de reposição, parte do fluxo depósito → gôndola. A documentação
+completa precisa detalhar: tarefas de reposição, identificação do produto,
+localização no depósito, retirada, destino na gôndola, quantidade
+movimentada, confirmação da reposição, inconsistências e atualização dos
+estoques.
+
+**Integração obrigatória (um único sistema central, não telas isoladas):**
+- O que o conferente recebe → reflete no estoque.
+- O que acontece no estoque → pode gerar necessidade de reposição.
+- O que o repositor movimenta → atualiza depósito e gôndola.
+- O dono acompanha tudo isso pelo App do Dono e pelo Painel Web.
+
+**Implicações a avaliar quando a documentação for revisada:**
+- Isso confirma que B4 (recebimento/conferência cega) e B5 (reposição) não
+  são só "módulos com tela própria dentro do painel do dono" — cada um
+  precisa nascer já como o App do Conferente e o App do Repositor,
+  respectivamente, seguindo o padrão da Correção 2 (menu inferior, apps
+  simples).
+- A cadeia recebimento → estoque → reposição → depósito/gôndola precisa
+  estar clara na documentação como um fluxo único de dados, com o App do
+  Dono/Painel Web lendo o mesmo estado (não uma cópia ou resumo separado).
+- `docs/PLANO_FECHAMENTO.md` provavelmente precisa reordenar/renomear B4 e
+  B5 para deixar explícito que cada um entrega um app completo, não só
+  regras de banco com uma tela de exemplo.
+
+**Status:** registrado como regra oficial. Aguardando os demais prompts do
+proprietário antes de reavaliar o impacto completo no plano e na
+documentação.
