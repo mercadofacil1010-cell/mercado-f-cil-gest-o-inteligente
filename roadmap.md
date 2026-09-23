@@ -13,13 +13,19 @@
 - [x] Prompt 9 — Aplicativo do repositor
 - [x] Prompt 10 — Painel administrativo da plataforma (`/admin`) e revisão geral
 
-## Fase 2 — Sistema funcional
+## Fase 2 — Fechamento do sistema (conforme a Documentação Funcional v1.0)
 
-- [x] Etapa 1 — Fundação: Supabase conectado, estrutura multiempresa e regras de acesso (RLS)
-- [ ] Etapa 2 — Login e cadastro reais
-- [ ] Etapa 3 — Mercados e produtos no banco
-- [ ] Etapa 4 — Estoque e endereçamento
-- [ ] Etapa 5 — Recebimento com conferência cega
-- [ ] Etapa 6 — Aplicativo do repositor
-- [ ] Etapa 7 — Dashboards e relatórios com dados reais
-- [ ] Etapa 8 — Cobrança e administração da plataforma
+O plano completo está em `docs/PLANO_FECHAMENTO.md`, a rastreabilidade de cada requisito em
+`docs/CONTRAPROVA.md` e as decisões pendentes em `docs/DECISOES.md`.
+
+- [ ] B0 — Fundação e governança (banco inicial já criado: tabelas, RLS e cliente Supabase)
+- [ ] B1 — Acesso, empresa e equipe
+- [ ] B2 — Catálogo
+- [ ] B3 — Estoque, localização, lotes e validade
+- [ ] B4 — Recebimento com conferência cega
+- [ ] B5 — Reposição e aplicativo móvel
+- [ ] B6 — Inconsistências e alertas
+- [ ] B7 — Vendas e integração com PDV
+- [ ] B8 — Indicadores, relatórios e auditoria
+- [ ] B9 — Planos, assinatura, cobrança e administração
+- [ ] B10 — LGPD, segurança, backup, desempenho e piloto
