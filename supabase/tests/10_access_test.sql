@@ -32,6 +32,17 @@ select test.throws($$insert into public.markets (company_id, name, cnpj) select 
 insert into public.markets (company_id, name, cnpj, uses_parent_cnpj) select id, 'X Filial', '12345678000195', true from public.companies;
 select test.ok(true, 'Mercado pode usar o CNPJ da matriz');
 
+-- O app real sempre pede RETURNING depois do INSERT (supabase-js .select().single()).
+-- Isso já foi um bug de verdade (B1.4, corrigido na migração
+-- b1_4_markets_returning_fix): a política de leitura não enxergava a linha
+-- recém-criada dentro do mesmo comando. Este teste imita o app de propósito.
+with novo as (
+  insert into public.markets (company_id, name, internal_code)
+  select id, 'X RETURNING', 'UND-RET' from public.companies
+  returning id
+) select count(*) as qtd_returning from novo \gset
+select test.ok(:qtd_returning = 1, 'Dono consegue criar mercado e ler a linha de volta no mesmo INSERT (RETURNING)');
+
 reset role;
 -- Equipe de X (feito como sistema; o fluxo de convite chega no B1.5)
 insert into public.company_members (company_id, user_id, role)
@@ -47,7 +58,7 @@ where (cm.user_id = '00000000-0000-0000-0000-00000000000c' and m.name in ('X Cen
    or (cm.user_id = '00000000-0000-0000-0000-00000000000d' and m.name = 'X Jardim')
    or (cm.user_id = '00000000-0000-0000-0000-00000000000e' and m.name = 'X Centro');
 select test.ok((select count(*) from public.member_markets) = 4, 'Dono vincula membros a vários mercados');
-select test.ok((select count(*) from public.markets) = 5, 'Dono vê todos os mercados da empresa');
+select test.ok((select count(*) from public.markets) = 6, 'Dono vê todos os mercados da empresa');
 
 -- Empresa Y
 select test.as_user('00000000-0000-0000-0000-00000000000b');

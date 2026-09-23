@@ -82,7 +82,15 @@ function requiredOrUndefined(value: string) {
 }
 
 export async function createMarket(companyId: string, data: NewMarketData): Promise<{ ok: true; market: Market } | { ok: false; message: string }> {
+  // O id é gerado aqui (não pelo banco) de propósito: o Postgres tem uma
+  // particularidade real com RLS + RETURNING logo após o INSERT — a política
+  // de leitura (que confere se o mercado pertence à empresa do usuário) pode
+  // não enxergar a linha recém-criada dentro do mesmo comando. Gerando o id
+  // no navegador, gravamos sem pedir RETURNING e buscamos a linha de volta
+  // numa segunda consulta (aí a política enxerga a linha normalmente).
+  const id = crypto.randomUUID();
   const insertPayload: Database["public"]["Tables"]["markets"]["Insert"] = {
+    id,
     company_id: companyId,
     name: data.unitName.trim(),
     legal_name: data.legalName.trim(),
@@ -112,15 +120,20 @@ export async function createMarket(companyId: string, data: NewMarketData): Prom
     ...(requiredOrUndefined(data.reference) ? { reference: data.reference.trim() } : {}),
   };
 
-  const { data: row, error } = await supabase.from("markets").insert(insertPayload).select("*").single();
-  if (error || !row) {
-    if (error?.message.toLowerCase().includes("markets_company_name_key")) {
+  const { error: insertError } = await supabase.from("markets").insert(insertPayload);
+  if (insertError) {
+    if (insertError.message.toLowerCase().includes("markets_company_name_key")) {
       return { ok: false, message: "Já existe um mercado com esse nome nesta empresa." };
     }
-    if (error?.message.toLowerCase().includes("markets_company_internal_code_key")) {
+    if (insertError.message.toLowerCase().includes("markets_company_internal_code_key")) {
       return { ok: false, message: "Já existe um mercado com esse código interno nesta empresa." };
     }
     return { ok: false, message: "Não foi possível criar o mercado agora. Tente novamente." };
+  }
+
+  const { data: row, error: fetchError } = await supabase.from("markets").select("*").eq("id", id).single();
+  if (fetchError || !row) {
+    return { ok: false, message: "O mercado foi criado, mas não consegui carregá-lo agora. Recarregue a página." };
   }
   return { ok: true, market: mapRowToMarket(row) };
 }
