@@ -63,8 +63,7 @@ import {
 import { MarketPanel } from "@/components/market-panel";
 import { ProductsModule } from "@/components/products-module";
 import { ProductCatalogModule } from "@/components/product-catalog-module";
-import { LocationsModule, type LocationsData } from "@/components/locations-module";
-import { initialAddresses, initialGondolas, initialMovements } from "@/data/locations";
+import { LocationsCatalogModule } from "@/components/locations-catalog-module";
 import { ReceivingModule } from "@/components/receiving-module";
 import { initialReceivings, type Receiving } from "@/data/receivings";
 import { ReplenishmentOverview } from "@/components/replenishment-overview";
@@ -174,11 +173,6 @@ export function OwnerDashboard({
   const [editingMarket, setEditingMarket] = useState<Market | null>(null);
   const [products, setProducts] = useState<Product[]>(initialProducts);
   const [receivings, setReceivings] = useState<Receiving[]>(initialReceivings);
-  const [locations, setLocations] = useState<LocationsData>({
-    addresses: initialAddresses,
-    gondolas: initialGondolas,
-    movements: initialMovements,
-  });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [active, setActive] = useState("Visão geral");
@@ -619,12 +613,11 @@ export function OwnerDashboard({
                   title="Estoque e produtos"
                 />
               ) : tab === "Gôndolas" || tab === "Depósito" ? (
-                <LocationsModule
+                <LocationsCatalogModule
                   key={`${market.id}-${tab}`}
-                  data={locations}
-                  onChange={setLocations}
-                  market={market}
-                  markets={markets}
+                  companyId={companyId}
+                  marketId={market.id}
+                  marketName={market.name}
                   notify={setToast}
                   initialView={tab}
                 />

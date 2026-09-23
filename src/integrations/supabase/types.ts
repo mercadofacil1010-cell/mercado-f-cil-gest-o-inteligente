@@ -271,6 +271,84 @@ export type Database = {
           },
         ]
       }
+      gondola_positions: {
+        Row: {
+          aisle: string
+          capacity: number
+          code: string
+          created_at: string
+          gondola_number: string
+          id: string
+          ideal_quantity: number
+          market_id: string
+          max_quantity: number
+          min_quantity: number
+          module_number: number
+          position_number: number
+          product_id: string | null
+          sector: string
+          shelf_number: number
+          side: string
+          status: Database["public"]["Enums"]["support_status"]
+          updated_at: string
+        }
+        Insert: {
+          aisle: string
+          capacity: number
+          code: string
+          created_at?: string
+          gondola_number: string
+          id?: string
+          ideal_quantity?: number
+          market_id: string
+          max_quantity?: number
+          min_quantity?: number
+          module_number: number
+          position_number: number
+          product_id?: string | null
+          sector: string
+          shelf_number: number
+          side: string
+          status?: Database["public"]["Enums"]["support_status"]
+          updated_at?: string
+        }
+        Update: {
+          aisle?: string
+          capacity?: number
+          code?: string
+          created_at?: string
+          gondola_number?: string
+          id?: string
+          ideal_quantity?: number
+          market_id?: string
+          max_quantity?: number
+          min_quantity?: number
+          module_number?: number
+          position_number?: number
+          product_id?: string | null
+          sector?: string
+          shelf_number?: number
+          side?: string
+          status?: Database["public"]["Enums"]["support_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gondola_positions_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "markets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gondola_positions_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invite_markets: {
         Row: {
           invite_id: string
@@ -784,6 +862,65 @@ export type Database = {
           },
         ]
       }
+      warehouse_addresses: {
+        Row: {
+          aisle: string
+          capacity: number
+          code: string
+          created_at: string
+          id: string
+          level: string
+          market_id: string
+          position: string
+          sector: string
+          shelf: string
+          status: Database["public"]["Enums"]["support_status"]
+          street: string
+          updated_at: string
+          warehouse_name: string
+        }
+        Insert: {
+          aisle: string
+          capacity: number
+          code: string
+          created_at?: string
+          id?: string
+          level: string
+          market_id: string
+          position: string
+          sector: string
+          shelf: string
+          status?: Database["public"]["Enums"]["support_status"]
+          street: string
+          updated_at?: string
+          warehouse_name: string
+        }
+        Update: {
+          aisle?: string
+          capacity?: number
+          code?: string
+          created_at?: string
+          id?: string
+          level?: string
+          market_id?: string
+          position?: string
+          sector?: string
+          shelf?: string
+          status?: Database["public"]["Enums"]["support_status"]
+          street?: string
+          updated_at?: string
+          warehouse_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "warehouse_addresses_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "markets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -855,6 +992,21 @@ export type Database = {
       }
       resend_invite: { Args: { p_invite_id: string }; Returns: undefined }
       revoke_invite: { Args: { p_invite_id: string }; Returns: undefined }
+      update_gondola_position_limits: {
+        Args: {
+          p_capacity: number
+          p_id: string
+          p_ideal: number
+          p_max: number
+          p_min: number
+          p_reason: string
+        }
+        Returns: Database["public"]["Tables"]["gondola_positions"]["Row"]
+      }
+      update_warehouse_address_capacity: {
+        Args: { p_capacity: number; p_id: string; p_reason: string }
+        Returns: Database["public"]["Tables"]["warehouse_addresses"]["Row"]
+      }
     }
     Enums: {
       account_status: "pending" | "active" | "blocked" | "cancelled"
