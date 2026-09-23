@@ -71,7 +71,9 @@ export async function getUserCompanyId(userId: string): Promise<string | null> {
 }
 
 export async function listMarkets(companyId: string): Promise<Market[]> {
-  const { data, error } = await supabase.from("markets").select("*").eq("company_id", companyId).order("created_at", { ascending: true });
+  // Mercado inativado (RF-ORG-02) some da lista principal — "inativar" existe
+  // exatamente para isso, é o "excluir sem apagar" decidido no B0.
+  const { data, error } = await supabase.from("markets").select("*").eq("company_id", companyId).neq("status", "inactive").order("created_at", { ascending: true });
   if (error || !data) return [];
   return data.map(mapRowToMarket);
 }
