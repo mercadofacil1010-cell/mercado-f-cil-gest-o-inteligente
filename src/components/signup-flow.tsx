@@ -69,7 +69,7 @@ function ageInYears(birthDate: string) {
   return age;
 }
 
-const responsibleSchema = z.object({
+const baseResponsibleSchema = z.object({
   name: z.string().trim().min(3, "Informe o nome completo").max(120),
   cpf: z.string().regex(/^\d{3}\.\d{3}\.\d{3}-\d{2}$/, "Informe um CPF válido"),
   birthDate: z.string().min(1, "Informe a data de nascimento").refine((value) => ageInYears(value) >= MINIMUM_AGE_YEARS, {
@@ -77,14 +77,22 @@ const responsibleSchema = z.object({
   }),
   whatsapp: z.string().min(14, "Informe um telefone válido"),
   email: z.string().trim().email("Informe um e-mail válido").max(255),
+  terms: z.literal(true, { errorMap: () => ({ message: "Aceite os termos para continuar" }) }),
+});
+
+const responsibleSchema = baseResponsibleSchema.extend({
   // Regra de senha (DEC-B1-01): mínimo 8 caracteres, com letra e número.
   password: z.string().min(8, "Use pelo menos 8 caracteres")
     .regex(/[a-zA-Z]/, "A senha precisa ter pelo menos uma letra")
     .regex(/[0-9]/, "A senha precisa ter pelo menos um número")
     .max(72),
   passwordConfirmation: z.string(),
-  terms: z.literal(true, { errorMap: () => ({ message: "Aceite os termos para continuar" }) }),
 }).refine((data) => data.password === data.passwordConfirmation, { message: "As senhas não coincidem", path: ["passwordConfirmation"] });
+
+// Login social (B1.3): e-mail e senha já vêm resolvidos pelo provedor
+// (Google/Facebook) — só falta o que a LGPD/RN-ACC-03 exige e não é coletado
+// por eles: CPF, data de nascimento e o aceite dos termos.
+const responsibleSocialSchema = baseResponsibleSchema;
 
 const companySchema = z.object({
   legalName: z.string().trim().min(3, "Informe a razão social").max(160),
@@ -135,9 +143,13 @@ function displayMaskedCpf(value: string) {
 // até 7 dias no armazenamento do navegador.
 type DraftData = Omit<FormData, "password" | "passwordConfirmation">;
 
-export function SignupFlow({ onBack, onComplete }: { onBack: () => void; onComplete: () => void }) {
+type SocialUser = { name: string; email: string };
+
+export function SignupFlow({ onBack, onComplete, socialUser }: { onBack: () => void; onComplete: () => void; socialUser?: SocialUser }) {
+  const isSocial = Boolean(socialUser);
   const [step, setStep] = useState(0);
   const [data, setData] = useState<FormData>(() => {
+    if (socialUser) return { ...initialData, name: socialUser.name, email: socialUser.email };
     const draft = loadSignupDraft<DraftData>();
     return draft ? { ...initialData, ...draft.data } : initialData;
   });
@@ -171,7 +183,7 @@ export function SignupFlow({ onBack, onComplete }: { onBack: () => void; onCompl
   }
 
   function validateCurrent() {
-    const schema = step === 0 ? responsibleSchema : step === 1 ? companySchema : setupSchema;
+    const schema = step === 0 ? (isSocial ? responsibleSocialSchema : responsibleSchema) : step === 1 ? companySchema : setupSchema;
     const result = schema.safeParse(data);
     if (result.success) { setErrors({}); return true; }
     const nextErrors: Record<string, string> = {};
@@ -186,7 +198,8 @@ export function SignupFlow({ onBack, onComplete }: { onBack: () => void; onCompl
 
   async function submit() {
     setSubmitError("");
-    if (!responsibleSchema.safeParse(data).success || !companySchema.safeParse(data).success || !setupSchema.safeParse(data).success) {
+    const responsibleValid = (isSocial ? responsibleSocialSchema : responsibleSchema).safeParse(data).success;
+    if (!responsibleValid || !companySchema.safeParse(data).success || !setupSchema.safeParse(data).success) {
       setSubmitError("Revise as etapas anteriores: há algum dado pendente ou inválido.");
       return;
     }
@@ -199,6 +212,15 @@ export function SignupFlow({ onBack, onComplete }: { onBack: () => void; onCompl
       ]);
       if (!cpfOk) { setSubmitError("O CPF informado não é válido."); return; }
       if (!cnpjOk) { setSubmitError("O CNPJ informado não é válido."); return; }
+
+      if (isSocial) {
+        // Login social (B1.3): já existe sessão de verdade (Google/Facebook já
+        // confirmou a pessoa), então só falta criar a empresa.
+        const result = await completeCompanySignup(data);
+        if (!result.ok) { setSubmitError(result.message); return; }
+        setSuccess(true);
+        return;
+      }
 
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: data.email.trim(),
@@ -295,7 +317,7 @@ export function SignupFlow({ onBack, onComplete }: { onBack: () => void; onCompl
           <section className="min-w-0">
             <div className="mb-7"><p className="text-sm font-bold text-primary">Etapa {step + 1} de 4</p><h1 className="mt-1 text-2xl font-extrabold tracking-normal sm:text-3xl">{currentTitle}</h1><p className="mt-2 text-base text-muted-foreground">{currentDescription}</p></div>
             <div className="rounded-lg border border-border bg-card p-5 shadow-card sm:p-7">
-              {step === 0 && <ResponsibleFields data={data} update={update} inputProps={inputProps} errors={errors} />}
+              {step === 0 && <ResponsibleFields data={data} update={update} inputProps={inputProps} errors={errors} isSocial={isSocial} />}
               {step === 1 && <CompanyFields data={data} update={update} inputProps={inputProps} errors={errors} />}
               {step === 2 && <SetupFields data={data} update={update} errors={errors} />}
               {step === 3 && <Confirmation data={data} />}
@@ -305,7 +327,7 @@ export function SignupFlow({ onBack, onComplete }: { onBack: () => void; onCompl
             {submitError && <p role="alert" className="mt-4 rounded-md bg-destructive/10 px-4 py-3 text-sm font-semibold text-destructive">{submitError}</p>}
             <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center">
               <Button variant="outline" onClick={step === 0 ? onBack : () => setStep((current) => current - 1)}><ArrowLeft className="h-4 w-4" /> Voltar</Button>
-              <Button variant="ghost" onClick={() => { saveDraft(); setSaved(true); window.setTimeout(() => setSaved(false), 3000); }}><Save className="h-4 w-4" /> Salvar e continuar depois</Button>
+              {!isSocial && <Button variant="ghost" onClick={() => { saveDraft(); setSaved(true); window.setTimeout(() => setSaved(false), 3000); }}><Save className="h-4 w-4" /> Salvar e continuar depois</Button>}
               <Button className="sm:ml-auto" disabled={submitting} onClick={step === 3 ? () => void submit() : next}>
                 {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <>{step === 3 ? "Criar minha empresa" : "Continuar"} {step === 3 ? <Building2 className="h-4 w-4" /> : <ArrowRight className="h-4 w-4" />}</>}
               </Button>
@@ -330,15 +352,18 @@ function Field({ label, field, error, optional, children }: { label: string; fie
 const inputClass = "h-12 w-full rounded-md border border-input bg-card px-4 text-base outline-none transition focus:border-primary focus:ring-3 focus:ring-primary/15 aria-invalid:border-critical aria-invalid:ring-critical/10";
 const selectClass = `${inputClass} appearance-none`;
 
-function ResponsibleFields({ data, update, inputProps, errors }: FieldProps) {
+function ResponsibleFields({ data, update, inputProps, errors, isSocial }: FieldProps & { isSocial?: boolean | undefined }) {
   return <div className="grid gap-5 sm:grid-cols-2">
-    <div className="sm:col-span-2"><Field label="Nome completo" field="name" error={errors["name"]}><input {...inputProps("name")} maxLength={120} autoComplete="name" placeholder="Nome e sobrenome" className={inputClass} /></Field></div>
+    {isSocial && <div className="sm:col-span-2 rounded-md bg-accent px-4 py-3 text-sm text-accent-foreground">Seu nome e e-mail já vieram confirmados pelo login social. Só falta o que a lei exige e eles não informam: CPF, data de nascimento e o aceite dos termos.</div>}
+    <div className="sm:col-span-2"><Field label="Nome completo" field="name" error={errors["name"]}><input {...inputProps("name")} maxLength={120} autoComplete="name" placeholder="Nome e sobrenome" readOnly={isSocial} className={inputClass} /></Field></div>
     <Field label="CPF" field="cpf" error={errors["cpf"]}><input {...inputProps("cpf", maskCpf)} inputMode="numeric" placeholder="000.000.000-00" className={inputClass} /></Field>
     <Field label="Data de nascimento" field="birthDate" error={errors["birthDate"]}><input {...inputProps("birthDate")} type="date" className={inputClass} /></Field>
     <Field label="Telefone/WhatsApp" field="whatsapp" error={errors["whatsapp"]}><input {...inputProps("whatsapp", maskPhone)} inputMode="tel" placeholder="(00) 00000-0000" className={inputClass} /></Field>
-    <Field label="E-mail" field="email" error={errors["email"]}><input {...inputProps("email")} type="email" maxLength={255} autoComplete="email" placeholder="voce@empresa.com.br" className={inputClass} /></Field>
-    <Field label="Senha" field="password" error={errors["password"]}><input {...inputProps("password")} type="password" maxLength={72} autoComplete="new-password" placeholder="Mínimo de 8 caracteres" className={inputClass} /></Field>
-    <Field label="Confirmação da senha" field="passwordConfirmation" error={errors["passwordConfirmation"]}><input {...inputProps("passwordConfirmation")} type="password" maxLength={72} autoComplete="new-password" placeholder="Repita a senha" className={inputClass} /></Field>
+    <Field label="E-mail" field="email" error={errors["email"]}><input {...inputProps("email")} type="email" maxLength={255} autoComplete="email" placeholder="voce@empresa.com.br" readOnly={isSocial} className={inputClass} /></Field>
+    {!isSocial && <>
+      <Field label="Senha" field="password" error={errors["password"]}><input {...inputProps("password")} type="password" maxLength={72} autoComplete="new-password" placeholder="Mínimo de 8 caracteres" className={inputClass} /></Field>
+      <Field label="Confirmação da senha" field="passwordConfirmation" error={errors["passwordConfirmation"]}><input {...inputProps("passwordConfirmation")} type="password" maxLength={72} autoComplete="new-password" placeholder="Repita a senha" className={inputClass} /></Field>
+    </>}
     <div className="sm:col-span-2"><label className="flex items-start gap-3 rounded-md bg-muted p-4 text-sm leading-6"><input type="checkbox" checked={data.terms} onChange={(event) => update("terms", event.target.checked)} className="mt-1 h-4 w-4 shrink-0 accent-primary" /><span>Li e aceito os <strong className="text-primary">Termos de Uso</strong> e a <strong className="text-primary">Política de Privacidade</strong>.</span></label>{errors["terms"] && <span className="mt-1.5 block text-sm font-medium text-critical">{errors["terms"]}</span>}</div>
   </div>;
 }

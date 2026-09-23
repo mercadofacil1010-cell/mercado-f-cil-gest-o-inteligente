@@ -14,6 +14,7 @@ import { SignupFlow } from "@/components/signup-flow";
 import { OwnerDashboard } from "@/components/owner-dashboard";
 import { StockerApp } from "@/components/stocker-app";
 import { useAuth } from "@/lib/auth-context";
+import { userHasCompany } from "@/lib/complete-signup";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -35,6 +36,12 @@ function MercadoFacil() {
   const { session, loading, signOut } = useAuth();
   const [view, setView] = useState<View>("login");
   const [stockerReturn, setStockerReturn] = useState<View>("login");
+  // null = ainda checando; só se aplica a quem entrou por login social (B1.3),
+  // já que o cadastro por e-mail/senha cria a empresa no próprio fluxo (B1.2).
+  const [needsSocialCompanySetup, setNeedsSocialCompanySetup] = useState<boolean | null>(null);
+
+  const provider = session?.user.app_metadata["provider"];
+  const isSocialUser = typeof provider === "string" && provider !== "email";
 
   // Sessão real (B1.1): quando ela existe (login ou recarregar a página com sessão salva),
   // a dashboard aparece sem precisar passar pela tela de login de novo.
@@ -42,6 +49,19 @@ function MercadoFacil() {
     if (session && view === "login") setView("dashboard");
     if (!session && view === "dashboard") setView("login");
   }, [session, view]);
+
+  // Login social (B1.3, RN-ACC-04): primeiro acesso de uma conta social ainda
+  // não tem empresa nenhuma — falta CPF, nascimento e os dados da empresa,
+  // que o Google/Facebook não fornecem.
+  useEffect(() => {
+    let active = true;
+    if (!session || !isSocialUser) { setNeedsSocialCompanySetup(false); return; }
+    setNeedsSocialCompanySetup(null);
+    void userHasCompany(session.user.id).then((hasCompany) => {
+      if (active) setNeedsSocialCompanySetup(!hasCompany);
+    });
+    return () => { active = false; };
+  }, [session, isSocialUser]);
 
   const openStocker = (from: View) => { setStockerReturn(from); setView("stocker"); window.scrollTo({ top: 0 }); };
 
@@ -55,6 +75,26 @@ function MercadoFacil() {
 
   if (view === "signup") return <SignupFlow onBack={() => setView("login")} onComplete={() => setView("dashboard")} />;
   if (view === "stocker") return <StockerApp onExit={() => setView(stockerReturn)} />;
+
+  if (session && isSocialUser && needsSocialCompanySetup !== false) {
+    if (needsSocialCompanySetup === null) {
+      return (
+        <div className="grid min-h-screen place-items-center bg-background">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      );
+    }
+    const socialMeta = session.user.user_metadata as Record<string, unknown>;
+    const socialName = typeof socialMeta["full_name"] === "string" ? socialMeta["full_name"] : typeof socialMeta["name"] === "string" ? socialMeta["name"] : "";
+    return (
+      <SignupFlow
+        socialUser={{ name: socialName, email: session.user.email ?? "" }}
+        onBack={() => { void signOut(); setView("login"); }}
+        onComplete={() => setNeedsSocialCompanySetup(false)}
+      />
+    );
+  }
+
   return view === "dashboard" || session
     ? <OwnerDashboard onLogout={() => { void signOut(); setView("login"); }} onOpenStocker={() => openStocker("dashboard")} />
     : <Login onSignup={() => setView("signup")} onEmployee={() => openStocker("login")} />;
@@ -62,13 +102,25 @@ function MercadoFacil() {
 
 function Login({ onSignup, onEmployee }: { onSignup: () => void; onEmployee: () => void }) {
   const navigate = useNavigate();
-  const { signIn, requestPasswordReset } = useAuth();
+  const { signIn, requestPasswordReset, signInWithProvider } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [socialSubmitting, setSocialSubmitting] = useState<"google" | "facebook" | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+
+  async function handleSocialLogin(provider: "google" | "facebook") {
+    setError("");
+    setSocialSubmitting(provider);
+    const result = await signInWithProvider(provider);
+    if (!result.ok) {
+      setSocialSubmitting(null);
+      setError(result.message ?? "Não foi possível continuar com este provedor.");
+    }
+    // Em caso de sucesso o navegador é redirecionado; nada mais a fazer aqui.
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -164,8 +216,12 @@ function Login({ onSignup, onEmployee }: { onSignup: () => void; onEmployee: () 
 
           <div className="my-6 flex items-center gap-4 text-xs font-semibold uppercase text-muted-foreground before:h-px before:flex-1 before:bg-border after:h-px after:flex-1 after:bg-border">ou continue com</div>
           <div className="grid gap-3 sm:grid-cols-2">
-            <Button variant="outline" onClick={() => setNotice("Login com Google chega na etapa B1.3.")}><span className="text-lg font-extrabold text-google">G</span> Continuar com Google</Button>
-            <Button variant="outline" onClick={() => setNotice("Login com Facebook chega na etapa B1.3.")}><span className="grid h-5 w-5 place-items-center rounded-full bg-facebook text-xs font-extrabold text-social-foreground">f</span> Continuar com Facebook</Button>
+            <Button variant="outline" disabled={socialSubmitting !== null} onClick={() => void handleSocialLogin("google")}>
+              {socialSubmitting === "google" ? <Loader2 className="h-4 w-4 animate-spin" /> : <><span className="text-lg font-extrabold text-google">G</span> Continuar com Google</>}
+            </Button>
+            <Button variant="outline" disabled={socialSubmitting !== null} onClick={() => void handleSocialLogin("facebook")}>
+              {socialSubmitting === "facebook" ? <Loader2 className="h-4 w-4 animate-spin" /> : <><span className="grid h-5 w-5 place-items-center rounded-full bg-facebook text-xs font-extrabold text-social-foreground">f</span> Continuar com Facebook</>}
+            </Button>
           </div>
           <p className="mt-7 text-center text-sm text-muted-foreground">Ainda não possui acesso? <button type="button" onClick={onSignup} className="font-bold text-primary hover:underline">Criar minha conta</button></p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 border-t border-border pt-6 text-center">

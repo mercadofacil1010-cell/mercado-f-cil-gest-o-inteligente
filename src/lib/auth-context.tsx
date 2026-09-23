@@ -19,6 +19,9 @@ type AuthContextValue = {
   user: User | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<LoginResult>;
+  // Login social (B1.3, RF-ACC-02): redireciona para o provedor; a sessão volta
+  // pela própria URL de retorno (detectSessionInUrl já configurado no cliente).
+  signInWithProvider: (provider: "google" | "facebook") => Promise<{ ok: boolean; message?: string }>;
   signOut: () => Promise<void>;
   requestPasswordReset: (email: string) => Promise<{ ok: boolean; message: string }>;
   updatePassword: (newPassword: string) => Promise<{ ok: boolean; message: string }>;
@@ -80,7 +83,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: subscription } = supabase.auth.onAuthStateChange((event, nextSession) => {
       setSession(nextSession);
       setLoading(false);
-      if (event === "SIGNED_IN" && nextSession) void resumePendingSignup(nextSession);
+      if (event === "SIGNED_IN" && nextSession) {
+        void resumePendingSignup(nextSession);
+        // Login por e-mail/senha já registra o próprio evento em signIn(); aqui
+        // só o retorno do provedor social (Google/Facebook, RF-ACC-02).
+        const provider = nextSession.user.app_metadata["provider"];
+        if (typeof provider === "string" && provider !== "email") {
+          void logAuthEvent("log_security_event", { p_entity: "auth_login_success", p_details: { provider } });
+        }
+      }
     });
     return () => {
       active = false;
@@ -121,6 +132,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { ok: false, reason: "invalid_credentials", message: "E-mail ou senha incorretos." };
       }
       await logAuthEvent("log_security_event", { p_entity: "auth_login_success" });
+      return { ok: true };
+    },
+
+    async signInWithProvider(provider) {
+      const redirectTo = typeof window !== "undefined" ? window.location.origin : undefined;
+      const { error } = await supabase.auth.signInWithOAuth({ provider, ...(redirectTo ? { options: { redirectTo } } : {}) });
+      if (error) {
+        return { ok: false, message: "Não foi possível iniciar o login. Verifique se o provedor está configurado." };
+      }
+      // O navegador é redirecionado para o provedor; nada mais a fazer aqui.
       return { ok: true };
     },
 
