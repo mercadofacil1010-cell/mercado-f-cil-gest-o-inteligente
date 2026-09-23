@@ -183,6 +183,21 @@ function formatPhoneDisplay(digits: string) {
   return digits;
 }
 
+// Mesma máscara "ao digitar" do cadastro de mercado (add-market-flow.tsx).
+const onlyDigitsInput = (value: string) => value.replace(/\D/g, "");
+const maskCnpjInput = (value: string) =>
+  onlyDigitsInput(value)
+    .slice(0, 14)
+    .replace(/(\d{2})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d)/, "$1/$2")
+    .replace(/(\d{4})(\d{1,2})$/, "$1-$2");
+const maskPhoneInput = (value: string) =>
+  onlyDigitsInput(value)
+    .slice(0, 11)
+    .replace(/(\d{2})(\d)/, "($1) $2")
+    .replace(/(\d{5})(\d)/, "$1-$2");
+
 const emptySupplierForm: SupplierFormData = {
   name: "",
   cnpj: "",
@@ -313,9 +328,9 @@ function SupplierDialog({
     supplier
       ? {
           name: supplier.name,
-          cnpj: supplier.cnpj,
+          cnpj: maskCnpjInput(supplier.cnpj),
           contactName: supplier.contactName,
-          phone: supplier.phone,
+          phone: maskPhoneInput(supplier.phone),
           email: supplier.email,
           leadTimeDays: supplier.leadTimeDays != null ? String(supplier.leadTimeDays) : "",
         }
@@ -372,7 +387,7 @@ function SupplierDialog({
             <span className="mb-1.5 block font-semibold">CNPJ (opcional)</span>
             <input
               value={form.cnpj}
-              onChange={(event) => update({ cnpj: event.target.value })}
+              onChange={(event) => update({ cnpj: maskCnpjInput(event.target.value) })}
               placeholder="00.000.000/0000-00"
               className="h-11 w-full rounded-md border border-input bg-card px-3.5 text-base outline-none focus:ring-2 focus:ring-ring"
             />
@@ -390,7 +405,7 @@ function SupplierDialog({
               <span className="mb-1.5 block font-semibold">Telefone (opcional)</span>
               <input
                 value={form.phone}
-                onChange={(event) => update({ phone: event.target.value })}
+                onChange={(event) => update({ phone: maskPhoneInput(event.target.value) })}
                 className="h-11 w-full rounded-md border border-input bg-card px-3.5 text-base outline-none focus:ring-2 focus:ring-ring"
               />
             </label>
