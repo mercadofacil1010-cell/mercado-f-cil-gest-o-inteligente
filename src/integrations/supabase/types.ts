@@ -201,6 +201,89 @@ export type Database = {
           },
         ]
       }
+      invite_markets: {
+        Row: {
+          invite_id: string
+          market_id: string
+        }
+        Insert: {
+          invite_id: string
+          market_id: string
+        }
+        Update: {
+          invite_id?: string
+          market_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invite_markets_invite_id_fkey"
+            columns: ["invite_id"]
+            isOneToOne: false
+            referencedRelation: "invites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invite_markets_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "markets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invites: {
+        Row: {
+          accepted_at: string | null
+          accepted_by: string | null
+          company_id: string
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invited_by: string
+          role: Database["public"]["Enums"]["member_role"]
+          status: Database["public"]["Enums"]["invite_status"]
+          token: string
+          updated_at: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          company_id: string
+          created_at?: string
+          email: string
+          expires_at?: string
+          id?: string
+          invited_by: string
+          role: Database["public"]["Enums"]["member_role"]
+          status?: Database["public"]["Enums"]["invite_status"]
+          token?: string
+          updated_at?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          company_id?: string
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_by?: string
+          role?: Database["public"]["Enums"]["member_role"]
+          status?: Database["public"]["Enums"]["invite_status"]
+          token?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invites_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       login_attempts: {
         Row: {
           attempted_at: string
@@ -412,6 +495,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_invite: { Args: { p_token: string }; Returns: string }
       check_login_lock: { Args: { p_email: string }; Returns: Json }
       create_company: {
         Args: {
@@ -436,6 +520,25 @@ export type Database = {
         }
         Returns: string
       }
+      create_invite: {
+        Args: {
+          p_company_id: string
+          p_email: string
+          p_market_ids: string[]
+          p_role: Database["public"]["Enums"]["member_role"]
+        }
+        Returns: string
+      }
+      get_invite_preview: {
+        Args: { p_token: string }
+        Returns: {
+          company_name: string
+          email: string
+          expires_at: string
+          role: Database["public"]["Enums"]["member_role"]
+          status: Database["public"]["Enums"]["invite_status"]
+        }[]
+      }
       is_valid_cnpj: { Args: { value: string }; Returns: boolean }
       is_valid_cpf: { Args: { value: string }; Returns: boolean }
       log_audit_event: {
@@ -456,10 +559,13 @@ export type Database = {
         Args: { p_email: string; p_success: boolean }
         Returns: undefined
       }
+      resend_invite: { Args: { p_invite_id: string }; Returns: undefined }
+      revoke_invite: { Args: { p_invite_id: string }; Returns: undefined }
     }
     Enums: {
       account_status: "pending" | "active" | "blocked" | "cancelled"
       audit_action: "insert" | "update" | "delete" | "event"
+      invite_status: "pending" | "accepted" | "revoked"
       market_status:
         | "draft"
         | "awaiting_billing"
@@ -604,6 +710,7 @@ export const Constants = {
     Enums: {
       account_status: ["pending", "active", "blocked", "cancelled"],
       audit_action: ["insert", "update", "delete", "event"],
+      invite_status: ["pending", "accepted", "revoked"],
       market_status: [
         "draft",
         "awaiting_billing",

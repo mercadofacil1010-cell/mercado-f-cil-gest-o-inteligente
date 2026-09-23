@@ -19,7 +19,7 @@ function formatAddress(row: Pick<MarketRow, "street" | "number" | "district">) {
 }
 
 /** Converte a linha do banco para o formato usado nas telas (compatível com a versão de demonstração). */
-export function mapRowToMarket(row: MarketRow): Market {
+export function mapRowToMarket(row: MarketRow, managerName?: string): Market {
   return {
     id: row.id,
     code: row.internal_code ?? "",
@@ -30,16 +30,19 @@ export function mapRowToMarket(row: MarketRow): Market {
     lifecycleStatus: row.status,
     address: formatAddress(row),
     phone: row.phone ?? "",
-    // O vínculo de gerente chega no B1.5 (convites e equipe); até lá, nenhum
-    // mercado tem gerente definido de verdade.
-    manager: "Sem gerente vinculado",
+    // Vínculo de gerente real (B1.5): o mercado só tem gerente quando alguém
+    // com papel "manager" foi vinculado a ele via member_markets.
+    manager: managerName ?? "Sem gerente vinculado",
     revenue: 0,
     sales: 0,
     replenishments: 0,
     stockAlerts: 0,
     expiryAlerts: 0,
     inconsistencies: 0,
-    updatedAt: new Date(row.updated_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
+    updatedAt: new Date(row.updated_at).toLocaleTimeString("pt-BR", {
+      hour: "2-digit",
+      minute: "2-digit",
+    }),
     legalName: row.legal_name ?? "",
     cnpj: row.cnpj ?? "",
     cnpjType: row.uses_parent_cnpj ? "Matriz" : "Próprio",
@@ -65,17 +68,64 @@ export function mapRowToMarket(row: MarketRow): Market {
 
 /** Empresa do usuário logado (dono ou equipe). Por enquanto, uma pessoa pertence a uma única empresa. */
 export async function getUserCompanyId(userId: string): Promise<string | null> {
-  const { data, error } = await supabase.from("company_members").select("company_id").eq("user_id", userId).limit(1).maybeSingle();
+  const { data, error } = await supabase
+    .from("company_members")
+    .select("company_id")
+    .eq("user_id", userId)
+    .limit(1)
+    .maybeSingle();
   if (error || !data) return null;
   return data.company_id;
+}
+
+/** Nome do gerente vinculado a cada mercado (B1.5): quem tem papel "manager" e foi vinculado via member_markets. */
+async function getManagerNamesByMarket(companyId: string): Promise<Map<string, string>> {
+  const { data: managers } = await supabase
+    .from("company_members")
+    .select("id, user_id")
+    .eq("company_id", companyId)
+    .eq("role", "manager")
+    .eq("status", "active");
+  if (!managers?.length) return new Map();
+
+  const managerIds = managers.map((manager) => manager.id);
+  const [{ data: profiles }, { data: links }] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("id, full_name")
+      .in(
+        "id",
+        managers.map((manager) => manager.user_id),
+      ),
+    supabase.from("member_markets").select("member_id, market_id").in("member_id", managerIds),
+  ]);
+
+  const nameByUserId = new Map((profiles ?? []).map((profile) => [profile.id, profile.full_name]));
+  const userIdByMemberId = new Map(managers.map((manager) => [manager.id, manager.user_id]));
+
+  const result = new Map<string, string>();
+  for (const link of links ?? []) {
+    const userId = userIdByMemberId.get(link.member_id);
+    const name = userId ? nameByUserId.get(userId) : undefined;
+    if (name) result.set(link.market_id, name);
+  }
+  return result;
 }
 
 export async function listMarkets(companyId: string): Promise<Market[]> {
   // Mercado inativado (RF-ORG-02) some da lista principal — "inativar" existe
   // exatamente para isso, é o "excluir sem apagar" decidido no B0.
-  const { data, error } = await supabase.from("markets").select("*").eq("company_id", companyId).neq("status", "inactive").order("created_at", { ascending: true });
+  const [{ data, error }, managerNames] = await Promise.all([
+    supabase
+      .from("markets")
+      .select("*")
+      .eq("company_id", companyId)
+      .neq("status", "inactive")
+      .order("created_at", { ascending: true }),
+    getManagerNamesByMarket(companyId),
+  ]);
   if (error || !data) return [];
-  return data.map(mapRowToMarket);
+  return data.map((row) => mapRowToMarket(row, managerNames.get(row.id)));
 }
 
 function requiredOrUndefined(value: string) {
@@ -83,7 +133,10 @@ function requiredOrUndefined(value: string) {
   return trimmed ? trimmed : undefined;
 }
 
-export async function createMarket(companyId: string, data: NewMarketData): Promise<{ ok: true; market: Market } | { ok: false; message: string }> {
+export async function createMarket(
+  companyId: string,
+  data: NewMarketData,
+): Promise<{ ok: true; market: Market } | { ok: false; message: string }> {
   // O id é gerado aqui (não pelo banco) de propósito: o Postgres tem uma
   // particularidade real com RLS + RETURNING logo após o INSERT — a política
   // de leitura (que confere se o mercado pertence à empresa do usuário) pode
@@ -133,14 +186,24 @@ export async function createMarket(companyId: string, data: NewMarketData): Prom
     return { ok: false, message: "Não foi possível criar o mercado agora. Tente novamente." };
   }
 
-  const { data: row, error: fetchError } = await supabase.from("markets").select("*").eq("id", id).single();
+  const { data: row, error: fetchError } = await supabase
+    .from("markets")
+    .select("*")
+    .eq("id", id)
+    .single();
   if (fetchError || !row) {
-    return { ok: false, message: "O mercado foi criado, mas não consegui carregá-lo agora. Recarregue a página." };
+    return {
+      ok: false,
+      message: "O mercado foi criado, mas não consegui carregá-lo agora. Recarregue a página.",
+    };
   }
   return { ok: true, market: mapRowToMarket(row) };
 }
 
-export async function updateMarket(marketId: string, data: NewMarketData): Promise<{ ok: true; market: Market } | { ok: false; message: string }> {
+export async function updateMarket(
+  marketId: string,
+  data: NewMarketData,
+): Promise<{ ok: true; market: Market } | { ok: false; message: string }> {
   const updatePayload: Database["public"]["Tables"]["markets"]["Update"] = {
     name: data.unitName.trim(),
     legal_name: data.legalName.trim(),
@@ -168,7 +231,12 @@ export async function updateMarket(marketId: string, data: NewMarketData): Promi
     reference: requiredOrUndefined(data.reference) ?? null,
   };
 
-  const { data: row, error } = await supabase.from("markets").update(updatePayload).eq("id", marketId).select("*").single();
+  const { data: row, error } = await supabase
+    .from("markets")
+    .update(updatePayload)
+    .eq("id", marketId)
+    .select("*")
+    .single();
   if (error || !row) {
     return { ok: false, message: "Não foi possível salvar as alterações agora. Tente novamente." };
   }
@@ -176,8 +244,13 @@ export async function updateMarket(marketId: string, data: NewMarketData): Promi
 }
 
 /** Inativa o mercado (RF-ORG-02). É definitivo: o banco não permite reverter por aqui (soft-delete real, não exclusão). */
-export async function inactivateMarket(marketId: string): Promise<{ ok: true } | { ok: false; message: string }> {
-  const { error } = await supabase.from("markets").update({ status: "inactive", is_open: false }).eq("id", marketId);
+export async function inactivateMarket(
+  marketId: string,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const { error } = await supabase
+    .from("markets")
+    .update({ status: "inactive", is_open: false })
+    .eq("id", marketId);
   if (error) {
     return { ok: false, message: "Não foi possível inativar o mercado agora. Tente novamente." };
   }
