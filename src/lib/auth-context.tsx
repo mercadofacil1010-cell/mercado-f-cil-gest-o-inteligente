@@ -4,6 +4,8 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
+import { loadSignupDraft, clearSignupDraft } from "@/lib/signup-draft";
+import { completeCompanySignup, userHasCompany, type CompanySignupData } from "@/lib/complete-signup";
 
 type AuditRpc = "log_security_event" | "register_login_attempt";
 
@@ -20,6 +22,11 @@ type AuthContextValue = {
   signOut: () => Promise<void>;
   requestPasswordReset: (email: string) => Promise<{ ok: boolean; message: string }>;
   updatePassword: (newPassword: string) => Promise<{ ok: boolean; message: string }>;
+  // Aviso de uma vez só sobre a empresa que acabou de ser criada ao retomar o
+  // cadastro após a confirmação do e-mail (RF-ACC-07). A tela que exibir o
+  // aviso deve chamar de volta para limpar.
+  pendingSignupNotice: string | null;
+  clearPendingSignupNotice: () => void;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -40,6 +47,27 @@ async function logAuthEvent<T extends AuditRpc>(name: T, args: Database["public"
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [pendingSignupNotice, setPendingSignupNotice] = useState<string | null>(null);
+
+  // Retoma o cadastro (RF-ACC-07) quando o usuário confirma o e-mail e loga
+  // depois: se havia um rascunho de empresa esperando por esta conta e ela
+  // ainda não tem empresa nenhuma, cria a empresa agora.
+  async function resumePendingSignup(nextSession: Session) {
+    const email = nextSession.user.email;
+    if (!email) return;
+    const draft = loadSignupDraft<CompanySignupData>();
+    if (!draft?.pendingCompanyForEmail || draft.pendingCompanyForEmail.toLowerCase() !== email.toLowerCase()) return;
+    if (await userHasCompany(nextSession.user.id)) {
+      clearSignupDraft();
+      return;
+    }
+    const result = await completeCompanySignup(draft.data);
+    if (result.ok) {
+      clearSignupDraft();
+      setPendingSignupNotice(`Sua empresa "${draft.data.tradeName}" foi criada com sucesso.`);
+    }
+    // Se falhar, o rascunho continua salvo (até os 7 dias) para tentar de novo no próximo login.
+  }
 
   useEffect(() => {
     let active = true;
@@ -47,10 +75,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!active) return;
       setSession(data.session);
       setLoading(false);
+      if (data.session) void resumePendingSignup(data.session);
     });
-    const { data: subscription } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+    const { data: subscription } = supabase.auth.onAuthStateChange((event, nextSession) => {
       setSession(nextSession);
       setLoading(false);
+      if (event === "SIGNED_IN" && nextSession) void resumePendingSignup(nextSession);
     });
     return () => {
       active = false;
@@ -117,7 +147,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await logAuthEvent("log_security_event", { p_entity: "auth_password_updated" });
       return { ok: true, message: "Senha atualizada." };
     },
-  }), [session, loading]);
+
+    pendingSignupNotice,
+    clearPendingSignupNotice() {
+      setPendingSignupNotice(null);
+    },
+  }), [session, loading, pendingSignupNotice]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
