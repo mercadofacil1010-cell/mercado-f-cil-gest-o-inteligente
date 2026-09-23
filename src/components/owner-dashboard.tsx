@@ -55,28 +55,38 @@ import { initialReceivings, type Receiving } from "@/data/receivings";
 import { ReplenishmentOverview } from "@/components/replenishment-overview";
 import { OwnerSection } from "@/components/owner-sections";
 import { initialProducts, type Product } from "@/data/products";
-import { initialMarkets, money, type Market } from "@/data/markets";
+import { money, type Market } from "@/data/markets";
+import { useAuth } from "@/lib/auth-context";
+import { getUserCompanyId, listMarkets, createMarket, updateMarket, inactivateMarket } from "@/lib/markets-api";
 
-function marketFromForm(data: NewMarketData, existing: Market[]): Market {
-  const base = data.unitName.trim().toLocaleLowerCase("pt-BR").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "mercado";
-  let id = base;
-  for (let suffix = 2; existing.some((market) => market.id === id); suffix += 1) id = `${base}-${suffix}`;
-  const now = new Date();
+/** Converte o mercado (formato de tela) de volta no formato do formulário, para editar. */
+function marketToFormData(market: Market): NewMarketData {
   return {
-    id,
-    code: data.internalCode.trim(),
-    name: data.unitName.trim(),
-    status: data.initialStatus,
-    address: `${data.street.trim()}, ${data.number.trim()} · ${data.district.trim()}`,
-    phone: data.phone,
-    manager: data.managerName.trim(),
-    revenue: 0,
-    sales: 0,
-    replenishments: 0,
-    stockAlerts: 0,
-    expiryAlerts: 0,
-    inconsistencies: 0,
-    updatedAt: `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`,
+    unitName: market.name,
+    legalName: market.legalName ?? "",
+    cnpj: market.cnpj ?? "",
+    cnpjType: market.cnpjType ?? "Próprio",
+    internalCode: market.code,
+    phone: market.phone,
+    email: market.email ?? "",
+    openingHours: market.openingHours ?? "",
+    initialStatus: market.status,
+    zipCode: market.zipCode ?? "",
+    street: market.street ?? "",
+    number: market.number ?? "",
+    complement: market.complement ?? "",
+    district: market.district ?? "",
+    city: market.city ?? "",
+    state: market.state ?? "",
+    reference: market.reference ?? "",
+    checkouts: market.checkouts ?? "",
+    warehouses: market.warehouses ?? "",
+    employees: market.employees ?? "",
+    area: market.area ?? "",
+    posSystem: market.posSystem ?? "",
+    barcodeReaders: market.barcodeReaders ?? "Sim",
+    labelPrinter: market.labelPrinter ?? "Não",
+    billingAccepted: true,
   };
 }
 
@@ -97,8 +107,12 @@ const navigation: Array<{ label: string; icon: IconType }> = [
 ];
 
 export function OwnerDashboard({ onLogout, onOpenStocker }: { onLogout: () => void; onOpenStocker: () => void }) {
-  const [markets, setMarkets] = useState<Market[]>(initialMarkets);
+  const { user } = useAuth();
+  const [companyId, setCompanyId] = useState<string | null>(null);
+  const [markets, setMarkets] = useState<Market[]>([]);
+  const [loadingMarkets, setLoadingMarkets] = useState(true);
   const [addingMarket, setAddingMarket] = useState(false);
+  const [editingMarket, setEditingMarket] = useState<Market | null>(null);
   const [products, setProducts] = useState<Product[]>(initialProducts);
   const [receivings, setReceivings] = useState<Receiving[]>(initialReceivings);
   const [locations, setLocations] = useState<LocationsData>({ addresses: initialAddresses, gondolas: initialGondolas, movements: initialMovements });
@@ -117,6 +131,23 @@ export function OwnerDashboard({ onLogout, onOpenStocker }: { onLogout: () => vo
     const timer = window.setTimeout(() => setToast(""), 4000);
     return () => window.clearTimeout(timer);
   }, [toast]);
+
+  // Mercados reais (B1.4): busca a empresa do usuário logado e os mercados dela no Supabase.
+  useEffect(() => {
+    let active = true;
+    if (!user) { setLoadingMarkets(false); return; }
+    setLoadingMarkets(true);
+    void getUserCompanyId(user.id).then(async (id) => {
+      if (!active) return;
+      setCompanyId(id);
+      if (!id) { setMarkets([]); setLoadingMarkets(false); return; }
+      const list = await listMarkets(id);
+      if (!active) return;
+      setMarkets(list);
+      setLoadingMarkets(false);
+    });
+    return () => { active = false; };
+  }, [user]);
 
   const visibleMarkets = useMemo(() => {
     const normalized = query.trim().toLocaleLowerCase("pt-BR");
@@ -153,18 +184,53 @@ export function OwnerDashboard({ onLogout, onOpenStocker }: { onLogout: () => vo
     setActive("Meus mercados");
   };
 
-  const completeAddMarket = (data: NewMarketData) => {
-    const market = marketFromForm(data, markets);
-    setMarkets((current) => [...current, market]);
+  const finishAddOrEdit = (name: string, verb: "adicionado" | "atualizado") => {
     setAddingMarket(false);
+    setEditingMarket(null);
     setSelectedMarket("all");
     setQuery("");
     setDetailMarket(null);
     setActive("Visão geral");
-    setToast(`${market.name} adicionado à sua rede.`);
+    setToast(`${name} ${verb} com sucesso.`);
   };
 
-  if (addingMarket) return <AddMarketFlow onCancel={() => setAddingMarket(false)} onComplete={completeAddMarket} contractedMarkets={markets.length} />;
+  const completeAddMarket = async (data: NewMarketData) => {
+    if (!companyId) return { ok: false as const, message: "Não foi possível identificar sua empresa. Recarregue a página e tente de novo." };
+    const result = await createMarket(companyId, data);
+    if (!result.ok) return result;
+    setMarkets((current) => [...current, result.market]);
+    return { ok: true as const };
+  };
+
+  const completeEditMarket = async (data: NewMarketData) => {
+    if (!editingMarket) return { ok: false as const, message: "Mercado não encontrado." };
+    const result = await updateMarket(editingMarket.id, data);
+    if (!result.ok) return result;
+    setMarkets((current) => current.map((market) => (market.id === result.market.id ? result.market : market)));
+    setDetailMarket((current) => (current?.id === result.market.id ? result.market : current));
+    return { ok: true as const };
+  };
+
+  const requestInactivate = async (market: Market) => {
+    if (!window.confirm(`Inativar "${market.name}"? Essa ação não pode ser desfeita por aqui.`)) return;
+    const result = await inactivateMarket(market.id);
+    if (!result.ok) { setToast(result.message); return; }
+    setMarkets((current) => current.map((item) => (item.id === market.id ? { ...item, status: "Fechado", lifecycleStatus: "inactive" } : item)));
+    setDetailMarket(null);
+    setActive("Visão geral");
+    setToast(`${market.name} foi inativado.`);
+  };
+
+  if (addingMarket) {
+    return <AddMarketFlow onCancel={() => setAddingMarket(false)} onComplete={completeAddMarket} onDone={() => finishAddOrEdit("Mercado", "adicionado")} contractedMarkets={markets.length} />;
+  }
+  if (editingMarket) {
+    return <AddMarketFlow mode="edit" initialData={marketToFormData(editingMarket)} onCancel={() => setEditingMarket(null)} onComplete={completeEditMarket} onDone={() => finishAddOrEdit(editingMarket.name, "atualizado")} />;
+  }
+
+  if (loadingMarkets) {
+    return <div className="grid min-h-screen place-items-center bg-background"><RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
+  }
 
   return (
     <main className="min-h-screen bg-background text-foreground">
@@ -233,7 +299,7 @@ export function OwnerDashboard({ onLogout, onOpenStocker }: { onLogout: () => vo
 
         {toast && <div role="status" className="pointer-events-none fixed bottom-4 right-4 z-[60] flex max-w-[calc(100vw-32px)] items-center gap-3 rounded-md border border-border bg-card px-4 py-3 shadow-card [&_button]:pointer-events-auto"><CheckCircle2 className="h-5 w-5 text-success" /><span className="text-sm font-semibold">{toast}</span><Button variant="ghost" className="h-8 min-h-0 w-8 px-0" onClick={() => setToast("")} aria-label="Fechar aviso"><X className="h-4 w-4" /></Button></div>}
 
-        {detailMarket ? <MarketPanel key={detailMarket.id} market={detailMarket} markets={markets} onBack={() => { setDetailMarket(null); setActive("Visão geral"); }} onSwitch={setDetailMarket} notify={setToast} renderTab={(tab, market) => tab === "Estoque" ? <ProductsModule key={market.id} markets={markets} products={products} onChange={setProducts} notify={setToast} fixedMarketId={market.id} title="Estoque e produtos" /> : tab === "Gôndolas" || tab === "Depósito" ? <LocationsModule key={`${market.id}-${tab}`} data={locations} onChange={setLocations} market={market} markets={markets} notify={setToast} initialView={tab} /> : tab === "Recebimentos" ? <ReceivingModule key={market.id} receivings={receivings} onChange={setReceivings} notify={setToast} marketName={market.name} /> : tab === "Reposições" ? <ReplenishmentOverview market={market} onOpenStocker={onOpenStocker} notify={setToast} /> : null} /> : active === "Produtos" || active === "Estoque consolidado" || active === "Validades" ? (
+        {detailMarket ? <MarketPanel key={detailMarket.id} market={detailMarket} markets={markets} onBack={() => { setDetailMarket(null); setActive("Visão geral"); }} onSwitch={setDetailMarket} notify={setToast} onEdit={() => setEditingMarket(detailMarket)} onInactivate={() => void requestInactivate(detailMarket)} renderTab={(tab, market) => tab === "Estoque" ? <ProductsModule key={market.id} markets={markets} products={products} onChange={setProducts} notify={setToast} fixedMarketId={market.id} title="Estoque e produtos" /> : tab === "Gôndolas" || tab === "Depósito" ? <LocationsModule key={`${market.id}-${tab}`} data={locations} onChange={setLocations} market={market} markets={markets} notify={setToast} initialView={tab} /> : tab === "Recebimentos" ? <ReceivingModule key={market.id} receivings={receivings} onChange={setReceivings} notify={setToast} marketName={market.name} /> : tab === "Reposições" ? <ReplenishmentOverview market={market} onOpenStocker={onOpenStocker} notify={setToast} /> : null} /> : active === "Produtos" || active === "Estoque consolidado" || active === "Validades" ? (
           <section className="mx-auto max-w-[1680px] p-4 sm:p-6 lg:p-8"><ProductsModule key={active} markets={markets} products={products} onChange={setProducts} notify={setToast} title={active} initialExpiryFilter={active === "Validades" ? "30" : "all"} /></section>
         ) : active !== "Visão geral" && active !== "Meus mercados" ? (
           <OwnerSection section={active} markets={markets} notify={setToast} />
