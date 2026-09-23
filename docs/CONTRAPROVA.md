@@ -22,6 +22,15 @@ Total de itens rastreados: **426** · Feito: **75** · Parcial: **8**
 | B9 — Comercial e administração | 62    |
 | B10 — Não funcionais e piloto  | 29    |
 
+## Regra de arquitetura fixada (checar antes de codificar B3 em diante)
+
+Análise ponta a ponta do painel do dono pedida pelo proprietário em 23/09/2026 (decisões DEC-ARQ-01/02 em `DECISOES.md`):
+
+- **Catálogo é da rede**: produto, categoria, marca, fornecedor — um cadastro só, compartilhado por todos os mercados (já é assim desde B2.1/B2.2; confirmado, não muda).
+- **Operação é por mercado**: todo módulo de B3 em diante (estoque, movimentos, recebimento, reposição, inconsistências, compras, relatórios) precisa ter `market_id` desde a primeira migração — mesmo quando a tela mostra um total consolidado da rede. Padrão já em uso desde B2.3 (`market_products`).
+- Ponto de atenção já identificado: os dados fictícios de "Inconsistências" (`src/data/market-operations.ts`) são os únicos, entre as seções do painel, sem nenhum campo de mercado — ao implementar de verdade (B3.4/B4), incluir `market_id` desde a primeira migração dessa funcionalidade.
+- Generalizar o sistema para outros ramos de comércio (farmácia, loja em geral) fica registrado como **PENDÊNCIA DE DEFINIÇÃO** (DEC-ARQ-02): a modelagem já é genérica, só a linguagem das telas usa "mercado"; não bloqueia o cronograma atual.
+
 ## B0.1 — Correções da fundação (multimercado, inativar em vez de excluir, ciclo do mercado, CPF/CNPJ)
 
 | ID           | Item                                                                                                                                               | Decisão? | Status | Evidência                                                                                                                            |
