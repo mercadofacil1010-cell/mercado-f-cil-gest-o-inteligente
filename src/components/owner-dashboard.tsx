@@ -16,6 +16,7 @@ import {
   FileChartColumn,
   HelpCircle,
   LayoutDashboard,
+  Lock,
   LogOut,
   Menu,
   Package,
@@ -134,6 +135,26 @@ const navigation: Array<{ label: string; icon: IconType }> = [
   { label: "Configurações", icon: Settings },
   { label: "Ajuda e suporte", icon: HelpCircle },
 ];
+
+// Matriz de permissões por perfil (B1.6, DEC-B1-10): o Conferente e o Repositor
+// ainda não têm suas telas de trabalho reais (App do Conferente/Repositor,
+// B4/B5), então por enquanto só veem visão geral, mercados e ajuda.
+const allSectionLabels = navigation.map((item) => item.label);
+const managerSections = allSectionLabels.filter(
+  (label) => label !== "Assinatura" && label !== "Configurações",
+);
+const basicSections = ["Visão geral", "Meus mercados", "Ajuda e suporte"];
+const sectionsByRole: Record<MemberRole, string[]> = {
+  owner: allSectionLabels,
+  manager: managerSections,
+  receiver: basicSections,
+  stocker: basicSections,
+};
+
+function canAccessSection(role: MemberRole | null, section: string): boolean {
+  if (!role) return basicSections.includes(section);
+  return sectionsByRole[role].includes(section);
+}
 
 export function OwnerDashboard({
   onLogout,
@@ -364,19 +385,21 @@ export function OwnerDashboard({
           className="min-h-0 flex-1 space-y-1 overflow-y-auto px-3 py-5"
           aria-label="Navegação principal"
         >
-          {navigation.map(({ label, icon: Icon }) => (
-            <Button
-              key={label}
-              variant="nav"
-              data-active={active === label}
-              onClick={() => selectNav(label)}
-              title={collapsed ? label : undefined}
-              className={`w-full px-3 ${collapsed ? "justify-center" : "justify-start"}`}
-            >
-              <Icon className="h-[18px] w-[18px] shrink-0" />
-              <span className={collapsed ? "sr-only" : "truncate"}>{label}</span>
-            </Button>
-          ))}
+          {navigation
+            .filter((item) => canAccessSection(callerRole, item.label))
+            .map(({ label, icon: Icon }) => (
+              <Button
+                key={label}
+                variant="nav"
+                data-active={active === label}
+                onClick={() => selectNav(label)}
+                title={collapsed ? label : undefined}
+                className={`w-full px-3 ${collapsed ? "justify-center" : "justify-start"}`}
+              >
+                <Icon className="h-[18px] w-[18px] shrink-0" />
+                <span className={collapsed ? "sr-only" : "truncate"}>{label}</span>
+              </Button>
+            ))}
         </nav>
         <div className="border-t border-sidebar-border p-3">
           <Button
@@ -507,12 +530,16 @@ export function OwnerDashboard({
                 <DropdownMenuContent align="end" className="w-52">
                   <DropdownMenuLabel>Minha conta</DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onSelect={() => selectNav("Equipe e acessos")}>
-                    <Users /> Meu perfil e equipe
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => selectNav("Configurações")}>
-                    <Settings /> Configurações
-                  </DropdownMenuItem>
+                  {canAccessSection(callerRole, "Equipe e acessos") && (
+                    <DropdownMenuItem onSelect={() => selectNav("Equipe e acessos")}>
+                      <Users /> Meu perfil e equipe
+                    </DropdownMenuItem>
+                  )}
+                  {canAccessSection(callerRole, "Configurações") && (
+                    <DropdownMenuItem onSelect={() => selectNav("Configurações")}>
+                      <Settings /> Configurações
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onSelect={onLogout}>
                     <LogOut /> Sair
@@ -617,6 +644,8 @@ export function OwnerDashboard({
               ) : null
             }
           />
+        ) : !canAccessSection(callerRole, active) ? (
+          <AccessDenied />
         ) : active === "Produtos" || active === "Estoque consolidado" || active === "Validades" ? (
           <section className="mx-auto max-w-[1680px] p-4 sm:p-6 lg:p-8">
             <ProductsModule
@@ -1032,6 +1061,22 @@ function MarketStat({
       <span className="block text-xs font-semibold text-muted-foreground">{label}</span>
       <strong className={`mt-0.5 block text-sm ${warning ? "text-critical" : ""}`}>{value}</strong>
     </div>
+  );
+}
+
+/** Tela de "sem acesso" (B1.6, DEC-B1-10): mostrada se o perfil logado não pode ver a seção atual. */
+function AccessDenied() {
+  return (
+    <section className="mx-auto max-w-[1680px] p-4 sm:p-6 lg:p-8">
+      <div className="grid place-items-center rounded-lg border border-dashed border-border bg-card p-14 text-center">
+        <Lock className="h-10 w-10 text-muted-foreground" />
+        <h1 className="mt-4 text-xl font-extrabold">Acesso restrito</h1>
+        <p className="mt-2 max-w-sm text-sm text-muted-foreground">
+          Seu perfil não tem permissão para ver esta tela. Se precisar de acesso, fale com o dono ou
+          gerente da empresa.
+        </p>
+      </div>
+    </section>
   );
 }
 
