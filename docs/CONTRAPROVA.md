@@ -6,7 +6,7 @@ Cada linha aponta a etapa do plano (`docs/PLANO_FECHAMENTO.md`) em que o item é
 **Status:** `Pendente` → `Em andamento` → `Feito` (com evidência). `Parcial` = começou, falta completar. `Adiado` = decisão formal de tirar da versão.  
 **Decisão?** `Sim` = o item tem [A DEFINIR]; a decisão precisa estar registrada em `docs/DECISOES.md` antes de codificar.
 
-Total de itens rastreados: **426** · Feito: **33** · Parcial: **3**
+Total de itens rastreados: **426** · Feito: **38** · Parcial: **4**
 
 | Bloco | Itens |
 |---|---|
@@ -75,12 +75,12 @@ Total de itens rastreados: **426** · Feito: **33** · Parcial: **3**
 
 | ID | Item | Decisão? | Status | Evidência |
 |---|---|---|---|---|
-| RNF-SEC-01b | Autenticação de usuários (parte de RNF-SEC-01) |  | Pendente |  |
-| RF-ACC-01 | Permitir login por e-mail e senha. |  | Pendente |  |
-| RF-ACC-03 | Permitir recuperação de senha. |  | Pendente |  |
-| RF-ACC-08 | Validar e-mail e telefone antes da ativação. Método [A DEFINIR]. | Sim | Pendente |  |
-| INT-MAIL | Integração e-mail |  | Pendente |  |
-| AUD-01 | Evento de auditoria: Login, logout, recuperação de senha, bloqueio e falha de acesso (seção 8.1) |  | Pendente |  |
+| RNF-SEC-01b | Autenticação de usuários (parte de RNF-SEC-01) |  | Feito | PR B1.1 · `supabase.auth.signInWithPassword`, sessão persistente e `src/lib/auth-context.tsx` |
+| RF-ACC-01 | Permitir login por e-mail e senha. |  | Feito | PR B1.1 · `src/routes/index.tsx` (tela de login real) |
+| RF-ACC-03 | Permitir recuperação de senha. |  | Feito | PR B1.1 · `resetPasswordForEmail` + `src/routes/redefinir-senha.tsx` |
+| RF-ACC-08 | Validar e-mail e telefone antes da ativação. Método [A DEFINIR]. | Sim | Parcial | Decisão (DEC-B1-02): confirmar por e-mail, telefone fica para depois. Falta **ação manual do proprietário**: ligar "Confirm email" no painel do Supabase (Authentication → Sign In / Providers) — não há API para isso |
+| INT-MAIL | Integração e-mail |  | Feito | PR B1.1 — envio padrão do Supabase Auth (DEC-B1-03), usado por recuperação de senha e confirmação |
+| AUD-01 | Evento de auditoria: Login, logout, recuperação de senha, bloqueio e falha de acesso (seção 8.1) |  | Feito | PR B1.1 · `log_security_event` + teste `supabase/tests/40_login_audit_test.sql` |
 
 ## B1.2 — Cadastro real do dono e da empresa + aceites legais
 
