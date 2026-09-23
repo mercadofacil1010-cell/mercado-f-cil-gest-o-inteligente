@@ -6,7 +6,7 @@ Cada linha aponta a etapa do plano (`docs/PLANO_FECHAMENTO.md`) em que o item é
 **Status:** `Pendente` → `Em andamento` → `Feito` (com evidência). `Parcial` = começou, falta completar. `Adiado` = decisão formal de tirar da versão.  
 **Decisão?** `Sim` = o item tem [A DEFINIR]; a decisão precisa estar registrada em `docs/DECISOES.md` antes de codificar.
 
-Total de itens rastreados: **426** · Feito: **58** · Parcial: **5**
+Total de itens rastreados: **426** · Feito: **60** · Parcial: **5**
 
 | Bloco                          | Itens |
 | ------------------------------ | ----- |
@@ -144,12 +144,12 @@ acessar uma seção sem permissão.
 
 | ID        | Item                                                                                                                                                | Decisão? | Status   | Evidência |
 | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | -------- | --------- |
-| RN-ACL-07 | Administrador da plataforma não deve assumir silenciosamente a identidade de cliente. Suporte com acesso delegado e consentimento está [A DEFINIR]. | Sim      | Pendente |           |
-| RF-ACC-06 | Separar acesso de cliente do acesso administrativo da plataforma.                                                                                   |          | Pendente |           |
-| RF-ADM-08 | Atender solicitações de suporte sem acesso irrestrito silencioso aos dados do cliente.                                                              |          | Pendente |           |
-| RN-ADM-02 | Administrador não altera estoque do cliente por padrão; exceção de suporte está [A DEFINIR].                                                        | Sim      | Pendente |           |
-| PA-44     | Administrador pode acessar dados do cliente para suporte? — Sugestão do documento: somente com consentimento, prazo, justificativa e auditoria.     | Sim      | Pendente |           |
-| G-08      | Lacuna: como o administrador da plataforma é criado                                                                                                 |          | Pendente |           |
+| RN-ACL-07 | Administrador da plataforma não deve assumir silenciosamente a identidade de cliente. Suporte com acesso delegado e consentimento está [A DEFINIR]. | Sim      | Pendente | **PENDÊNCIA DE DEFINIÇÃO**: hoje o painel admin (`src/components/admin-panel.tsx`) só mostra dados fictícios, não acessa dado real de cliente nenhum — falta decidir o desenho de consentimento/prazo antes de ligar isso a dados de verdade |
+| RF-ACC-06 | Separar acesso de cliente do acesso administrativo da plataforma.                                                                                   |          | Feito    | PR B1.7 · `/admin` agora exige login próprio e checa `platform_admins` (`src/lib/admin-api.ts`, `src/routes/admin.tsx`); antes era uma rota aberta sem nenhuma checagem |
+| RF-ADM-08 | Atender solicitações de suporte sem acesso irrestrito silencioso aos dados do cliente.                                                              |          | Pendente | Mesma pendência do RN-ACL-07: ainda não existe acesso a dado real de cliente pelo admin para regular |
+| RN-ADM-02 | Administrador não altera estoque do cliente por padrão; exceção de suporte está [A DEFINIR].                                                        | Sim      | Pendente | **PENDÊNCIA DE DEFINIÇÃO** — mesmo motivo acima |
+| PA-44     | Administrador pode acessar dados do cliente para suporte? — Sugestão do documento: somente com consentimento, prazo, justificativa e auditoria.     | Sim      | Pendente | **PENDÊNCIA DE DEFINIÇÃO** — aguardando decisão do proprietário antes de implementar (Correção 4) |
+| G-08      | Lacuna: como o administrador da plataforma é criado                                                                                                 |          | Feito    | Já decidido desde o B0.1 (comentário da tabela `platform_admins`, `supabase/migrations/20260923000100_foundation.sql`): só por SQL/painel do Supabase, nunca por uma tela do site — PR B1.7 documenta e depende disso na rota `/admin` |
 | AUD-09    | Evento de auditoria: Acesso administrativo a dados do cliente (seção 8.1)                                                                           |          | Pendente |           |
 
 ## B2.1 — Fornecedores, categorias e marcas
