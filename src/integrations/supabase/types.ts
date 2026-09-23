@@ -812,6 +812,64 @@ export type Database = {
         }
         Relationships: []
       }
+      stock_movements: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          product_id: string
+          quantity: number
+          reference: string | null
+          reversal_of: string | null
+          type: Database["public"]["Enums"]["stock_movement_type"]
+          warehouse_address_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          product_id: string
+          quantity: number
+          reference?: string | null
+          reversal_of?: string | null
+          type: Database["public"]["Enums"]["stock_movement_type"]
+          warehouse_address_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          product_id?: string
+          quantity?: number
+          reference?: string | null
+          reversal_of?: string | null
+          type?: Database["public"]["Enums"]["stock_movement_type"]
+          warehouse_address_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_movements_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movements_reversal_of_fkey"
+            columns: ["reversal_of"]
+            isOneToOne: false
+            referencedRelation: "stock_movements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movements_warehouse_address_id_fkey"
+            columns: ["warehouse_address_id"]
+            isOneToOne: false
+            referencedRelation: "warehouse_addresses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       suppliers: {
         Row: {
           cnpj: string | null
@@ -923,7 +981,52 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      market_product_balances: {
+        Row: {
+          balance: number | null
+          market_id: string | null
+          product_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_movements_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "warehouse_addresses_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "markets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stock_balances: {
+        Row: {
+          balance: number | null
+          product_id: string | null
+          warehouse_address_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_movements_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movements_warehouse_address_id_fkey"
+            columns: ["warehouse_address_id"]
+            isOneToOne: false
+            referencedRelation: "warehouse_addresses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       accept_invite: { Args: { p_token: string }; Returns: string }
@@ -990,7 +1093,22 @@ export type Database = {
         Args: { p_email: string; p_success: boolean }
         Returns: undefined
       }
+      register_stock_movement: {
+        Args: {
+          p_product_id: string
+          p_quantity: number
+          p_reason?: string
+          p_reference?: string
+          p_type: Database["public"]["Enums"]["stock_movement_type"]
+          p_warehouse_address_id: string
+        }
+        Returns: Database["public"]["Tables"]["stock_movements"]["Row"]
+      }
       resend_invite: { Args: { p_invite_id: string }; Returns: undefined }
+      reverse_stock_movement: {
+        Args: { p_movement_id: string; p_reason: string }
+        Returns: Database["public"]["Tables"]["stock_movements"]["Row"]
+      }
       revoke_invite: { Args: { p_invite_id: string }; Returns: undefined }
       update_gondola_position_limits: {
         Args: {
@@ -1021,6 +1139,12 @@ export type Database = {
         | "inactive"
       member_role: "owner" | "manager" | "receiver" | "stocker"
       member_status: "active" | "invited" | "disabled"
+      stock_movement_type:
+        | "entrada"
+        | "saida"
+        | "ajuste"
+        | "perda"
+        | "devolucao_fornecedor"
       subscription_status:
         | "trial"
         | "active"
@@ -1169,6 +1293,13 @@ export const Constants = {
       ],
       member_role: ["owner", "manager", "receiver", "stocker"],
       member_status: ["active", "invited", "disabled"],
+      stock_movement_type: [
+        "entrada",
+        "saida",
+        "ajuste",
+        "perda",
+        "devolucao_fornecedor",
+      ],
       subscription_status: [
         "trial",
         "active",

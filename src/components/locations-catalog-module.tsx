@@ -1,10 +1,9 @@
-// Endereçamento real de depósito e gôndola por mercado (B3.1). Substitui,
+// Endereçamento real de depósito e gôndola por mercado (B3.1), com o livro
+// de movimentos e saldo real dos endereços de depósito (B3.2). Substitui,
 // para este mercado, os dados de demonstração de "Gôndolas"/"Depósito" por
-// leitura e gravação de verdade no Supabase. Estoque físico e movimentos
-// (quanto tem em cada endereço) chegam no B3.2 — aqui só existe a estrutura
-// (endereços, posições, capacidade e, na gôndola, mínimo/ideal/máximo).
+// leitura e gravação de verdade no Supabase.
 import { useEffect, useState } from "react";
-import { Plus, RefreshCw, X } from "lucide-react";
+import { Plus, RefreshCw, Undo2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -39,6 +38,16 @@ import {
   type WarehouseAddress,
   type WarehouseAddressFormData,
 } from "@/lib/locations-api";
+import {
+  listStockBalances,
+  listStockMovements,
+  registerStockMovement,
+  reverseStockMovement,
+  stockMovementTypeLabel,
+  type StockBalance,
+  type StockMovement,
+  type StockMovementType,
+} from "@/lib/stock-movements-api";
 
 const emptyAddressForm: WarehouseAddressFormData = {
   warehouseName: "Depósito 1",
@@ -89,6 +98,7 @@ export function LocationsCatalogModule({
   const [addressFormOpen, setAddressFormOpen] = useState(false);
   const [editingAddress, setEditingAddress] = useState<WarehouseAddress | null>(null);
   const [changingCapacityOf, setChangingCapacityOf] = useState<WarehouseAddress | null>(null);
+  const [viewingMovementsOf, setViewingMovementsOf] = useState<WarehouseAddress | null>(null);
   const [positionFormOpen, setPositionFormOpen] = useState(false);
   const [changingLimitsOf, setChangingLimitsOf] = useState<GondolaPosition | null>(null);
 
@@ -227,6 +237,13 @@ export function LocationsCatalogModule({
                             Alterar capacidade
                           </Button>
                           <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setViewingMovementsOf(address)}
+                          >
+                            Movimentos
+                          </Button>
+                          <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => void requestInactivateAddress(address)}
@@ -347,6 +364,14 @@ export function LocationsCatalogModule({
             notify("Capacidade atualizada.");
             void reload();
           }}
+        />
+      )}
+      {viewingMovementsOf && (
+        <MovementsDialog
+          address={viewingMovementsOf}
+          products={products}
+          onClose={() => setViewingMovementsOf(null)}
+          notify={notify}
         />
       )}
       {positionFormOpen && (
@@ -995,6 +1020,285 @@ function LimitsDialog({
           </Button>
           <Button disabled={submitting} onClick={() => void handleSubmit()}>
             {submitting ? <RefreshCw className="h-4 w-4 animate-spin" /> : "Salvar"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+const emptyMovementForm = {
+  productId: "",
+  type: "entrada" as StockMovementType,
+  quantity: "",
+  reference: "",
+  reason: "",
+};
+
+function MovementsDialog({
+  address,
+  products,
+  onClose,
+  notify,
+}: {
+  address: WarehouseAddress;
+  products: Product[];
+  onClose: () => void;
+  notify: (message: string) => void;
+}) {
+  const [balances, setBalances] = useState<StockBalance[]>([]);
+  const [movements, setMovements] = useState<StockMovement[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [form, setForm] = useState(emptyMovementForm);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const [needsReason, setNeedsReason] = useState(false);
+  const [reversingId, setReversingId] = useState<string | null>(null);
+  const [reverseReason, setReverseReason] = useState("");
+  const [reversing, setReversing] = useState(false);
+
+  const reload = async () => {
+    setLoading(true);
+    const [balanceList, movementList] = await Promise.all([
+      listStockBalances(address.id),
+      listStockMovements(address.id),
+    ]);
+    setBalances(balanceList);
+    setMovements(movementList);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    void reload();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- recarrega só quando o endereço muda
+  }, [address.id]);
+
+  const update = (patch: Partial<typeof emptyMovementForm>) =>
+    setForm((current) => ({ ...current, ...patch }));
+
+  const handleSubmit = async () => {
+    setError("");
+    if (!form.productId) {
+      setError("Escolha um produto.");
+      return;
+    }
+    const rawQuantity = Number(form.quantity);
+    if (!form.quantity.trim() || rawQuantity === 0) {
+      setError("Informe uma quantidade diferente de zero.");
+      return;
+    }
+    const signedQuantity = form.type === "entrada" ? Math.abs(rawQuantity) : -Math.abs(rawQuantity);
+    setSubmitting(true);
+    const result = await registerStockMovement(
+      address.id,
+      form.productId,
+      form.type,
+      signedQuantity,
+      form.reference,
+      form.reason,
+    );
+    setSubmitting(false);
+    if (!result.ok) {
+      setError(result.message);
+      setNeedsReason(Boolean(result.needsReason));
+      return;
+    }
+    setForm(emptyMovementForm);
+    setNeedsReason(false);
+    notify("Movimento registrado.");
+    void reload();
+  };
+
+  const handleReverse = async (movementId: string) => {
+    if (!reverseReason.trim()) {
+      notify("Informe a justificativa do estorno.");
+      return;
+    }
+    setReversing(true);
+    const result = await reverseStockMovement(movementId, reverseReason);
+    setReversing(false);
+    if (!result.ok) {
+      notify(result.message);
+      return;
+    }
+    setReversingId(null);
+    setReverseReason("");
+    notify("Movimento estornado.");
+    void reload();
+  };
+
+  return (
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
+      <DialogContent className="max-h-[85vh] max-w-[680px] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Movimentos — {address.code}</DialogTitle>
+          <DialogDescription>
+            Entradas, saídas, ajustes, perdas e devoluções ao fornecedor deste endereço.
+          </DialogDescription>
+        </DialogHeader>
+        {loading ? (
+          <div className="grid place-items-center p-6">
+            <RefreshCw className="h-5 w-5 animate-spin text-muted-foreground" />
+          </div>
+        ) : (
+          <>
+            {balances.length > 0 && (
+              <div className="space-y-1 rounded-md border border-border p-3 text-sm">
+                <p className="font-semibold">Saldo atual</p>
+                {balances.map((balance) => (
+                  <div key={balance.productId} className="flex justify-between">
+                    <span>{balance.productName}</span>
+                    <span className={balance.balance < 0 ? "text-destructive" : ""}>
+                      {balance.balance}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="space-y-3 rounded-md border border-border p-3">
+              <p className="text-sm font-semibold">Registrar movimento</p>
+              <div className="grid grid-cols-2 gap-3">
+                <Select
+                  value={form.productId}
+                  onValueChange={(value) => update({ productId: value })}
+                >
+                  <SelectTrigger className="h-10 bg-card">
+                    <SelectValue placeholder="Produto" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {products.map((product) => (
+                      <SelectItem key={product.id} value={product.id}>
+                        {product.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select
+                  value={form.type}
+                  onValueChange={(value) => update({ type: value as StockMovementType })}
+                >
+                  <SelectTrigger className="h-10 bg-card">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(Object.keys(stockMovementTypeLabel) as StockMovementType[]).map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {stockMovementTypeLabel[type]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <input
+                  type="number"
+                  min="0"
+                  step="0.001"
+                  value={form.quantity}
+                  onChange={(event) => update({ quantity: event.target.value })}
+                  placeholder="Quantidade"
+                  className="h-10 rounded-md border border-input bg-card px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+                />
+                <input
+                  value={form.reference}
+                  onChange={(event) => update({ reference: event.target.value })}
+                  placeholder="Referência (opcional)"
+                  className="h-10 rounded-md border border-input bg-card px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+              {needsReason && (
+                <input
+                  value={form.reason}
+                  onChange={(event) => update({ reason: event.target.value })}
+                  placeholder="Justificativa (saldo ficaria negativo)"
+                  className="h-10 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+                />
+              )}
+              {error && (
+                <p
+                  role="alert"
+                  className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive"
+                >
+                  {error}
+                </p>
+              )}
+              <div className="flex justify-end">
+                <Button size="sm" disabled={submitting} onClick={() => void handleSubmit()}>
+                  {submitting ? <RefreshCw className="h-4 w-4 animate-spin" /> : "Registrar"}
+                </Button>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <p className="text-sm font-semibold">Extrato</p>
+              {movements.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Nenhum movimento ainda.</p>
+              ) : (
+                movements.map((movement) => {
+                  const isReversal = Boolean(movement.reversalOf);
+                  const alreadyReversed = movements.some((m) => m.reversalOf === movement.id);
+                  return (
+                    <div key={movement.id} className="rounded-md border border-border p-2 text-sm">
+                      <div className="flex items-center justify-between gap-2">
+                        <div>
+                          <strong>{movement.productName}</strong>
+                          <span className="ml-2 text-muted-foreground">
+                            {stockMovementTypeLabel[movement.type]}
+                            {isReversal && " (estorno)"}
+                          </span>
+                          <div className={movement.quantity < 0 ? "text-destructive" : ""}>
+                            {movement.quantity > 0 ? "+" : ""}
+                            {movement.quantity}
+                            {movement.reference && ` · ${movement.reference}`}
+                          </div>
+                        </div>
+                        {!isReversal && !alreadyReversed && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() =>
+                              setReversingId(reversingId === movement.id ? null : movement.id)
+                            }
+                          >
+                            <Undo2 className="h-3.5 w-3.5" /> Estornar
+                          </Button>
+                        )}
+                      </div>
+                      {reversingId === movement.id && (
+                        <div className="mt-2 flex gap-2">
+                          <input
+                            value={reverseReason}
+                            onChange={(event) => setReverseReason(event.target.value)}
+                            placeholder="Justificativa do estorno"
+                            className="h-9 min-w-0 flex-1 rounded-md border border-input bg-card px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+                          />
+                          <Button
+                            size="sm"
+                            disabled={reversing}
+                            onClick={() => void handleReverse(movement.id)}
+                          >
+                            {reversing ? (
+                              <RefreshCw className="h-4 w-4 animate-spin" />
+                            ) : (
+                              "Confirmar"
+                            )}
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </>
+        )}
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose}>
+            Fechar
           </Button>
         </DialogFooter>
       </DialogContent>

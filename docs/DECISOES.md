@@ -151,7 +151,9 @@ A "matriz de permissões (seção 2.2)" da Documentação Funcional Completa ori
 
 | ID | Pergunta | Sugestão | Decisão |
 |---|---|---|---|
-| PA-15 | Estoque negativo é permitido? | não por padrão; integrar venda e criar ocorrência quando inevitável. | _pendente_ |
+| PA-15 / RN-EST-04 / RN-CRT-EST-07 | Estoque negativo é permitido? | Bloqueado por padrão; dono/gerente pode confirmar mesmo assim informando justificativa, que fica registrada (a "ocorrência"). "Venda" como movimento automático (integração com PDV) fica para o B7 — revisitar esta regra quando existir. | **Aceita a sugestão** (23/09/2026, proprietário) |
+| RN-CRT-EST-02 | Saldo do mercado inclui quais áreas (recebimento, depósito, gôndola, trânsito)? | Só endereços de depósito (B3.1) por enquanto. Gôndola e uma área de "em trânsito" entram quando fizerem sentido de verdade: reposição (B5) e transferências (B3.5). | **Aceita a sugestão** (23/09/2026, proprietário) |
+| RN-CRT-EST-03 | Saldo disponível descontado de reserva/trânsito? | Por enquanto saldo disponível = saldo físico (sem reserva). Reserva de estoque só faz sentido quando o PDV/vendas (B7) existir. | **Aceita a sugestão** (23/09/2026, proprietário) |
 
 ### B3.3 — Lotes, validade, FEFO/FIFO e bloqueio
 
