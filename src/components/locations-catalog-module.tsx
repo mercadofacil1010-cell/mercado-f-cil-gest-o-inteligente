@@ -48,6 +48,7 @@ import {
   type StockMovement,
   type StockMovementType,
 } from "@/lib/stock-movements-api";
+import { getOrCreateLot, listLots, type Lot } from "@/lib/lots-api";
 
 const emptyAddressForm: WarehouseAddressFormData = {
   warehouseName: "Depósito 1",
@@ -1033,6 +1034,10 @@ const emptyMovementForm = {
   quantity: "",
   reference: "",
   reason: "",
+  ajusteSign: "positivo" as "positivo" | "negativo",
+  lotId: "",
+  newBatchNumber: "",
+  newExpiresAt: "",
 };
 
 function MovementsDialog({
@@ -1048,14 +1053,18 @@ function MovementsDialog({
 }) {
   const [balances, setBalances] = useState<StockBalance[]>([]);
   const [movements, setMovements] = useState<StockMovement[]>([]);
+  const [lots, setLots] = useState<Lot[]>([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState(emptyMovementForm);
+  const [creatingLot, setCreatingLot] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [needsReason, setNeedsReason] = useState(false);
   const [reversingId, setReversingId] = useState<string | null>(null);
   const [reverseReason, setReverseReason] = useState("");
   const [reversing, setReversing] = useState(false);
+
+  const selectedProduct = products.find((product) => product.id === form.productId) ?? null;
 
   const reload = async () => {
     setLoading(true);
@@ -1073,6 +1082,14 @@ function MovementsDialog({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- recarrega só quando o endereço muda
   }, [address.id]);
 
+  useEffect(() => {
+    if (!selectedProduct?.tracksBatchExpiry) {
+      setLots([]);
+      return;
+    }
+    void listLots(address.id, selectedProduct.id).then(setLots);
+  }, [address.id, selectedProduct?.id, selectedProduct?.tracksBatchExpiry]);
+
   const update = (patch: Partial<typeof emptyMovementForm>) =>
     setForm((current) => ({ ...current, ...patch }));
 
@@ -1087,7 +1104,41 @@ function MovementsDialog({
       setError("Informe uma quantidade diferente de zero.");
       return;
     }
-    const signedQuantity = form.type === "entrada" ? Math.abs(rawQuantity) : -Math.abs(rawQuantity);
+    const signedQuantity =
+      form.type === "entrada"
+        ? Math.abs(rawQuantity)
+        : form.type === "ajuste"
+          ? form.ajusteSign === "positivo"
+            ? Math.abs(rawQuantity)
+            : -Math.abs(rawQuantity)
+          : -Math.abs(rawQuantity);
+
+    let lotId = form.lotId || undefined;
+    if (selectedProduct?.tracksBatchExpiry) {
+      if (creatingLot) {
+        if (!form.newBatchNumber.trim()) {
+          setError("Informe o número do novo lote.");
+          return;
+        }
+        setSubmitting(true);
+        const lotResult = await getOrCreateLot(
+          address.id,
+          selectedProduct.id,
+          form.newBatchNumber,
+          form.newExpiresAt || null,
+        );
+        setSubmitting(false);
+        if (!lotResult.ok) {
+          setError(lotResult.message);
+          return;
+        }
+        lotId = lotResult.lot.id;
+      } else if (!lotId) {
+        setError("Este produto controla lote — escolha um lote ou crie um novo.");
+        return;
+      }
+    }
+
     setSubmitting(true);
     const result = await registerStockMovement(
       address.id,
@@ -1096,6 +1147,7 @@ function MovementsDialog({
       signedQuantity,
       form.reference,
       form.reason,
+      lotId,
     );
     setSubmitting(false);
     if (!result.ok) {
@@ -1105,8 +1157,11 @@ function MovementsDialog({
     }
     setForm(emptyMovementForm);
     setNeedsReason(false);
+    setCreatingLot(false);
     notify("Movimento registrado.");
     void reload();
+    if (selectedProduct?.tracksBatchExpiry)
+      void listLots(address.id, selectedProduct.id).then(setLots);
   };
 
   const handleReverse = async (movementId: string) => {
@@ -1211,6 +1266,88 @@ function MovementsDialog({
                   className="h-10 rounded-md border border-input bg-card px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>
+              {form.type === "ajuste" && (
+                <Select
+                  value={form.ajusteSign}
+                  onValueChange={(value) =>
+                    update({ ajusteSign: value as "positivo" | "negativo" })
+                  }
+                >
+                  <SelectTrigger className="h-10 bg-card">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="positivo">Ajuste positivo (encontrou a mais)</SelectItem>
+                    <SelectItem value="negativo">Ajuste negativo (encontrou a menos)</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+              {selectedProduct?.tracksBatchExpiry && (
+                <div className="space-y-2 rounded-md border border-dashed border-border p-2">
+                  <p className="text-xs font-semibold text-muted-foreground">
+                    Este produto controla lote e validade
+                  </p>
+                  {creatingLot ? (
+                    <div className="grid grid-cols-2 gap-2">
+                      <input
+                        value={form.newBatchNumber}
+                        onChange={(event) => update({ newBatchNumber: event.target.value })}
+                        placeholder="Número do lote"
+                        className="h-9 rounded-md border border-input bg-card px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+                      />
+                      <input
+                        type="date"
+                        value={form.newExpiresAt}
+                        onChange={(event) => update({ newExpiresAt: event.target.value })}
+                        className="h-9 rounded-md border border-input bg-card px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="col-span-2 justify-self-start"
+                        onClick={() => {
+                          setCreatingLot(false);
+                          update({ newBatchNumber: "", newExpiresAt: "" });
+                        }}
+                      >
+                        Usar um lote existente
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <Select
+                        value={form.lotId}
+                        onValueChange={(value) => update({ lotId: value })}
+                      >
+                        <SelectTrigger className="h-9 flex-1 bg-card">
+                          <SelectValue placeholder="Escolha o lote" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {lots.map((lot) => (
+                            <SelectItem key={lot.id} value={lot.id}>
+                              {lot.batchNumber}
+                              {lot.expiresAt ? ` · vence ${lot.expiresAt}` : ""}
+                              {lot.status === "blocked" ? " (bloqueado)" : ""}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setCreatingLot(true);
+                          update({ lotId: "" });
+                        }}
+                      >
+                        Novo lote
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
               {needsReason && (
                 <input
                   value={form.reason}
@@ -1253,6 +1390,7 @@ function MovementsDialog({
                           <div className={movement.quantity < 0 ? "text-destructive" : ""}>
                             {movement.quantity > 0 ? "+" : ""}
                             {movement.quantity}
+                            {movement.lotBatchNumber && ` · lote ${movement.lotBatchNumber}`}
                             {movement.reference && ` · ${movement.reference}`}
                           </div>
                         </div>

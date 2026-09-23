@@ -159,8 +159,10 @@ A "matriz de permissões (seção 2.2)" da Documentação Funcional Completa ori
 
 | ID | Pergunta | Sugestão | Decisão |
 |---|---|---|---|
-| PA-18 | FEFO será obrigatório? | obrigatório para produtos com validade, permitindo exceção autorizada. | _pendente_ |
-| PA-19 | Produto vencido bloqueia venda automaticamente? | bloquear disponibilidade e gerar tarefa de retirada; integração com PDV depende de capacidade. | _pendente_ |
+| PA-18 / RN-LOT-01 | FEFO será obrigatório? | Obrigatório para produtos com validade, permitindo exceção autorizada por dono/gerente. | **Aceita a sugestão** (23/09/2026, proprietário) |
+| RN-LOT-02 / RN-CRT-VAL-02 | FIFO (produtos sem validade) é obrigatório também? | Sim, mesma regra do FEFO: obrigatório por padrão, com exceção autorizável por dono/gerente. | **Aceita a sugestão** (23/09/2026, proprietário) |
+| PA-19 / RN-LOT-04 / RN-CRT-VAL-04 | Produto vencido bloqueia venda automaticamente? | Bloquear disponibilidade (lote vencido não pode ser usado em saídas) e gerar tarefa de retirada; integração com PDV depende de capacidade futura (B7). | **Aceita a sugestão** (23/09/2026, proprietário) |
+| RN-LOT-06 | Quem corrige a validade de um lote já recebido? | Dono e gerente, com justificativa obrigatória — mesmo padrão do RN-LOC-06 (capacidade/limites de endereço e gôndola). | **Aceita a sugestão** (23/09/2026, proprietário) |
 
 ### B3.4 — Perdas, ajustes e estornos com aprovação
 

@@ -24,12 +24,18 @@ export type StockMovement = {
   quantity: number;
   reference: string;
   reversalOf: string | null;
+  lotId: string | null;
+  lotBatchNumber: string;
   createdAt: string;
 };
 
 type StockMovementRow = Database["public"]["Tables"]["stock_movements"]["Row"];
 
-function mapRowToStockMovement(row: StockMovementRow, productName: string): StockMovement {
+function mapRowToStockMovement(
+  row: StockMovementRow,
+  productName: string,
+  lotBatchNumber: string,
+): StockMovement {
   return {
     id: row.id,
     warehouseAddressId: row.warehouse_address_id,
@@ -39,6 +45,8 @@ function mapRowToStockMovement(row: StockMovementRow, productName: string): Stoc
     quantity: row.quantity,
     reference: row.reference ?? "",
     reversalOf: row.reversal_of,
+    lotId: row.lot_id,
+    lotBatchNumber,
     createdAt: row.created_at,
   };
 }
@@ -47,11 +55,13 @@ function mapRowToStockMovement(row: StockMovementRow, productName: string): Stoc
 export async function listStockMovements(warehouseAddressId: string): Promise<StockMovement[]> {
   const { data, error } = await supabase
     .from("stock_movements")
-    .select("*, products(name)")
+    .select("*, products(name), lots(batch_number)")
     .eq("warehouse_address_id", warehouseAddressId)
     .order("created_at", { ascending: false });
   if (error || !data) return [];
-  return data.map((row) => mapRowToStockMovement(row, row.products?.name ?? ""));
+  return data.map((row) =>
+    mapRowToStockMovement(row, row.products?.name ?? "", row.lots?.batch_number ?? ""),
+  );
 }
 
 export type StockBalance = { productId: string; productName: string; balance: number };
@@ -73,7 +83,7 @@ export async function listStockBalances(warehouseAddressId: string): Promise<Sto
 }
 
 function friendlyStockError(message: string): string {
-  if (message.includes("saldo negativo")) return message;
+  if (message.includes("saldo negativo") || message.includes("lote")) return message;
   if (message.toLowerCase().includes("row-level security") || message.includes("Sem permissão"))
     return "Você não tem acesso a este mercado para registrar movimentos.";
   if (message) return message;
@@ -87,6 +97,7 @@ export async function registerStockMovement(
   quantity: number,
   reference: string,
   reason?: string,
+  lotId?: string,
 ): Promise<{ ok: true } | { ok: false; message: string; needsReason?: boolean }> {
   const { error } = await supabase.rpc("register_stock_movement", {
     p_warehouse_address_id: warehouseAddressId,
@@ -95,9 +106,11 @@ export async function registerStockMovement(
     p_quantity: quantity,
     ...(reference ? { p_reference: reference } : {}),
     ...(reason ? { p_reason: reason } : {}),
+    ...(lotId ? { p_lot_id: lotId } : {}),
   });
   if (error) {
-    const needsReason = error.message.includes("saldo negativo");
+    const needsReason =
+      error.message.includes("saldo negativo") || error.message.includes("ordem de saída");
     return { ok: false, message: friendlyStockError(error.message), needsReason };
   }
   return { ok: true };
