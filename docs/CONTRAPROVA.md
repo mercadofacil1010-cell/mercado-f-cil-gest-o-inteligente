@@ -6,7 +6,7 @@ Cada linha aponta a etapa do plano (`docs/PLANO_FECHAMENTO.md`) em que o item é
 **Status:** `Pendente` → `Em andamento` → `Feito` (com evidência). `Parcial` = começou, falta completar. `Adiado` = decisão formal de tirar da versão.  
 **Decisão?** `Sim` = o item tem [A DEFINIR]; a decisão precisa estar registrada em `docs/DECISOES.md` antes de codificar.
 
-Total de itens rastreados: **426**
+Total de itens rastreados: **426** · Feito: **33** · Parcial: **3**
 
 | Bloco | Itens |
 |---|---|
@@ -54,22 +54,22 @@ Total de itens rastreados: **426**
 
 | ID | Item | Decisão? | Status | Evidência |
 |---|---|---|---|---|
-| RN-ACL-05 | Ações sensíveis devem registrar usuário, data, horário, mercado, dispositivo e valores anteriores e posteriores. |  | Pendente |  |
-| RN-RPT-02 | Auditoria não pode ser editada por usuários comuns. |  | Pendente |  |
-| RN-RPT-03 | Correções geram novos eventos; não substituem silenciosamente o histórico. |  | Pendente |  |
-| RNF-AUD-01 | Registrar usuário, perfil, empresa, mercado, ação, entidade, identificador, data/hora, dispositivo/origem, antes/depois e justificativa. |  | Pendente |  |
-| RNF-AUD-02 | Logs não devem ser editáveis por usuários comuns; retenção [A DEFINIR]. | Sim | Pendente |  |
-| PA-43 | Tempo de retenção da auditoria? — Sugestão do documento: alinhar a requisitos legais, contratuais e de investigação. | Sim | Pendente |  |
-| G-07 | Lacuna: definição de 'dispositivo' na auditoria |  | Pendente |  |
-| D-10 | Divergência construída: faltam convites, aceites legais e auditoria |  | Pendente |  |
+| RN-ACL-05 | Ações sensíveis devem registrar usuário, data, horário, mercado, dispositivo e valores anteriores e posteriores. |  | Feito | PR B0.2 · teste `supabase/tests/20_audit_test.sql` — gatilhos em 6 tabelas gravam usuário, papel, data/hora, empresa, mercado, dispositivo, antes/depois |
+| RN-RPT-02 | Auditoria não pode ser editada por usuários comuns. |  | Feito | PR B0.2 · teste `supabase/tests/20_audit_test.sql` — UPDATE/DELETE revogados e bloqueados por gatilho |
+| RN-RPT-03 | Correções geram novos eventos; não substituem silenciosamente o histórico. |  | Feito | PR B0.2 · teste `supabase/tests/20_audit_test.sql` — cada correção gera novo registro; nada é sobrescrito |
+| RNF-AUD-01 | Registrar usuário, perfil, empresa, mercado, ação, entidade, identificador, data/hora, dispositivo/origem, antes/depois e justificativa. |  | Feito | PR B0.2 · teste `supabase/tests/20_audit_test.sql` — campos completos, incluindo justificativa e fuso do mercado |
+| RNF-AUD-02 | Logs não devem ser editáveis por usuários comuns; retenção [A DEFINIR]. | Sim | Feito | PR B0.2 · teste `supabase/tests/20_audit_test.sql` — imutável; retenção de 5 anos documentada (limpeza automática no B10.3) |
+| PA-43 | Tempo de retenção da auditoria? — Sugestão do documento: alinhar a requisitos legais, contratuais e de investigação. | Sim | Feito | PR B0.2 · teste `supabase/tests/20_audit_test.sql` — decisão aceita: 5 anos |
+| G-07 | Lacuna: definição de 'dispositivo' na auditoria |  | Feito | PR B0.2 · teste `supabase/tests/20_audit_test.sql` — dispositivo = navegador + IP + identificador do app (DEC-B0-03) |
+| D-10 | Divergência construída: faltam convites, aceites legais e auditoria |  | Parcial | PR B0.2 · teste `supabase/tests/20_audit_test.sql` — auditoria feita; convites no B1.5 e aceites legais no B1.2 |
 
 ## B0.3 — Testes automáticos e verificação contínua
 
 | ID | Item | Decisão? | Status | Evidência |
 |---|---|---|---|---|
-| PA-01 | Qual é o MVP exato? — Sugestão do documento: acesso, empresa/mercados, produtos, localizações, recebimento, estoque, reposição, alertas, PDV inicial e administração de assinatura. | Sim | Pendente |  |
-| QA-01 | Suíte de testes automáticos (tipos, build, regras do banco, telas) rodando a cada mudança |  | Pendente |  |
-| QA-02 | Roteiro de teste manual por etapa e checklist por bloco |  | Pendente |  |
+| PA-01 | Qual é o MVP exato? — Sugestão do documento: acesso, empresa/mercados, produtos, localizações, recebimento, estoque, reposição, alertas, PDV inicial e administração de assinatura. | Sim | Feito | PR B0.3 — MVP aceito conforme a sugestão do documento (acesso, empresa/mercados, produtos, localizações, recebimento, estoque, reposição, alertas, PDV inicial e assinatura) |
+| QA-01 | Suíte de testes automáticos (tipos, build, regras do banco, telas) rodando a cada mudança |  | Feito | PR B0.3 — `.github/workflows/verificacao.yml`: tipos, lint, build e testes do banco a cada mudança |
+| QA-02 | Roteiro de teste manual por etapa e checklist por bloco |  | Feito | PR B0.3 — `docs/COMO_TESTAR.md` e `docs/checklists/MODELO.md` |
 
 ## B1.1 — Login, sessão, logout e recuperação de senha
 

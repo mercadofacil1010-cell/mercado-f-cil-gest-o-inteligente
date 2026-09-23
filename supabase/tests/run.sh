@@ -6,7 +6,15 @@ here="$(cd "$(dirname "$0")" && pwd)"
 db="mf_test_$$"
 tmp="$(mktemp -d)"; chmod 755 "$tmp"
 cp "$here"/*.sql "$tmp"/; cp "$here"/../migrations/*.sql "$tmp"/; chmod 644 "$tmp"/*.sql
-psql_run() { if [ "$(id -u)" = "0" ]; then su postgres -c "psql -q -v ON_ERROR_STOP=1 $*"; else psql -q -v ON_ERROR_STOP=1 "$@"; fi; }
+# Usa o servidor indicado por PGHOST/PGUSER quando existir (ex.: GitHub Actions);
+# caso contrário, cai no Postgres local pelo usuário do sistema.
+if [ -n "${PGHOST:-}" ]; then
+  psql_run() { psql -q -v ON_ERROR_STOP=1 "$@"; }
+elif [ "$(id -u)" = "0" ]; then
+  psql_run() { su postgres -c "psql -q -v ON_ERROR_STOP=1 $*"; }
+else
+  psql_run() { psql -q -v ON_ERROR_STOP=1 "$@"; }
+fi
 cleanup() { psql_run -d postgres -c "\"drop database if exists $db\"" >/dev/null 2>&1 || true; rm -rf "$tmp"; }
 trap cleanup EXIT
 psql_run -d postgres -c "\"create database $db\"" >/dev/null
