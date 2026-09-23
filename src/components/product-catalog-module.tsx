@@ -4,7 +4,7 @@
 // substitui, para "Produtos", os dados de demonstração do catálogo; "Estoque
 // consolidado" e "Validades" continuam com o módulo de demonstração até lá.
 import { useEffect, useState, type ReactNode } from "react";
-import { Package2, Plus, RefreshCw, X } from "lucide-react";
+import { Package2, Plus, RefreshCw, Store, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -44,6 +44,18 @@ import {
   type ProductFormData,
   type SupportItem,
 } from "@/lib/products-api";
+import { listMarkets } from "@/lib/markets-api";
+import type { Market } from "@/data/markets";
+import {
+  createMarketProduct,
+  listMarketProductsByProduct,
+  marketProductStatusLabel,
+  setMarketProductStatus,
+  updateMarketProduct,
+  type MarketProduct,
+  type MarketProductFormData,
+  type MarketProductStatus,
+} from "@/lib/market-products-api";
 
 const emptyProductForm: ProductFormData = {
   name: "",
@@ -94,28 +106,33 @@ export function ProductCatalogModule({
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<SupportItem[]>([]);
   const [brands, setBrands] = useState<SupportItem[]>([]);
+  const [markets, setMarkets] = useState<Market[]>([]);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
   const [managingPackagings, setManagingPackagings] = useState<Product | null>(null);
+  const [managingMarketParams, setManagingMarketParams] = useState<Product | null>(null);
 
   const reload = async () => {
     if (!companyId) {
       setProducts([]);
       setCategories([]);
       setBrands([]);
+      setMarkets([]);
       setLoading(false);
       return;
     }
     setLoading(true);
-    const [productList, categoryList, brandList] = await Promise.all([
+    const [productList, categoryList, brandList, marketList] = await Promise.all([
       listProducts(companyId),
       listCategories(companyId),
       listBrands(companyId),
+      listMarkets(companyId),
     ]);
     setProducts(productList);
     setCategories(categoryList);
     setBrands(brandList);
+    setMarkets(marketList);
     setLoading(false);
   };
 
@@ -210,6 +227,13 @@ export function ProductCatalogModule({
                       >
                         <Package2 className="h-3.5 w-3.5" /> Embalagens
                       </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setManagingMarketParams(product)}
+                      >
+                        <Store className="h-3.5 w-3.5" /> Parâmetros por loja
+                      </Button>
                       <Button variant="outline" size="sm" onClick={() => setEditing(product)}>
                         Editar
                       </Button>
@@ -258,6 +282,14 @@ export function ProductCatalogModule({
         <PackagingsDialog
           product={managingPackagings}
           onClose={() => setManagingPackagings(null)}
+          notify={notify}
+        />
+      )}
+      {managingMarketParams && (
+        <MarketParamsDialog
+          product={managingMarketParams}
+          markets={markets}
+          onClose={() => setManagingMarketParams(null)}
           notify={notify}
         />
       )}
@@ -852,6 +884,315 @@ function EditFactorForm({
         </Button>
         <Button size="sm" disabled={submitting} onClick={() => void handleSubmit()}>
           {submitting ? <RefreshCw className="h-4 w-4 animate-spin" /> : "Salvar novo fator"}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+const emptyMarketProductForm: MarketProductFormData = {
+  minQuantity: "",
+  idealQuantity: "",
+  maxQuantity: "",
+  reorderPoint: "",
+};
+
+function MarketParamsDialog({
+  product,
+  markets,
+  onClose,
+  notify,
+}: {
+  product: Product;
+  markets: Market[];
+  onClose: () => void;
+  notify: (message: string) => void;
+}) {
+  const [marketProducts, setMarketProducts] = useState<MarketProduct[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editingMarketId, setEditingMarketId] = useState<string | null>(null);
+
+  const reload = async () => {
+    setLoading(true);
+    setMarketProducts(await listMarketProductsByProduct(product.id));
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    void reload();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- recarrega só quando o produto muda
+  }, [product.id]);
+
+  const handleStatusChange = async (marketProduct: MarketProduct, status: MarketProductStatus) => {
+    const result = await setMarketProductStatus(marketProduct.id, status);
+    if (!result.ok) {
+      notify(result.message);
+      return;
+    }
+    void reload();
+  };
+
+  return (
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
+      <DialogContent className="max-h-[85vh] max-w-[640px] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Parâmetros por loja de {product.name}</DialogTitle>
+          <DialogDescription>
+            Mínimo, ideal, máximo e ponto de pedido podem ser diferentes em cada loja da rede.
+          </DialogDescription>
+        </DialogHeader>
+        {loading ? (
+          <div className="grid place-items-center p-6">
+            <RefreshCw className="h-5 w-5 animate-spin text-muted-foreground" />
+          </div>
+        ) : markets.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            Nenhuma loja cadastrada ainda. Cadastre um mercado antes de configurar parâmetros.
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {markets.map((market) => {
+              const marketProduct = marketProducts.find((mp) => mp.marketId === market.id);
+              if (editingMarketId === market.id) {
+                return (
+                  <MarketParamForm
+                    key={market.id}
+                    market={market}
+                    product={product}
+                    marketProduct={marketProduct ?? null}
+                    onCancel={() => setEditingMarketId(null)}
+                    onSaved={() => {
+                      setEditingMarketId(null);
+                      void reload();
+                    }}
+                  />
+                );
+              }
+              return (
+                <div
+                  key={market.id}
+                  className="flex items-center justify-between gap-3 rounded-md border border-border p-3 text-sm"
+                >
+                  <div>
+                    <strong>{market.name}</strong>
+                    {marketProduct ? (
+                      <div className="text-muted-foreground">
+                        Mín. {marketProduct.minQuantity} · Ideal {marketProduct.idealQuantity} ·
+                        Máx. {marketProduct.maxQuantity} · Ponto de pedido{" "}
+                        {marketProduct.reorderPoint}
+                        {" · "}
+                        <span
+                          className={
+                            marketProduct.status === "active"
+                              ? "text-foreground"
+                              : marketProduct.status === "blocked"
+                                ? "text-amber-600"
+                                : "text-destructive"
+                          }
+                        >
+                          {marketProductStatusLabel[marketProduct.status]}
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="text-muted-foreground">Sem parâmetros configurados</div>
+                    )}
+                  </div>
+                  <div className="flex shrink-0 gap-2">
+                    {marketProduct ? (
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setEditingMarketId(market.id)}
+                        >
+                          Editar
+                        </Button>
+                        {marketProduct.status === "active" ? (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => void handleStatusChange(marketProduct, "blocked")}
+                          >
+                            Bloquear
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => void handleStatusChange(marketProduct, "active")}
+                          >
+                            Reativar
+                          </Button>
+                        )}
+                        {marketProduct.status !== "inactive" && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => void handleStatusChange(marketProduct, "inactive")}
+                          >
+                            Inativar
+                          </Button>
+                        )}
+                      </>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setEditingMarketId(market.id)}
+                      >
+                        Configurar
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose}>
+            Fechar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function MarketParamForm({
+  market,
+  product,
+  marketProduct,
+  onCancel,
+  onSaved,
+}: {
+  market: Market;
+  product: Product;
+  marketProduct: MarketProduct | null;
+  onCancel: () => void;
+  onSaved: () => void;
+}) {
+  const [form, setForm] = useState<MarketProductFormData>(
+    marketProduct
+      ? {
+          minQuantity: String(marketProduct.minQuantity),
+          idealQuantity: String(marketProduct.idealQuantity),
+          maxQuantity: String(marketProduct.maxQuantity),
+          reorderPoint: String(marketProduct.reorderPoint),
+        }
+      : emptyMarketProductForm,
+  );
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
+  const update = (patch: Partial<MarketProductFormData>) =>
+    setForm((current) => {
+      const next = { ...current, ...patch };
+      // O ponto de pedido nasce igual ao mínimo (DECISOES.md, B2.3), até o usuário divergir.
+      if (patch.minQuantity !== undefined && current.reorderPoint === current.minQuantity) {
+        next.reorderPoint = patch.minQuantity;
+      }
+      return next;
+    });
+
+  const handleSubmit = async () => {
+    setError("");
+    const min = Number(form.minQuantity);
+    const ideal = Number(form.idealQuantity);
+    const max = Number(form.maxQuantity);
+    if (
+      form.minQuantity.trim() === "" ||
+      form.idealQuantity.trim() === "" ||
+      form.maxQuantity.trim() === ""
+    ) {
+      setError("Informe mínimo, ideal e máximo.");
+      return;
+    }
+    if (min < 0 || ideal < 0 || max < 0) {
+      setError("Os valores não podem ser negativos.");
+      return;
+    }
+    if (!(min <= ideal && ideal <= max)) {
+      setError("O mínimo precisa ser ≤ ideal, e o ideal ≤ máximo.");
+      return;
+    }
+    setSubmitting(true);
+    const result = marketProduct
+      ? await updateMarketProduct(marketProduct.id, form)
+      : await createMarketProduct(product.id, market.id, form);
+    setSubmitting(false);
+    if (!result.ok) {
+      setError(result.message);
+      return;
+    }
+    onSaved();
+  };
+
+  return (
+    <div className="space-y-3 rounded-md border border-border p-3">
+      <p className="text-sm font-semibold">{market.name}</p>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <label className="block text-xs">
+          <span className="mb-1 block font-semibold">Mínimo</span>
+          <input
+            type="number"
+            min="0"
+            step="0.001"
+            value={form.minQuantity}
+            onChange={(event) => update({ minQuantity: event.target.value })}
+            className="h-10 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+          />
+        </label>
+        <label className="block text-xs">
+          <span className="mb-1 block font-semibold">Ideal</span>
+          <input
+            type="number"
+            min="0"
+            step="0.001"
+            value={form.idealQuantity}
+            onChange={(event) => update({ idealQuantity: event.target.value })}
+            className="h-10 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+          />
+        </label>
+        <label className="block text-xs">
+          <span className="mb-1 block font-semibold">Máximo</span>
+          <input
+            type="number"
+            min="0"
+            step="0.001"
+            value={form.maxQuantity}
+            onChange={(event) => update({ maxQuantity: event.target.value })}
+            className="h-10 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+          />
+        </label>
+        <label className="block text-xs">
+          <span className="mb-1 block font-semibold">Ponto de pedido</span>
+          <input
+            type="number"
+            min="0"
+            step="0.001"
+            value={form.reorderPoint}
+            onChange={(event) => update({ reorderPoint: event.target.value })}
+            className="h-10 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+          />
+        </label>
+      </div>
+      {error && (
+        <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          {error}
+        </p>
+      )}
+      <div className="flex justify-end gap-2">
+        <Button variant="ghost" size="sm" onClick={onCancel}>
+          Cancelar
+        </Button>
+        <Button size="sm" disabled={submitting} onClick={() => void handleSubmit()}>
+          {submitting ? <RefreshCw className="h-4 w-4 animate-spin" /> : "Salvar parâmetros"}
         </Button>
       </div>
     </div>
