@@ -1035,6 +1035,99 @@ export type Database = {
         }
         Relationships: []
       }
+      receiving_items: {
+        Row: {
+          created_at: string
+          expected_quantity: number
+          id: string
+          product_id: string
+          receiving_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          expected_quantity: number
+          id?: string
+          product_id: string
+          receiving_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          expected_quantity?: number
+          id?: string
+          product_id?: string
+          receiving_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "receiving_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receiving_items_receiving_id_fkey"
+            columns: ["receiving_id"]
+            isOneToOne: false
+            referencedRelation: "receivings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      receivings: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          invoice_number: string | null
+          market_id: string
+          no_invoice_reason: string | null
+          order_reference: string | null
+          status: Database["public"]["Enums"]["receiving_status"]
+          supplier_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          invoice_number?: string | null
+          market_id: string
+          no_invoice_reason?: string | null
+          order_reference?: string | null
+          status?: Database["public"]["Enums"]["receiving_status"]
+          supplier_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          invoice_number?: string | null
+          market_id?: string
+          no_invoice_reason?: string | null
+          order_reference?: string | null
+          status?: Database["public"]["Enums"]["receiving_status"]
+          supplier_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "receivings_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "markets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receivings_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stock_movements: {
         Row: {
           created_at: string
@@ -1339,6 +1432,10 @@ export type Database = {
     }
     Functions: {
       accept_invite: { Args: { p_token: string }; Returns: string }
+      add_receiving_item: {
+        Args: { p_expected_quantity: number; p_product_id: string; p_receiving_id: string }
+        Returns: Database["public"]["Tables"]["receiving_items"]["Row"]
+      }
       approve_pending_stock_adjustment: {
         Args: { p_id: string; p_note?: string }
         Returns: Database["public"]["Tables"]["stock_movements"]["Row"]
@@ -1375,6 +1472,16 @@ export type Database = {
           p_role: Database["public"]["Enums"]["member_role"]
         }
         Returns: string
+      }
+      create_receiving: {
+        Args: {
+          p_invoice_number?: string
+          p_market_id: string
+          p_no_invoice_reason?: string
+          p_order_reference?: string
+          p_supplier_id?: string
+        }
+        Returns: Database["public"]["Tables"]["receivings"]["Row"]
       }
       finalize_inventory_count: {
         Args: { p_inventory_count_id: string }
@@ -1448,6 +1555,7 @@ export type Database = {
         Args: { p_id: string; p_note: string }
         Returns: Database["public"]["Tables"]["pending_stock_adjustments"]["Row"]
       }
+      remove_receiving_item: { Args: { p_id: string }; Returns: undefined }
       resend_invite: { Args: { p_invite_id: string }; Returns: undefined }
       reverse_stock_movement: {
         Args: { p_movement_id: string; p_reason: string }
@@ -1498,6 +1606,13 @@ export type Database = {
       member_role: "owner" | "manager" | "receiver" | "stocker"
       member_status: "active" | "invited" | "disabled"
       pending_adjustment_status: "pending" | "approved" | "rejected"
+      receiving_status:
+        | "aguardando_recebimento"
+        | "em_conferencia"
+        | "com_divergencia"
+        | "aguardando_aprovacao"
+        | "finalizado"
+        | "recusado"
       stock_movement_type:
         | "entrada"
         | "saida"
@@ -1656,6 +1771,14 @@ export const Constants = {
       member_role: ["owner", "manager", "receiver", "stocker"],
       member_status: ["active", "invited", "disabled"],
       pending_adjustment_status: ["pending", "approved", "rejected"],
+      receiving_status: [
+        "aguardando_recebimento",
+        "em_conferencia",
+        "com_divergencia",
+        "aguardando_aprovacao",
+        "finalizado",
+        "recusado",
+      ],
       stock_movement_type: [
         "entrada",
         "saida",

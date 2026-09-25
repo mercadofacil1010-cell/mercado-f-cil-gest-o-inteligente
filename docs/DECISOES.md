@@ -191,11 +191,18 @@ A "matriz de permissões (seção 2.2)" da Documentação Funcional Completa ori
 
 ## Bloco B4
 
+### Arquitetura do B4 — App do Conferente (Correção 1)
+
+| ID | Pergunta | Sugestão | Decisão |
+|---|---|---|---|
+| DEC-B4-01 | Correção 1 exige que o Conferente tenha experiência própria, não uma aba do painel do dono — como construir isso agora? | Rota própria de login/trabalho para o conferente já nesta etapa (cumpre o mínimo da Correção 1 desde já); o acabamento completo de app mobile (menu inferior, Correção 2) fica para um refinamento visual posterior — a funcionalidade real nasce correta. | **Aceita a sugestão** (25/09/2026, proprietário) |
+
 ### B4.1 — Recebimento e itens esperados (manual e XML)
 
 | ID | Pergunta | Sugestão | Decisão |
 |---|---|---|---|
-| PA-07 | A nota fiscal é obrigatória para receber? | permitir recebimento por pedido/autorização excepcional, sempre auditado. | _pendente_ |
+| PA-07 | A nota fiscal é obrigatória para receber? | permitir recebimento por pedido/autorização excepcional, sempre auditado. | **Aceita a sugestão** (25/09/2026, proprietário): recebimento sem nota é permitido, mas fica sempre marcado e auditado como tal |
+| RF-REC-01 (escopo XML) | Itens esperados: digitar manualmente ou importar do XML da NF-e nesta etapa? | Só digitação manual por enquanto; leitura de XML de NF-e (formato fiscal, SEFAZ) fica registrada como pendência para uma etapa dedicada futura. | **Aceita a sugestão** (25/09/2026, proprietário) |
 
 ### B4.2 — Conferência cega protegida no servidor
 
@@ -207,7 +214,7 @@ A "matriz de permissões (seção 2.2)" da Documentação Funcional Completa ori
 
 | ID | Pergunta | Sugestão | Decisão |
 |---|---|---|---|
-| PA-05 | Quem aprova divergência de recebimento? | gerente até um limite e dono acima dele. | _pendente_ |
+| PA-05 | Quem aprova divergência de recebimento? | gerente até um limite e dono acima dele. | **Aceita a sugestão** (25/09/2026, proprietário): mesmo padrão de limite+fila do B3.4 — divergência acima do limite de quantidade da empresa fica pendente até o dono aprovar; abaixo do limite, o gerente já aprova direto |
 | PA-06 | Quais tolerâncias de recebimento? | começar sem tolerância automática; todas as diferenças ficam visíveis. | _pendente_ |
 | PA-20 | Qual prazo mínimo de validade no recebimento? | configurável por categoria/produto/fornecedor. | _pendente_ |
 
@@ -215,7 +222,7 @@ A "matriz de permissões (seção 2.2)" da Documentação Funcional Completa ori
 
 | ID | Pergunta | Sugestão | Decisão |
 |---|---|---|---|
-| PA-09 | Há limite de recontagens no recebimento? | configurar separadamente da regra de três tentativas da reposição. | _pendente_ |
+| PA-09 | Há limite de recontagens no recebimento? | configurar separadamente da regra de três tentativas da reposição. | **Aceita a sugestão** (25/09/2026, proprietário): 3 tentativas, regra independente da reposição (mesmo número, mecanismo próprio) |
 
 
 ## Bloco B5
