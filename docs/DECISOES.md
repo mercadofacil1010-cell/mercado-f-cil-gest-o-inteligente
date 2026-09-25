@@ -176,7 +176,9 @@ A "matriz de permissões (seção 2.2)" da Documentação Funcional Completa ori
 
 | ID | Pergunta | Sugestão | Decisão |
 |---|---|---|---|
-| PA-22 | Transferência entre mercados faz parte do MVP? | incluir depois da movimentação interna estar estável, salvo necessidade do piloto. | _pendente_ |
+| PA-22 | Transferência entre mercados faz parte do MVP? | incluir depois da movimentação interna estar estável, salvo necessidade do piloto. | **Aceita a sugestão** (25/09/2026, proprietário): nesta etapa só transferência entre endereços de depósito do MESMO mercado; entre mercados diferentes (RN-ORG-06/RN-EST-05) fica para depois |
+| DEC-B3-01 | Transferência entre endereços do mesmo mercado é instantânea ou exige confirmação de recebimento no destino? | Instantânea: um clique registra saída da origem e entrada no destino ao mesmo tempo, de forma atômica. O estado "em trânsito" do plano faz mais sentido para transferência entre mercados (fica pro PA-22). | **Aceita a sugestão** (25/09/2026, proprietário) |
+| DEC-B3-02 | Produto com lote: o que acontece com o lote ao transferir de endereço? | Mesmo número de lote (e mesma validade) recriado/reaproveitado no endereço de destino — mantém a rastreabilidade (RF-LOT-07) sem duplicar identidade do lote. Lote bloqueado ou vencido não pode ser transferido (mesma regra da saída, PA-19); segue FEFO/FIFO na escolha do lote de origem, com exceção justificada. | **Aceita a sugestão** (25/09/2026, proprietário) |
 
 
 ## Bloco B4
