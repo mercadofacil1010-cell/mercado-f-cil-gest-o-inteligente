@@ -6,7 +6,7 @@ Cada linha aponta a etapa do plano (`docs/PLANO_FECHAMENTO.md`) em que o item é
 **Status:** `Pendente` → `Em andamento` → `Feito` (com evidência). `Parcial` = começou, falta completar. `Adiado` = decisão formal de tirar da versão.  
 **Decisão?** `Sim` = o item tem [A DEFINIR]; a decisão precisa estar registrada em `docs/DECISOES.md` antes de codificar.
 
-Total de itens rastreados: **426** · Feito: **113** · Parcial: **21**
+Total de itens rastreados: **426** · Feito: **116** · Parcial: **21**
 
 | Bloco                          | Itens |
 | ------------------------------ | ----- |
@@ -295,9 +295,9 @@ Nesta etapa foi construída a transferência entre endereços de depósito do **
 
 | ID        | Item                                                 | Decisão? | Status   | Evidência |
 | --------- | ---------------------------------------------------- | -------- | -------- | --------- |
-| RF-EST-04 | Permitir inventário e contagem cega [A DEFINIR].     | Sim      | Pendente |           |
-| RF-EST-05 | Calcular saldo teórico e comparar com saldo contado. |          | Pendente |           |
-| G-04      | Lacuna: fluxo de inventário e contagem geral         |          | Pendente |           |
+| RF-EST-04 | Permitir inventário e contagem cega [A DEFINIR].     | Sim      | Feito    | PR B3.6 · decisão em DECISOES.md; sessão de contagem por endereço (`inventory_counts`/`inventory_count_items`), tela não mostra o saldo teórico até finalizar, testado |
+| RF-EST-05 | Calcular saldo teórico e comparar com saldo contado. |          | Feito    | PR B3.6 · `finalize_inventory_count` calcula o teórico só na finalização e grava a diferença por item, testado |
+| G-04      | Lacuna: fluxo de inventário e contagem geral         |          | Feito    | PR B3.6 · fluxo completo: iniciar contagem → contar produtos (cego) → finalizar → diferença vira ajuste automático, reaproveitando a fila de aprovação por limite do B3.4 quando passa do limite da empresa |
 
 ## B4.1 — Recebimento e itens esperados (manual e XML)
 

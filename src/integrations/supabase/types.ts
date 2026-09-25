@@ -352,6 +352,95 @@ export type Database = {
           },
         ]
       }
+      inventory_count_items: {
+        Row: {
+          counted_quantity: number
+          created_at: string
+          difference: number | null
+          id: string
+          inventory_count_id: string
+          product_id: string
+          resulting_movement_status: string | null
+          theoretical_balance: number | null
+          updated_at: string
+        }
+        Insert: {
+          counted_quantity: number
+          created_at?: string
+          difference?: number | null
+          id?: string
+          inventory_count_id: string
+          product_id: string
+          resulting_movement_status?: string | null
+          theoretical_balance?: number | null
+          updated_at?: string
+        }
+        Update: {
+          counted_quantity?: number
+          created_at?: string
+          difference?: number | null
+          id?: string
+          inventory_count_id?: string
+          product_id?: string
+          resulting_movement_status?: string | null
+          theoretical_balance?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_count_items_inventory_count_id_fkey"
+            columns: ["inventory_count_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_counts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_count_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_counts: {
+        Row: {
+          created_at: string
+          created_by: string
+          finalized_at: string | null
+          finalized_by: string | null
+          id: string
+          status: Database["public"]["Enums"]["inventory_count_status"]
+          warehouse_address_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          finalized_at?: string | null
+          finalized_by?: string | null
+          id?: string
+          status?: Database["public"]["Enums"]["inventory_count_status"]
+          warehouse_address_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          finalized_at?: string | null
+          finalized_by?: string | null
+          id?: string
+          status?: Database["public"]["Enums"]["inventory_count_status"]
+          warehouse_address_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_counts_warehouse_address_id_fkey"
+            columns: ["warehouse_address_id"]
+            isOneToOne: false
+            referencedRelation: "warehouse_addresses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invite_markets: {
         Row: {
           invite_id: string
@@ -1287,6 +1376,10 @@ export type Database = {
         }
         Returns: string
       }
+      finalize_inventory_count: {
+        Args: { p_inventory_count_id: string }
+        Returns: Database["public"]["Tables"]["inventory_count_items"]["Row"][]
+      }
       get_invite_preview: {
         Args: { p_token: string }
         Returns: {
@@ -1361,6 +1454,14 @@ export type Database = {
         Returns: Database["public"]["Tables"]["stock_movements"]["Row"]
       }
       revoke_invite: { Args: { p_invite_id: string }; Returns: undefined }
+      set_inventory_count_item: {
+        Args: { p_inventory_count_id: string; p_product_id: string; p_quantity: number }
+        Returns: Database["public"]["Tables"]["inventory_count_items"]["Row"]
+      }
+      start_inventory_count: {
+        Args: { p_warehouse_address_id: string }
+        Returns: Database["public"]["Tables"]["inventory_counts"]["Row"]
+      }
       update_gondola_position_limits: {
         Args: {
           p_capacity: number
@@ -1384,6 +1485,7 @@ export type Database = {
     Enums: {
       account_status: "pending" | "active" | "blocked" | "cancelled"
       audit_action: "insert" | "update" | "delete" | "event"
+      inventory_count_status: "aberta" | "finalizada"
       invite_status: "pending" | "accepted" | "revoked"
       lot_status: "available" | "blocked"
       market_product_status: "active" | "blocked" | "inactive"
@@ -1540,6 +1642,7 @@ export const Constants = {
     Enums: {
       account_status: ["pending", "active", "blocked", "cancelled"],
       audit_action: ["insert", "update", "delete", "event"],
+      inventory_count_status: ["aberta", "finalizada"],
       invite_status: ["pending", "accepted", "revoked"],
       lot_status: ["available", "blocked"],
       market_product_status: ["active", "blocked", "inactive"],

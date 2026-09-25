@@ -181,6 +181,14 @@ A "matriz de permissões (seção 2.2)" da Documentação Funcional Completa ori
 | DEC-B3-02 | Produto com lote: o que acontece com o lote ao transferir de endereço? | Mesmo número de lote (e mesma validade) recriado/reaproveitado no endereço de destino — mantém a rastreabilidade (RF-LOT-07) sem duplicar identidade do lote. Lote bloqueado ou vencido não pode ser transferido (mesma regra da saída, PA-19); segue FEFO/FIFO na escolha do lote de origem, com exceção justificada. | **Aceita a sugestão** (25/09/2026, proprietário) |
 
 
+### B3.6 — Inventário e contagem
+
+| ID | Pergunta | Sugestão | Decisão |
+|---|---|---|---|
+| RF-EST-04 (escopo) | A contagem cobre um endereço inteiro de uma vez ou produto por produto? | Sessão de contagem vinculada a um endereço de depósito, com vários produtos dentro; a pessoa digita a quantidade contada de cada um sem ver o saldo teórico, e só ao finalizar o sistema compara tudo e mostra as diferenças. | **Aceita a sugestão** (25/09/2026, proprietário) |
+| RF-EST-05 (divergência) | O que o sistema faz com a diferença entre contado e teórico? | Ao finalizar, cada diferença vira um movimento de ajuste automaticamente; se passar do limite de aprovação da empresa (B3.4), cai na mesma fila de aprovação — nenhum mecanismo novo. | **Aceita a sugestão** (25/09/2026, proprietário) |
+| RF-EST-04 (lote) | Produto com lote: conta por lote ou só o total no endereço? | Só o total do produto no endereço; se precisar gerar ajuste, usa o lote sugerido pela mesma ordem de FEFO/FIFO já usada nas saídas. Sem lote algum com saldo disponível para atribuir uma sobra, a contagem desse item é recusada e precisa ser corrigida direto em Movimentos. | **Aceita a sugestão** (25/09/2026, proprietário) |
+
 ## Bloco B4
 
 ### B4.1 — Recebimento e itens esperados (manual e XML)
