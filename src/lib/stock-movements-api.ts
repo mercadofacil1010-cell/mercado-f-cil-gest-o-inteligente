@@ -13,6 +13,7 @@ export const stockMovementTypeLabel: Record<StockMovementType, string> = {
   ajuste: "Ajuste",
   perda: "Perda",
   devolucao_fornecedor: "Devolução ao fornecedor",
+  transferencia: "Transferência",
 };
 
 export type StockMovement = {
@@ -126,6 +127,33 @@ export async function registerStockMovement(
   }
   const pending = (data as { status?: string } | null)?.status === "pending";
   return { ok: true, pending };
+}
+
+/** Transferência entre dois endereços de depósito do MESMO mercado (B3.5, DEC-B3-01: instantânea). */
+export async function registerStockTransfer(
+  sourceWarehouseAddressId: string,
+  destinationWarehouseAddressId: string,
+  productId: string,
+  quantity: number,
+  reference: string,
+  reason?: string,
+  sourceLotId?: string,
+): Promise<{ ok: true } | { ok: false; message: string; needsReason?: boolean }> {
+  const { error } = await supabase.rpc("register_stock_transfer", {
+    p_source_warehouse_address_id: sourceWarehouseAddressId,
+    p_destination_warehouse_address_id: destinationWarehouseAddressId,
+    p_product_id: productId,
+    p_quantity: quantity,
+    ...(reference ? { p_reference: reference } : {}),
+    ...(reason ? { p_reason: reason } : {}),
+    ...(sourceLotId ? { p_source_lot_id: sourceLotId } : {}),
+  });
+  if (error) {
+    const needsReason =
+      error.message.includes("saldo negativo") || error.message.includes("ordem de saída");
+    return { ok: false, message: friendlyStockError(error.message), needsReason };
+  }
+  return { ok: true };
 }
 
 export type PendingAdjustmentStatus = Database["public"]["Enums"]["pending_adjustment_status"];

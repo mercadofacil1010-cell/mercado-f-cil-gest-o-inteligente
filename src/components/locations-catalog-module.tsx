@@ -44,6 +44,7 @@ import {
   listStockBalances,
   listStockMovements,
   registerStockMovement,
+  registerStockTransfer,
   rejectPendingAdjustment,
   reverseStockMovement,
   stockMovementTypeLabel,
@@ -374,6 +375,7 @@ export function LocationsCatalogModule({
       {viewingMovementsOf && (
         <MovementsDialog
           address={viewingMovementsOf}
+          addresses={addresses}
           products={products}
           onClose={() => setViewingMovementsOf(null)}
           notify={notify}
@@ -1042,19 +1044,25 @@ const emptyMovementForm = {
   lotId: "",
   newBatchNumber: "",
   newExpiresAt: "",
+  destinationAddressId: "",
 };
 
 function MovementsDialog({
   address,
+  addresses,
   products,
   onClose,
   notify,
 }: {
   address: WarehouseAddress;
+  addresses: WarehouseAddress[];
   products: Product[];
   onClose: () => void;
   notify: (message: string) => void;
 }) {
+  const destinationOptions = addresses.filter(
+    (candidate) => candidate.id !== address.id && candidate.status === "active",
+  );
   const [balances, setBalances] = useState<StockBalance[]>([]);
   const [movements, setMovements] = useState<StockMovement[]>([]);
   const [pendingAdjustments, setPendingAdjustments] = useState<PendingAdjustment[]>([]);
@@ -1114,8 +1122,13 @@ function MovementsDialog({
       setError("Informe uma quantidade diferente de zero.");
       return;
     }
+    if (form.type === "transferencia" && !form.destinationAddressId) {
+      setError("Escolha o endereço de destino da transferência.");
+      return;
+    }
+
     const signedQuantity =
-      form.type === "entrada"
+      form.type === "entrada" || form.type === "transferencia"
         ? Math.abs(rawQuantity)
         : form.type === "ajuste"
           ? form.ajusteSign === "positivo"
@@ -1125,7 +1138,12 @@ function MovementsDialog({
 
     let lotId = form.lotId || undefined;
     if (selectedProduct?.tracksBatchExpiry) {
-      if (creatingLot) {
+      if (form.type === "transferencia") {
+        if (!lotId) {
+          setError("Este produto controla lote — escolha o lote de origem da transferência.");
+          return;
+        }
+      } else if (creatingLot) {
         if (!form.newBatchNumber.trim()) {
           setError("Informe o número do novo lote.");
           return;
@@ -1150,15 +1168,26 @@ function MovementsDialog({
     }
 
     setSubmitting(true);
-    const result = await registerStockMovement(
-      address.id,
-      form.productId,
-      form.type,
-      signedQuantity,
-      form.reference,
-      form.reason,
-      lotId,
-    );
+    const result =
+      form.type === "transferencia"
+        ? await registerStockTransfer(
+            address.id,
+            form.destinationAddressId,
+            form.productId,
+            signedQuantity,
+            form.reference,
+            form.reason,
+            lotId,
+          )
+        : await registerStockMovement(
+            address.id,
+            form.productId,
+            form.type,
+            signedQuantity,
+            form.reference,
+            form.reason,
+            lotId,
+          );
     setSubmitting(false);
     if (!result.ok) {
       setError(result.message);
@@ -1169,9 +1198,11 @@ function MovementsDialog({
     setNeedsReason(false);
     setCreatingLot(false);
     notify(
-      result.pending
+      "pending" in result && result.pending
         ? "Acima do limite da empresa — enviado para aprovação. O estoque só muda quando for aprovado."
-        : "Movimento registrado.",
+        : form.type === "transferencia"
+          ? "Transferência registrada."
+          : "Movimento registrado.",
     );
     void reload();
     if (selectedProduct?.tracksBatchExpiry)
@@ -1317,12 +1348,29 @@ function MovementsDialog({
                   </SelectContent>
                 </Select>
               )}
+              {form.type === "transferencia" && (
+                <Select
+                  value={form.destinationAddressId}
+                  onValueChange={(value) => update({ destinationAddressId: value })}
+                >
+                  <SelectTrigger className="h-10 bg-card">
+                    <SelectValue placeholder="Endereço de destino" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {destinationOptions.map((option) => (
+                      <SelectItem key={option.id} value={option.id}>
+                        {option.code}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
               {selectedProduct?.tracksBatchExpiry && (
                 <div className="space-y-2 rounded-md border border-dashed border-border p-2">
                   <p className="text-xs font-semibold text-muted-foreground">
                     Este produto controla lote e validade
                   </p>
-                  {creatingLot ? (
+                  {creatingLot && form.type !== "transferencia" ? (
                     <div className="grid grid-cols-2 gap-2">
                       <input
                         value={form.newBatchNumber}
@@ -1368,17 +1416,19 @@ function MovementsDialog({
                           ))}
                         </SelectContent>
                       </Select>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setCreatingLot(true);
-                          update({ lotId: "" });
-                        }}
-                      >
-                        Novo lote
-                      </Button>
+                      {form.type !== "transferencia" && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setCreatingLot(true);
+                            update({ lotId: "" });
+                          }}
+                        >
+                          Novo lote
+                        </Button>
+                      )}
                     </div>
                   )}
                 </div>

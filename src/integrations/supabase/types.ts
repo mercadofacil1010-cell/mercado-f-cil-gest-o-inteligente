@@ -956,6 +956,7 @@ export type Database = {
           quantity: number
           reference: string | null
           reversal_of: string | null
+          transfer_id: string | null
           type: Database["public"]["Enums"]["stock_movement_type"]
           warehouse_address_id: string
         }
@@ -968,6 +969,7 @@ export type Database = {
           quantity: number
           reference?: string | null
           reversal_of?: string | null
+          transfer_id?: string | null
           type: Database["public"]["Enums"]["stock_movement_type"]
           warehouse_address_id: string
         }
@@ -980,6 +982,7 @@ export type Database = {
           quantity?: number
           reference?: string | null
           reversal_of?: string | null
+          transfer_id?: string | null
           type?: Database["public"]["Enums"]["stock_movement_type"]
           warehouse_address_id?: string
         }
@@ -1330,8 +1333,21 @@ export type Database = {
           p_quantity: number
           p_reason?: string
           p_reference?: string
+          p_transfer_id?: string
           p_type: Database["public"]["Enums"]["stock_movement_type"]
           p_warehouse_address_id: string
+        }
+        Returns: Json
+      }
+      register_stock_transfer: {
+        Args: {
+          p_destination_warehouse_address_id: string
+          p_product_id: string
+          p_quantity: number
+          p_reason?: string
+          p_reference?: string
+          p_source_lot_id?: string
+          p_source_warehouse_address_id: string
         }
         Returns: Json
       }
@@ -1386,6 +1402,7 @@ export type Database = {
         | "ajuste"
         | "perda"
         | "devolucao_fornecedor"
+        | "transferencia"
       subscription_status:
         | "trial"
         | "active"
@@ -1542,6 +1559,7 @@ export const Constants = {
         "ajuste",
         "perda",
         "devolucao_fornecedor",
+        "transferencia",
       ],
       subscription_status: [
         "trial",

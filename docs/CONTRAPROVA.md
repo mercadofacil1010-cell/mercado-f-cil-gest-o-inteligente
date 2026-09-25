@@ -6,7 +6,7 @@ Cada linha aponta a etapa do plano (`docs/PLANO_FECHAMENTO.md`) em que o item é
 **Status:** `Pendente` → `Em andamento` → `Feito` (com evidência). `Parcial` = começou, falta completar. `Adiado` = decisão formal de tirar da versão.  
 **Decisão?** `Sim` = o item tem [A DEFINIR]; a decisão precisa estar registrada em `docs/DECISOES.md` antes de codificar.
 
-Total de itens rastreados: **426** · Feito: **112** · Parcial: **21**
+Total de itens rastreados: **426** · Feito: **113** · Parcial: **21**
 
 | Bloco                          | Itens |
 | ------------------------------ | ----- |
@@ -232,7 +232,7 @@ As tabelas `categories` e `brands` também foram criadas nesta etapa (mesmo padr
 | ID            | Item                                                                                                                                                                                                                                              | Decisão? | Status   | Evidência |
 | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | -------- | --------- |
 | RF-EST-01     | Consultar saldo consolidado e detalhado por endereço e lote.                                                                                                                                                                                      |          | Parcial  | PR B3.2 · views `stock_balances` (por endereço) e `market_product_balances` (consolidado do mercado); saldo por lote depende do B3.3 |
-| RF-EST-02     | Registrar entrada, saída, transferência, reposição, venda, ajuste, perda e devolução.                                                                                                                                                             |          | Parcial  | PR B3.2 · entrada/saída/ajuste/perda/devolução ao fornecedor reais via `register_stock_movement`; transferência (B3.5), reposição (B5) e venda (B7) dependem desses blocos |
+| RF-EST-02     | Registrar entrada, saída, transferência, reposição, venda, ajuste, perda e devolução.                                                                                                                                                             |          | Parcial  | PR B3.2/B3.5 · entrada/saída/ajuste/perda/devolução ao fornecedor/transferência (entre endereços do mesmo mercado) reais; reposição (B5) e venda (B7) dependem desses blocos |
 | RF-EST-03     | Exibir extrato cronológico de movimentos.                                                                                                                                                                                                         |          | Feito    | PR B3.2 · `listStockMovements` (mais recente primeiro), tela "Movimentos" no endereço de depósito |
 | RF-EST-07     | Impedir alteração direta de movimento finalizado; usar estorno ou compensação.                                                                                                                                                                    |          | Feito    | PR B3.2 · sem UPDATE/DELETE (revogado); `reverse_stock_movement` cria linha compensatória, testado |
 | RF-EST-08     | Rastrear origem de cada movimento.                                                                                                                                                                                                                |          | Feito    | PR B3.2 · campo `reference` livre + `created_by` + auditoria (AUD-07) |
@@ -283,11 +283,13 @@ As tabelas `categories` e `brands` também foram criadas nesta etapa (mesmo padr
 
 ## B3.5 — Transferências internas e entre mercados
 
+Nesta etapa foi construída a transferência entre endereços de depósito do **mesmo mercado** (decisão PA-22 abaixo): novo tipo `transferencia` no livro de movimentos (RF-EST-02, B3.2), instantânea, ligando as duas pernas (saída da origem/entrada no destino) por `transfer_id`, herdando saldo negativo/FEFO/lote bloqueado-vencido da saída, preservando o mesmo número/validade do lote no destino — `register_stock_transfer`, testado em `supabase/tests/98_transfers_test.sql` (20 testes). Transferência entre mercados diferentes (RN-ORG-06/RN-EST-05) continua pendente, propositalmente fora do escopo.
+
 | ID        | Item                                                                                                                                                       | Decisão? | Status   | Evidência |
 | --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | -------- | --------- |
-| RN-ORG-06 | Transferência de produto entre mercados exige origem, destino, responsável e confirmação de recebimento [A DEFINIR].                                       | Sim      | Pendente |           |
-| RN-EST-05 | Transferência entre mercados deve possuir saída da origem e entrada confirmada no destino; responsabilidade durante trânsito [A DEFINIR].                  | Sim      | Pendente |           |
-| PA-22     | Transferência entre mercados faz parte do MVP? — Sugestão do documento: incluir depois da movimentação interna estar estável, salvo necessidade do piloto. | Sim      | Pendente |           |
+| RN-ORG-06 | Transferência de produto entre mercados exige origem, destino, responsável e confirmação de recebimento [A DEFINIR].                                       | Sim      | Pendente | Fora do escopo desta etapa (decisão PA-22 em DECISOES.md): só endereços do mesmo mercado por enquanto |
+| RN-EST-05 | Transferência entre mercados deve possuir saída da origem e entrada confirmada no destino; responsabilidade durante trânsito [A DEFINIR].                  | Sim      | Pendente | Mesmo motivo do RN-ORG-06 — depende de transferência entre mercados existir |
+| PA-22     | Transferência entre mercados faz parte do MVP? — Sugestão do documento: incluir depois da movimentação interna estar estável, salvo necessidade do piloto. | Sim      | Feito    | PR B3.5 · decisão em DECISOES.md: nesta etapa só transferência entre endereços do MESMO mercado; entre mercados fica para depois |
 
 ## B3.6 — Inventário e contagem
 
