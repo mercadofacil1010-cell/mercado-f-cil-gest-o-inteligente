@@ -54,6 +54,14 @@ import {
   type StockMovementType,
 } from "@/lib/stock-movements-api";
 import { getOrCreateLot, listLots, type Lot } from "@/lib/lots-api";
+import {
+  finalizeInventoryCount,
+  getOpenInventoryCount,
+  setInventoryCountItem,
+  startInventoryCount,
+  type InventoryCount,
+  type InventoryCountItem,
+} from "@/lib/inventory-counts-api";
 
 const emptyAddressForm: WarehouseAddressFormData = {
   warehouseName: "Depósito 1",
@@ -105,6 +113,7 @@ export function LocationsCatalogModule({
   const [editingAddress, setEditingAddress] = useState<WarehouseAddress | null>(null);
   const [changingCapacityOf, setChangingCapacityOf] = useState<WarehouseAddress | null>(null);
   const [viewingMovementsOf, setViewingMovementsOf] = useState<WarehouseAddress | null>(null);
+  const [countingAddress, setCountingAddress] = useState<WarehouseAddress | null>(null);
   const [positionFormOpen, setPositionFormOpen] = useState(false);
   const [changingLimitsOf, setChangingLimitsOf] = useState<GondolaPosition | null>(null);
 
@@ -250,6 +259,13 @@ export function LocationsCatalogModule({
                             Movimentos
                           </Button>
                           <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCountingAddress(address)}
+                          >
+                            Inventário
+                          </Button>
+                          <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => void requestInactivateAddress(address)}
@@ -378,6 +394,14 @@ export function LocationsCatalogModule({
           addresses={addresses}
           products={products}
           onClose={() => setViewingMovementsOf(null)}
+          notify={notify}
+        />
+      )}
+      {countingAddress && (
+        <InventoryCountDialog
+          address={countingAddress}
+          products={products}
+          onClose={() => setCountingAddress(null)}
           notify={notify}
         />
       )}
@@ -1576,6 +1600,217 @@ function MovementsDialog({
               )}
             </div>
           </>
+        )}
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose}>
+            Fechar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+const movementStatusLabel: Record<string, string> = {
+  none: "Sem diferença",
+  posted: "Ajuste lançado",
+  pending: "Ajuste pendente de aprovação",
+};
+
+function InventoryCountDialog({
+  address,
+  products,
+  onClose,
+  notify,
+}: {
+  address: WarehouseAddress;
+  products: Product[];
+  onClose: () => void;
+  notify: (message: string) => void;
+}) {
+  const [loading, setLoading] = useState(true);
+  const [openCount, setOpenCount] = useState<InventoryCount | null>(null);
+  const [finalizedItems, setFinalizedItems] = useState<InventoryCountItem[] | null>(null);
+  const [starting, setStarting] = useState(false);
+  const [itemProductId, setItemProductId] = useState("");
+  const [itemQuantity, setItemQuantity] = useState("");
+  const [submittingItem, setSubmittingItem] = useState(false);
+  const [finalizing, setFinalizing] = useState(false);
+
+  const reload = async () => {
+    setLoading(true);
+    setOpenCount(await getOpenInventoryCount(address.id));
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    void reload();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- recarrega só quando o endereço muda
+  }, [address.id]);
+
+  const handleStart = async () => {
+    setStarting(true);
+    const result = await startInventoryCount(address.id);
+    setStarting(false);
+    if (!result.ok) {
+      notify(result.message);
+      return;
+    }
+    setFinalizedItems(null);
+    void reload();
+  };
+
+  const handleAddItem = async () => {
+    if (!openCount) return;
+    if (!itemProductId) {
+      notify("Escolha um produto.");
+      return;
+    }
+    const quantity = Number(itemQuantity);
+    if (!itemQuantity.trim() || quantity < 0) {
+      notify("Informe a quantidade contada (zero ou mais).");
+      return;
+    }
+    setSubmittingItem(true);
+    const result = await setInventoryCountItem(openCount.id, itemProductId, quantity);
+    setSubmittingItem(false);
+    if (!result.ok) {
+      notify(result.message);
+      return;
+    }
+    setItemProductId("");
+    setItemQuantity("");
+    void reload();
+  };
+
+  const handleFinalize = async () => {
+    if (!openCount) return;
+    setFinalizing(true);
+    const result = await finalizeInventoryCount(openCount.id);
+    setFinalizing(false);
+    if (!result.ok) {
+      notify(result.message);
+      return;
+    }
+    notify("Contagem finalizada.");
+    setFinalizedItems(
+      result.items.map((item) => ({
+        ...item,
+        productName: products.find((product) => product.id === item.productId)?.name ?? "",
+      })),
+    );
+    setOpenCount(null);
+  };
+
+  return (
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
+      <DialogContent className="max-h-[85vh] max-w-[640px] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Inventário — {address.code}</DialogTitle>
+          <DialogDescription>
+            Contagem cega: a quantidade contada não mostra o saldo do sistema até finalizar.
+          </DialogDescription>
+        </DialogHeader>
+        {loading ? (
+          <div className="grid place-items-center p-6">
+            <RefreshCw className="h-5 w-5 animate-spin text-muted-foreground" />
+          </div>
+        ) : openCount ? (
+          <>
+            <div className="space-y-2 rounded-md border border-border p-3">
+              <p className="text-sm font-semibold">Itens contados</p>
+              {openCount.items.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Nenhum item contado ainda.</p>
+              ) : (
+                openCount.items.map((item) => (
+                  <div key={item.id} className="flex justify-between text-sm">
+                    <span>{item.productName}</span>
+                    <span>{item.countedQuantity}</span>
+                  </div>
+                ))
+              )}
+            </div>
+            <div className="space-y-3 rounded-md border border-border p-3">
+              <p className="text-sm font-semibold">Contar produto</p>
+              <div className="grid grid-cols-2 gap-3">
+                <Select value={itemProductId} onValueChange={setItemProductId}>
+                  <SelectTrigger className="h-10 bg-card">
+                    <SelectValue placeholder="Produto" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {products.map((product) => (
+                      <SelectItem key={product.id} value={product.id}>
+                        {product.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.001"
+                  value={itemQuantity}
+                  onChange={(event) => setItemQuantity(event.target.value)}
+                  placeholder="Quantidade contada"
+                  className="h-10 rounded-md border border-input bg-card px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+              <div className="flex justify-end">
+                <Button size="sm" disabled={submittingItem} onClick={() => void handleAddItem()}>
+                  {submittingItem ? (
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                  ) : (
+                    "Registrar contagem"
+                  )}
+                </Button>
+              </div>
+            </div>
+            <div className="flex justify-end">
+              <Button disabled={finalizing} onClick={() => void handleFinalize()}>
+                {finalizing ? <RefreshCw className="h-4 w-4 animate-spin" /> : "Finalizar contagem"}
+              </Button>
+            </div>
+          </>
+        ) : finalizedItems ? (
+          <div className="space-y-2 rounded-md border border-border p-3">
+            <p className="text-sm font-semibold">Resultado da contagem</p>
+            {finalizedItems.map((item) => (
+              <div key={item.id} className="rounded-md border border-border p-2 text-sm">
+                <div className="flex justify-between">
+                  <strong>{item.productName}</strong>
+                  <span>contado {item.countedQuantity}</span>
+                </div>
+                <div className="text-muted-foreground">
+                  teórico {item.theoreticalBalance} · diferença{" "}
+                  {item.difference !== null && item.difference > 0 ? "+" : ""}
+                  {item.difference} ·{" "}
+                  {item.resultingMovementStatus
+                    ? movementStatusLabel[item.resultingMovementStatus]
+                    : ""}
+                </div>
+              </div>
+            ))}
+            <div className="flex justify-end">
+              <Button size="sm" disabled={starting} onClick={() => void handleStart()}>
+                {starting ? <RefreshCw className="h-4 w-4 animate-spin" /> : "Nova contagem"}
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="rounded-lg border border-dashed border-border bg-card p-10 text-center">
+            <h3 className="font-bold">Nenhuma contagem em aberto</h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Inicie uma contagem para começar a registrar as quantidades.
+            </p>
+            <Button className="mt-4" disabled={starting} onClick={() => void handleStart()}>
+              {starting ? <RefreshCw className="h-4 w-4 animate-spin" /> : "Iniciar contagem"}
+            </Button>
+          </div>
         )}
         <DialogFooter>
           <Button variant="ghost" onClick={onClose}>
