@@ -64,8 +64,7 @@ import { MarketPanel } from "@/components/market-panel";
 import { ProductsModule } from "@/components/products-module";
 import { ProductCatalogModule } from "@/components/product-catalog-module";
 import { LocationsCatalogModule } from "@/components/locations-catalog-module";
-import { ReceivingModule } from "@/components/receiving-module";
-import { initialReceivings, type Receiving } from "@/data/receivings";
+import { ReceivingsCatalogModule } from "@/components/receivings-catalog-module";
 import { ReplenishmentOverview } from "@/components/replenishment-overview";
 import { OwnerSection } from "@/components/owner-sections";
 import { initialProducts, type Product } from "@/data/products";
@@ -172,7 +171,6 @@ export function OwnerDashboard({
   const [addingMarket, setAddingMarket] = useState(false);
   const [editingMarket, setEditingMarket] = useState<Market | null>(null);
   const [products, setProducts] = useState<Product[]>(initialProducts);
-  const [receivings, setReceivings] = useState<Receiving[]>(initialReceivings);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [active, setActive] = useState("Visão geral");
@@ -622,12 +620,12 @@ export function OwnerDashboard({
                   initialView={tab}
                 />
               ) : tab === "Recebimentos" ? (
-                <ReceivingModule
+                <ReceivingsCatalogModule
                   key={market.id}
-                  receivings={receivings}
-                  onChange={setReceivings}
-                  notify={setToast}
+                  companyId={companyId}
+                  marketId={market.id}
                   marketName={market.name}
+                  notify={setToast}
                 />
               ) : tab === "Reposições" ? (
                 <ReplenishmentOverview

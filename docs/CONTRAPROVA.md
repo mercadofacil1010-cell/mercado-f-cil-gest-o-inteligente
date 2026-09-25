@@ -6,7 +6,7 @@ Cada linha aponta a etapa do plano (`docs/PLANO_FECHAMENTO.md`) em que o item é
 **Status:** `Pendente` → `Em andamento` → `Feito` (com evidência). `Parcial` = começou, falta completar. `Adiado` = decisão formal de tirar da versão.  
 **Decisão?** `Sim` = o item tem [A DEFINIR]; a decisão precisa estar registrada em `docs/DECISOES.md` antes de codificar.
 
-Total de itens rastreados: **426** · Feito: **116** · Parcial: **21**
+Total de itens rastreados: **426** · Feito: **118** · Parcial: **22**
 
 | Bloco                          | Itens |
 | ------------------------------ | ----- |
@@ -301,12 +301,14 @@ Nesta etapa foi construída a transferência entre endereços de depósito do **
 
 ## B4.1 — Recebimento e itens esperados (manual e XML)
 
+Correção 1 exige que o Conferente tenha experiência própria, não uma aba do painel do dono (decisão DEC-B4-01 em `DECISOES.md`) — esta etapa já cria a rota separada (`/conferente`, `src/routes/conferente.tsx`), com login e contexto próprios (`src/lib/conferente-api.ts`), mesmo que a tela real de conferência cega só chegue no B4.2.
+
 | ID        | Item                                                                                                                                         | Decisão? | Status   | Evidência |
 | --------- | -------------------------------------------------------------------------------------------------------------------------------------------- | -------- | -------- | --------- |
-| RF-REC-01 | Criar recebimento por fornecedor, pedido e nota fiscal.                                                                                      |          | Pendente |           |
-| PA-07     | A nota fiscal é obrigatória para receber? — Sugestão do documento: permitir recebimento por pedido/autorização excepcional, sempre auditado. | Sim      | Pendente |           |
-| G-02      | Lacuna: quem registra os itens esperados do recebimento e quando (manual e/ou XML)                                                           |          | Pendente |           |
-| INT-NFE   | Integração NF-e/XML                                                                                                                          |          | Pendente |           |
+| RF-REC-01 | Criar recebimento por fornecedor, pedido e nota fiscal.                                                                                      |          | Feito    | PR B4.1 · tabelas `receivings`/`receiving_items`, `create_receiving`/`add_receiving_item`/`remove_receiving_item`; tela real em `src/components/receivings-catalog-module.tsx`, testado em `supabase/tests/99a_receivings_test.sql` |
+| PA-07     | A nota fiscal é obrigatória para receber? — Sugestão do documento: permitir recebimento por pedido/autorização excepcional, sempre auditado. | Sim      | Feito    | PR B4.1 · decisão em DECISOES.md; `create_receiving` exige nota OU motivo (nunca os dois ausentes), testado |
+| G-02      | Lacuna: quem registra os itens esperados do recebimento e quando (manual e/ou XML)                                                           |          | Parcial  | PR B4.1 · decisão em DECISOES.md: só digitação manual nesta etapa (dono/gerente, antes da conferência começar); XML de NF-e fica pendente para etapa futura |
+| INT-NFE   | Integração NF-e/XML                                                                                                                          |          | Pendente | Decisão em DECISOES.md: fora do escopo desta etapa (formato fiscal complexo) |
 
 ## B4.2 — Conferência cega protegida no servidor
 
