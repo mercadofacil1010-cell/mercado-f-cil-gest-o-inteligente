@@ -6,7 +6,7 @@ Cada linha aponta a etapa do plano (`docs/PLANO_FECHAMENTO.md`) em que o item é
 **Status:** `Pendente` → `Em andamento` → `Feito` (com evidência). `Parcial` = começou, falta completar. `Adiado` = decisão formal de tirar da versão.  
 **Decisão?** `Sim` = o item tem [A DEFINIR]; a decisão precisa estar registrada em `docs/DECISOES.md` antes de codificar.
 
-Total de itens rastreados: **426** · Feito: **124** · Parcial: **25**
+Total de itens rastreados: **426** · Feito: **130** · Parcial: **28**
 
 | Bloco                          | Itens |
 | ------------------------------ | ----- |
@@ -330,16 +330,16 @@ Correção 1 exige que o Conferente tenha experiência própria, não uma aba do
 
 | ID        | Item                                                                                                                              | Decisão? | Status   | Evidência |
 | --------- | --------------------------------------------------------------------------------------------------------------------------------- | -------- | -------- | --------- |
-| RF-REC-08 | Permitir aprovar divergência, solicitar recontagem, recusar item ou finalizar.                                                    |          | Pendente |           |
-| RF-REC-09 | Gerar entrada de estoque apenas conforme decisão aprovada.                                                                        |          | Pendente |           |
-| RN-REC-05 | Aprovação de divergência cabe ao gerente ou dono; limites por valor/percentual [A DEFINIR].                                       | Sim      | Pendente |           |
-| RN-REC-08 | Finalizar sem divergência gera entrada dos itens aceitos por lote e localização de recebimento ou depósito.                       |          | Pendente |           |
-| RN-REC-09 | Aprovar com divergência gera entrada da quantidade física aceita, nunca da quantidade apenas documental.                          |          | Pendente |           |
-| PA-05     | Quem aprova divergência de recebimento? — Sugestão do documento: gerente até um limite e dono acima dele.                         | Sim      | Pendente |           |
-| PA-06     | Quais tolerâncias de recebimento? — Sugestão do documento: começar sem tolerância automática; todas as diferenças ficam visíveis. | Sim      | Pendente |           |
-| PA-20     | Qual prazo mínimo de validade no recebimento? — Sugestão do documento: configurável por categoria/produto/fornecedor.             | Sim      | Pendente |           |
-| F-5.4     | Fluxo: recebimento de mercadoria ponta a ponta                                                                                    |          | Pendente |           |
-| AUD-05    | Evento de auditoria: Recebimento: início, contagem, recontagem, aprovação, recusa, finalização (seção 8.1)                        |          | Pendente |           |
+| RF-REC-08 | Permitir aprovar divergência, solicitar recontagem, recusar item ou finalizar.                                                    |          | Parcial  | PR B4.3 · aprovar (dentro/fora do limite) e finalizar prontos; recontagem e recusa ficam para o B4.4 (RF-REC-08 é a outra metade, ainda não decidida) |
+| RF-REC-09 | Gerar entrada de estoque apenas conforme decisão aprovada.                                                                        |          | Feito    | PR B4.3 · `finalize_receiving` só lança em `stock_movements` quando a decisão é tomada (direto sem divergência, ou aprovada por quem tem alçada); acima do limite fica `aguardando_aprovacao` sem tocar o estoque, testado |
+| RN-REC-05 | Aprovação de divergência cabe ao gerente ou dono; limites por valor/percentual [A DEFINIR].                                       | Sim      | Feito    | PR B4.3 · decisão em DECISOES.md (DEC-B4-05): reaproveita `companies.loss_adjustment_approval_threshold` do B3.4 — gerente decide dentro do limite, dono decide acima, testado |
+| RN-REC-08 | Finalizar sem divergência gera entrada dos itens aceitos por lote e localização de recebimento ou depósito.                       |          | Feito    | PR B4.3 · uma entrada por item contado, lote criado/reaproveitado via `get_or_create_lot` no endereço de destino escolhido por quem finaliza, testado |
+| RN-REC-09 | Aprovar com divergência gera entrada da quantidade física aceita, nunca da quantidade apenas documental.                          |          | Feito    | PR B4.3 · `finalize_receiving` sempre lança pela `base_quantity` contada (nunca pela `expected_quantity`), testado com divergência de 5 (posta 45) e de 50 (posta 50) |
+| PA-05     | Quem aprova divergência de recebimento? — Sugestão do documento: gerente até um limite e dono acima dele.                         | Sim      | Feito    | PR B4.3 · decisão em DECISOES.md: aceita a sugestão, mesmo padrão gerente/dono + limite do B3.4 |
+| PA-06     | Quais tolerâncias de recebimento? — Sugestão do documento: começar sem tolerância automática; todas as diferenças ficam visíveis. | Sim      | Feito    | PR B4.3 · decisão em DECISOES.md: aceita a sugestão — qualquer diferença, por menor que seja, é divergência e exige justificativa |
+| PA-20     | Qual prazo mínimo de validade no recebimento? — Sugestão do documento: configurável por categoria/produto/fornecedor.             | Sim      | Adiado   | PR B4.3 · decisão em DECISOES.md: adiado — validade de cada lote já visível na comparação, sem bloqueio automático ainda |
+| F-5.4     | Fluxo: recebimento de mercadoria ponta a ponta                                                                                    |          | Parcial  | PR B4.3 · fluxo completo criar → conferir cego → decidir → estoque atualizado já funciona; recontagem/recusa (B4.4) e XML de NF-e ainda faltam |
+| AUD-05    | Evento de auditoria: Recebimento: início, contagem, recontagem, aprovação, recusa, finalização (seção 8.1)                        |          | Parcial  | PR B4.3 · início/contagem/finalização já auditados (trigger genérico do B0.2 estendido); recontagem/aprovação/recusa formal ficam para o B4.4 |
 
 ## B4.4 — Recontagem, recusa e histórico
 

@@ -23,14 +23,18 @@ import {
 import { AlertPill } from "@/components/dashboard-ui";
 import { listProducts, type Product } from "@/lib/products-api";
 import { listSuppliers, type Supplier } from "@/lib/catalog-support-api";
+import { listWarehouseAddresses, type WarehouseAddress } from "@/lib/locations-api";
 import {
   addReceivingItem,
   createReceiving,
+  finalizeReceiving,
+  getReceivingComparison,
   listReceivingItems,
   listReceivings,
   receivingStatusLabel,
   removeReceivingItem,
   type Receiving,
+  type ReceivingComparisonItem,
   type ReceivingItem,
   type ReceivingStatus,
 } from "@/lib/receivings-api";
@@ -58,20 +62,24 @@ export function ReceivingsCatalogModule({
   const [receivings, setReceivings] = useState<Receiving[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [warehouseAddresses, setWarehouseAddresses] = useState<WarehouseAddress[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [viewingItemsOf, setViewingItemsOf] = useState<Receiving | null>(null);
+  const [decidingReceiving, setDecidingReceiving] = useState<Receiving | null>(null);
 
   const reload = async () => {
     setLoading(true);
-    const [receivingList, supplierList, productList] = await Promise.all([
+    const [receivingList, supplierList, productList, addressList] = await Promise.all([
       listReceivings(marketId),
       companyId ? listSuppliers(companyId) : Promise.resolve([]),
       companyId ? listProducts(companyId) : Promise.resolve([]),
+      listWarehouseAddresses(marketId),
     ]);
     setReceivings(receivingList);
     setSuppliers(supplierList);
     setProducts(productList);
+    setWarehouseAddresses(addressList);
     setLoading(false);
   };
 
@@ -147,13 +155,21 @@ export function ReceivingsCatalogModule({
                     {new Date(receiving.createdAt).toLocaleDateString("pt-BR")}
                   </td>
                   <td className="px-4 py-3">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setViewingItemsOf(receiving)}
-                    >
-                      Itens esperados
-                    </Button>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setViewingItemsOf(receiving)}
+                      >
+                        Itens esperados
+                      </Button>
+                      {(receiving.status === "em_conferencia" ||
+                        receiving.status === "aguardando_aprovacao") && (
+                        <Button size="sm" onClick={() => setDecidingReceiving(receiving)}>
+                          Decidir
+                        </Button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -180,6 +196,18 @@ export function ReceivingsCatalogModule({
           receiving={viewingItemsOf}
           products={products}
           onClose={() => setViewingItemsOf(null)}
+          notify={notify}
+        />
+      )}
+      {decidingReceiving && (
+        <DecideReceivingDialog
+          receiving={decidingReceiving}
+          warehouseAddresses={warehouseAddresses}
+          onClose={() => setDecidingReceiving(null)}
+          onDecided={() => {
+            setDecidingReceiving(null);
+            void reload();
+          }}
           notify={notify}
         />
       )}
@@ -460,6 +488,156 @@ function ReceivingItemsDialog({
         <DialogFooter>
           <Button variant="ghost" onClick={onClose}>
             Fechar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function DecideReceivingDialog({
+  receiving,
+  warehouseAddresses,
+  onClose,
+  onDecided,
+  notify,
+}: {
+  receiving: Receiving;
+  warehouseAddresses: WarehouseAddress[];
+  onClose: () => void;
+  onDecided: () => void;
+  notify: (message: string) => void;
+}) {
+  const [comparison, setComparison] = useState<ReceivingComparisonItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [destinationId, setDestinationId] = useState("");
+  const [justification, setJustification] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    void (async () => {
+      setLoading(true);
+      setComparison(await getReceivingComparison(receiving.id));
+      setLoading(false);
+    })();
+  }, [receiving.id]);
+
+  const hasDivergence = comparison.some((item) => item.difference !== 0);
+
+  const handleFinalize = async () => {
+    setError("");
+    if (!destinationId) {
+      setError("Escolha o endereço de destino do estoque.");
+      return;
+    }
+    if (hasDivergence && !justification.trim()) {
+      setError("Há divergência entre o esperado e o contado — informe a justificativa.");
+      return;
+    }
+    setSubmitting(true);
+    const result = await finalizeReceiving(
+      receiving.id,
+      destinationId,
+      justification.trim() || undefined,
+    );
+    setSubmitting(false);
+    if (!result.ok) {
+      setError(result.message);
+      return;
+    }
+    if (result.status === "aguardando_aprovacao") {
+      notify("Divergência acima do limite — o recebimento ficou aguardando aprovação do dono.");
+    } else {
+      notify("Recebimento finalizado e estoque lançado.");
+    }
+    onDecided();
+  };
+
+  return (
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-h-[85vh] max-w-[640px] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Decidir recebimento — {receiving.supplierName || "Recebimento"}</DialogTitle>
+          <DialogDescription>
+            Compare o esperado com o contado, escolha o endereço de destino e finalize.
+          </DialogDescription>
+        </DialogHeader>
+        {loading ? (
+          <div className="grid place-items-center p-6">
+            <RefreshCw className="h-5 w-5 animate-spin text-muted-foreground" />
+          </div>
+        ) : (
+          <>
+            <div className="overflow-x-auto rounded-md border border-border">
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="border-b border-border text-xs uppercase tracking-wide text-muted-foreground">
+                    <th className="px-3 py-2 font-bold">Produto</th>
+                    <th className="px-3 py-2 font-bold">Esperado</th>
+                    <th className="px-3 py-2 font-bold">Contado</th>
+                    <th className="px-3 py-2 font-bold">Diferença</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {comparison.map((item) => (
+                    <tr key={item.productId} className="border-b border-border last:border-0">
+                      <td className="px-3 py-2">{item.productName}</td>
+                      <td className="px-3 py-2">{item.expectedQuantity}</td>
+                      <td className="px-3 py-2">{item.countedQuantity}</td>
+                      <td
+                        className={
+                          item.difference === 0
+                            ? "px-3 py-2 text-muted-foreground"
+                            : "px-3 py-2 font-bold text-destructive"
+                        }
+                      >
+                        {item.difference > 0 ? "+" : ""}
+                        {item.difference}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="space-y-3">
+              <Select value={destinationId} onValueChange={setDestinationId}>
+                <SelectTrigger className="h-10 bg-card">
+                  <SelectValue placeholder="Endereço de destino" />
+                </SelectTrigger>
+                <SelectContent>
+                  {warehouseAddresses.map((address) => (
+                    <SelectItem key={address.id} value={address.id}>
+                      {address.code}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {hasDivergence && (
+                <textarea
+                  value={justification}
+                  onChange={(event) => setJustification(event.target.value)}
+                  placeholder="Justificativa da divergência"
+                  className="min-h-[80px] w-full rounded-md border border-input bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                />
+              )}
+              {error && (
+                <p
+                  role="alert"
+                  className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive"
+                >
+                  {error}
+                </p>
+              )}
+            </div>
+          </>
+        )}
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button disabled={submitting || loading} onClick={() => void handleFinalize()}>
+            {submitting ? <RefreshCw className="h-4 w-4 animate-spin" /> : "Finalizar"}
           </Button>
         </DialogFooter>
       </DialogContent>
