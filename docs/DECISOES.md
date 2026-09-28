@@ -218,8 +218,9 @@ A "matriz de permissões (seção 2.2)" da Documentação Funcional Completa ori
 | ID | Pergunta | Sugestão | Decisão |
 |---|---|---|---|
 | PA-05 | Quem aprova divergência de recebimento? | gerente até um limite e dono acima dele. | **Aceita a sugestão** (25/09/2026, proprietário): mesmo padrão de limite+fila do B3.4 — divergência acima do limite de quantidade da empresa fica pendente até o dono aprovar; abaixo do limite, o gerente já aprova direto |
-| PA-06 | Quais tolerâncias de recebimento? | começar sem tolerância automática; todas as diferenças ficam visíveis. | _pendente_ |
-| PA-20 | Qual prazo mínimo de validade no recebimento? | configurável por categoria/produto/fornecedor. | _pendente_ |
+| PA-06 | Quais tolerâncias de recebimento? | começar sem tolerância automática; todas as diferenças ficam visíveis. | **Aceita a sugestão** (28/09/2026, proprietário) |
+| PA-20 | Qual prazo mínimo de validade no recebimento? | configurável por categoria/produto/fornecedor. | **Adiado** (28/09/2026, proprietário): motor de regras bem maior que o resto do B4.3; a validade do lote já fica registrada e visível na decisão, mas sem bloqueio automático por enquanto |
+| DEC-B4-05 | O limite que decide se a divergência do recebimento precisa do dono reaproveita o limite do B3.4 (perdas/ajustes) ou é um campo próprio? | Reaproveitar `companies.loss_adjustment_approval_threshold`, já usado no B3.4 — uma só referência de "divergência grande" no sistema. | **Aceita a sugestão** (28/09/2026, proprietário) |
 
 ### B4.4 — Recontagem, recusa e histórico
 

@@ -121,3 +121,56 @@ export async function removeReceivingItem(
   if (error) return { ok: false, message: error.message };
   return { ok: true };
 }
+
+export type ReceivingComparisonItem = {
+  productId: string;
+  productName: string;
+  expectedQuantity: number;
+  countedQuantity: number;
+  difference: number;
+};
+
+/** Comparação esperado x contado (B4.3) — só para dono/gerente, nunca o conferente (RN-REC-01). */
+export async function getReceivingComparison(
+  receivingId: string,
+): Promise<ReceivingComparisonItem[]> {
+  const { data, error } = await supabase.rpc("get_receiving_comparison", {
+    p_receiving_id: receivingId,
+  });
+  if (error || !data) return [];
+  return data.map((row) => ({
+    productId: row.product_id,
+    productName: row.product_name,
+    expectedQuantity: row.expected_quantity,
+    countedQuantity: row.counted_quantity,
+    difference: row.difference,
+  }));
+}
+
+/** Decide e finaliza o recebimento (B4.3): lança a entrada de estoque no endereço escolhido. */
+export async function finalizeReceiving(
+  receivingId: string,
+  destinationWarehouseAddressId: string,
+  justification?: string,
+): Promise<
+  | { ok: true; status: "finalizado" | "aguardando_aprovacao" }
+  | { ok: false; message: string; needsJustification?: boolean }
+> {
+  const { data, error } = await supabase.rpc("finalize_receiving", {
+    p_receiving_id: receivingId,
+    p_destination_warehouse_address_id: destinationWarehouseAddressId,
+    ...(justification ? { p_justification: justification } : {}),
+  });
+  if (error || !data) {
+    return {
+      ok: false,
+      message: error?.message ?? "Não foi possível decidir o recebimento agora.",
+      ...(error?.message.includes("justificativa") ? { needsJustification: true } : {}),
+    };
+  }
+  const status = (data as { status?: string }).status;
+  return {
+    ok: true,
+    status: status === "aguardando_aprovacao" ? "aguardando_aprovacao" : "finalizado",
+  };
+}

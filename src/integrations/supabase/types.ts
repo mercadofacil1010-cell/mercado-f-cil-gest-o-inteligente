@@ -1153,6 +1153,8 @@ export type Database = {
           conference_started_by: string | null
           created_at: string
           created_by: string
+          finalized_at: string | null
+          finalized_by: string | null
           id: string
           invoice_number: string | null
           market_id: string
@@ -1166,6 +1168,8 @@ export type Database = {
           conference_started_by?: string | null
           created_at?: string
           created_by: string
+          finalized_at?: string | null
+          finalized_by?: string | null
           id?: string
           invoice_number?: string | null
           market_id: string
@@ -1179,6 +1183,8 @@ export type Database = {
           conference_started_by?: string | null
           created_at?: string
           created_by?: string
+          finalized_at?: string | null
+          finalized_by?: string | null
           id?: string
           invoice_number?: string | null
           market_id?: string
@@ -1577,6 +1583,14 @@ export type Database = {
         Args: { p_inventory_count_id: string }
         Returns: Database["public"]["Tables"]["inventory_count_items"]["Row"][]
       }
+      finalize_receiving: {
+        Args: {
+          p_destination_warehouse_address_id: string
+          p_justification?: string
+          p_receiving_id: string
+        }
+        Returns: Json
+      }
       get_invite_preview: {
         Args: { p_token: string }
         Returns: {
@@ -1595,6 +1609,16 @@ export type Database = {
           p_warehouse_address_id: string
         }
         Returns: Database["public"]["Tables"]["lots"]["Row"]
+      }
+      get_receiving_comparison: {
+        Args: { p_receiving_id: string }
+        Returns: {
+          counted_quantity: number
+          difference: number
+          expected_quantity: number
+          product_id: string
+          product_name: string
+        }[]
       }
       is_valid_cnpj: { Args: { value: string }; Returns: boolean }
       is_valid_cpf: { Args: { value: string }; Returns: boolean }
