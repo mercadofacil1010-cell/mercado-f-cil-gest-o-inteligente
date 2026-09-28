@@ -40,6 +40,8 @@ export type GondolaPosition = {
   maxQuantity: number;
   capacity: number;
   status: Database["public"]["Enums"]["support_status"];
+  currentBalance: number;
+  balanceUpdatedAt: string | null;
 };
 
 type WarehouseAddressRow = Database["public"]["Tables"]["warehouse_addresses"]["Row"];
@@ -81,6 +83,8 @@ function mapRowToGondolaPosition(row: GondolaPositionRow, productName: string): 
     maxQuantity: row.max_quantity,
     capacity: row.capacity,
     status: row.status,
+    currentBalance: row.current_balance,
+    balanceUpdatedAt: row.balance_updated_at,
   };
 }
 

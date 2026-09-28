@@ -6,7 +6,7 @@ Cada linha aponta a etapa do plano (`docs/PLANO_FECHAMENTO.md`) em que o item é
 **Status:** `Pendente` → `Em andamento` → `Feito` (com evidência). `Parcial` = começou, falta completar. `Adiado` = decisão formal de tirar da versão.  
 **Decisão?** `Sim` = o item tem [A DEFINIR]; a decisão precisa estar registrada em `docs/DECISOES.md` antes de codificar.
 
-Total de itens rastreados: **427** · Feito: **140** · Parcial: **25**
+Total de itens rastreados: **427** · Feito: **150** · Parcial: **28**
 
 | Bloco                          | Itens |
 | ------------------------------ | ----- |
@@ -357,19 +357,19 @@ Correção 1 exige que o Conferente tenha experiência própria, não uma aba do
 
 | ID            | Item                                                                                                                                          | Decisão? | Status   | Evidência |
 | ------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | -------- | -------- | --------- |
-| RF-REP-01     | Criar tarefa quando a gôndola atingir ou ficar abaixo do mínimo.                                                                              |          | Pendente |           |
-| RN-REP-01     | A tarefa é criada quando o saldo estimado da posição fica menor ou igual ao mínimo.                                                           |          | Pendente |           |
-| RN-REP-02     | O destino da reposição - ideal ou máximo - está [A DEFINIR].                                                                                  | Sim      | Pendente |           |
-| RN-REP-09     | Prioridade considera ruptura, tempo, vendas e validade, mas fórmula definitiva está [A DEFINIR].                                              | Sim      | Pendente |           |
-| RN-CRT-EST-04 | Ao atingir mínimo, o sistema alerta; para gôndola, também cria ou sugere tarefa de reposição.                                                 |          | Pendente |           |
-| RN-CRT-EST-05 | Ideal é o alvo operacional. Máximo é o limite planejado ou físico. A reposição até ideal ou máximo está [A DEFINIR].                          | Sim      | Pendente |           |
-| RN-CRT-REP-01 | Criar ou sugerir tarefa quando o saldo estimado da posição ficar menor ou igual ao mínimo.                                                    |          | Pendente |           |
-| RN-CRT-REP-02 | Evitar tarefa duplicada aberta para a mesma posição e produto, salvo reposição parcial [A DEFINIR].                                           | Sim      | Pendente |           |
-| RN-CRT-REP-06 | Prioridade exata está [A DEFINIR]. Sugestão: ruptura completa &gt; produto de alto giro &gt; maior tempo aguardando &gt; validade mais curta. | Sim      | Pendente |           |
-| PA-10         | Reposição completa até ideal ou máximo? — Sugestão do documento: até ideal; máximo funciona como limite.                                      | Sim      | Pendente |           |
-| PA-11         | Como calcular prioridade da reposição? — Sugestão do documento: ruptura, vendas recentes, tempo aguardando, validade e criticidade.           | Sim      | Pendente |           |
-| PA-13         | Pode haver tarefa duplicada? — Sugestão do documento: impedir para mesmo produto/posição enquanto existir tarefa ativa.                       | Sim      | Pendente |           |
-| G-03          | Lacuna: reposição depende do saldo teórico da gôndola, que depende das vendas do PDV — modo manual até o PDV                                  |          | Pendente |           |
+| RF-REP-01     | Criar tarefa quando a gôndola atingir ou ficar abaixo do mínimo.                                                                              |          | Feito    | PR B5.1 · `record_gondola_balance` cria a tarefa automaticamente quando o saldo registrado fica ≤ mínimo, testado |
+| RN-REP-01     | A tarefa é criada quando o saldo estimado da posição fica menor ou igual ao mínimo.                                                           |          | Feito    | PR B5.1 · mesma evidência de RF-REP-01 |
+| RN-REP-02     | O destino da reposição - ideal ou máximo - está [A DEFINIR].                                                                                  | Sim      | Feito    | PR B5.1 · decisão em DECISOES.md (PA-10): sempre até o ideal; `quantity_needed = ideal_quantity - saldo`, testado |
+| RN-REP-09     | Prioridade considera ruptura, tempo, vendas e validade, mas fórmula definitiva está [A DEFINIR].                                              | Sim      | Parcial  | PR B5.1 · decisão em DECISOES.md (PA-11): ruptura + tempo aguardando + validade (lote perto de vencer) implementados e testados; "vendas" fica para o B7 (PDV) e "criticidade" para quando existir campo próprio (DEC-B5-01) |
+| RN-CRT-EST-04 | Ao atingir mínimo, o sistema alerta; para gôndola, também cria ou sugere tarefa de reposição.                                                 |          | Parcial  | PR B5.1 · a tarefa nasce e aparece na lista priorizada do painel; alerta/notificação de verdade (e-mail, push) é o B6.2 |
+| RN-CRT-EST-05 | Ideal é o alvo operacional. Máximo é o limite planejado ou físico. A reposição até ideal ou máximo está [A DEFINIR].                          | Sim      | Feito    | PR B5.1 · mesma evidência de RN-REP-02 |
+| RN-CRT-REP-01 | Criar ou sugerir tarefa quando o saldo estimado da posição ficar menor ou igual ao mínimo.                                                    |          | Feito    | PR B5.1 · mesma evidência de RF-REP-01 |
+| RN-CRT-REP-02 | Evitar tarefa duplicada aberta para a mesma posição e produto, salvo reposição parcial [A DEFINIR].                                           | Sim      | Feito    | PR B5.1 · decisão em DECISOES.md (PA-13): índice único parcial (`gondola_position_id` com status pendente) impede duplicata, testado; reposição parcial não existe ainda (não há aceite/execução até o B5.2) |
+| RN-CRT-REP-06 | Prioridade exata está [A DEFINIR]. Sugestão: ruptura completa &gt; produto de alto giro &gt; maior tempo aguardando &gt; validade mais curta. | Sim      | Parcial  | PR B5.1 · mesma evidência de RN-REP-09; "produto de alto giro" depende de vendas (B7) |
+| PA-10         | Reposição completa até ideal ou máximo? — Sugestão do documento: até ideal; máximo funciona como limite.                                      | Sim      | Feito    | PR B5.1 · decisão em DECISOES.md: aceita a sugestão |
+| PA-11         | Como calcular prioridade da reposição? — Sugestão do documento: ruptura, vendas recentes, tempo aguardando, validade e criticidade.           | Sim      | Feito    | PR B5.1 · decisão em DECISOES.md, adaptada (sem vendas/criticidade por enquanto, ver DEC-B5-01/02) |
+| PA-13         | Pode haver tarefa duplicada? — Sugestão do documento: impedir para mesmo produto/posição enquanto existir tarefa ativa.                       | Sim      | Feito    | PR B5.1 · decisão em DECISOES.md: aceita a sugestão |
+| G-03          | Lacuna: reposição depende do saldo teórico da gôndola, que depende das vendas do PDV — modo manual até o PDV                                  |          | Feito    | PR B5.1 · `record_gondola_balance` é o registro manual do saldo por dono/gerente, testado |
 
 ## B5.2 — Fluxo do repositor gravado no banco
 
