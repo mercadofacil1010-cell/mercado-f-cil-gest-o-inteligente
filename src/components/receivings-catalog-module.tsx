@@ -24,6 +24,7 @@ import { AlertPill } from "@/components/dashboard-ui";
 import { listProducts, type Product } from "@/lib/products-api";
 import { listSuppliers, type Supplier } from "@/lib/catalog-support-api";
 import { listWarehouseAddresses, type WarehouseAddress } from "@/lib/locations-api";
+import { listCountedItems, type CountedItem } from "@/lib/receiving-conference-api";
 import {
   addReceivingItem,
   createReceiving,
@@ -31,8 +32,12 @@ import {
   getReceivingComparison,
   listReceivingItems,
   listReceivings,
+  MAX_RECEIVING_RECOUNTS,
   receivingStatusLabel,
+  rejectReceiving,
+  rejectReceivingCount,
   removeReceivingItem,
+  requestReceivingRecount,
   type Receiving,
   type ReceivingComparisonItem,
   type ReceivingItem,
@@ -46,6 +51,7 @@ const statusTone: Record<ReceivingStatus, "neutral" | "warning" | "positive" | "
   aguardando_aprovacao: "warning",
   finalizado: "positive",
   recusado: "critical",
+  em_recontagem: "warning",
 };
 
 export function ReceivingsCatalogModule({
@@ -164,6 +170,7 @@ export function ReceivingsCatalogModule({
                         Itens esperados
                       </Button>
                       {(receiving.status === "em_conferencia" ||
+                        receiving.status === "em_recontagem" ||
                         receiving.status === "aguardando_aprovacao") && (
                         <Button size="sm" onClick={() => setDecidingReceiving(receiving)}>
                           Decidir
@@ -267,6 +274,8 @@ function CreateReceivingDialog({
       noInvoiceReason: hasInvoice ? "" : noInvoiceReason,
       status: "aguardando_recebimento",
       createdAt: new Date().toISOString(),
+      recountCount: 0,
+      rejectionReason: "",
     });
   };
 
@@ -509,21 +518,105 @@ function DecideReceivingDialog({
   notify: (message: string) => void;
 }) {
   const [comparison, setComparison] = useState<ReceivingComparisonItem[]>([]);
+  const [countedItems, setCountedItems] = useState<CountedItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [destinationId, setDestinationId] = useState("");
   const [justification, setJustification] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
+  const [recountProductIds, setRecountProductIds] = useState<Set<string>>(new Set());
+  const [recountReason, setRecountReason] = useState("");
+  const [requestingRecount, setRequestingRecount] = useState(false);
+
+  const [rejectingItemId, setRejectingItemId] = useState<string | null>(null);
+  const [itemRejectReason, setItemRejectReason] = useState("");
+
+  const [rejectingWhole, setRejectingWhole] = useState(false);
+  const [wholeRejectReason, setWholeRejectReason] = useState("");
+
+  const isDecided = receiving.status === "finalizado" || receiving.status === "recusado";
+
+  const reload = async () => {
+    setLoading(true);
+    const [comparisonData, countedData] = await Promise.all([
+      getReceivingComparison(receiving.id),
+      listCountedItems(receiving.id),
+    ]);
+    setComparison(comparisonData);
+    setCountedItems(countedData);
+    setLoading(false);
+  };
+
   useEffect(() => {
-    void (async () => {
-      setLoading(true);
-      setComparison(await getReceivingComparison(receiving.id));
-      setLoading(false);
-    })();
+    void reload();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- recarrega só quando o recebimento muda
   }, [receiving.id]);
 
   const hasDivergence = comparison.some((item) => item.difference !== 0);
+  const recountsLeft = MAX_RECEIVING_RECOUNTS - receiving.recountCount;
+
+  const toggleRecountProduct = (productId: string) => {
+    setRecountProductIds((current) => {
+      const next = new Set(current);
+      if (next.has(productId)) next.delete(productId);
+      else next.add(productId);
+      return next;
+    });
+  };
+
+  const handleRequestRecount = async () => {
+    if (recountProductIds.size === 0) {
+      notify("Marque pelo menos um produto para recontar.");
+      return;
+    }
+    if (!recountReason.trim()) {
+      notify("Informe o motivo da recontagem.");
+      return;
+    }
+    setRequestingRecount(true);
+    const result = await requestReceivingRecount(
+      receiving.id,
+      Array.from(recountProductIds),
+      recountReason,
+    );
+    setRequestingRecount(false);
+    if (!result.ok) {
+      notify(result.message);
+      return;
+    }
+    notify("Recontagem pedida — o conferente já pode recontar esses itens.");
+    onDecided();
+  };
+
+  const handleRejectItem = async (id: string) => {
+    if (!itemRejectReason.trim()) {
+      notify("Informe o motivo da recusa.");
+      return;
+    }
+    const result = await rejectReceivingCount(id, itemRejectReason);
+    if (!result.ok) {
+      notify(result.message);
+      return;
+    }
+    setRejectingItemId(null);
+    setItemRejectReason("");
+    void reload();
+  };
+
+  const handleRejectWhole = async () => {
+    if (!wholeRejectReason.trim()) {
+      notify("Informe o motivo da recusa.");
+      return;
+    }
+    const result = await rejectReceiving(receiving.id, wholeRejectReason);
+    if (!result.ok) {
+      notify(result.message);
+      return;
+    }
+    notify("Recebimento recusado — nada entrou no estoque.");
+    onDecided();
+  };
 
   const handleFinalize = async () => {
     setError("");
@@ -556,11 +649,12 @@ function DecideReceivingDialog({
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-h-[85vh] max-w-[640px] overflow-y-auto">
+      <DialogContent className="max-h-[85vh] max-w-[720px] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Decidir recebimento — {receiving.supplierName || "Recebimento"}</DialogTitle>
           <DialogDescription>
-            Compare o esperado com o contado, escolha o endereço de destino e finalize.
+            Compare o esperado com o contado, escolha o endereço de destino e finalize — ou peça
+            recontagem, recuse um item ou recuse a carga inteira.
           </DialogDescription>
         </DialogHeader>
         {loading ? (
@@ -573,6 +667,7 @@ function DecideReceivingDialog({
               <table className="w-full text-left text-sm">
                 <thead>
                   <tr className="border-b border-border text-xs uppercase tracking-wide text-muted-foreground">
+                    {!isDecided && <th className="px-3 py-2 font-bold">Recontar</th>}
                     <th className="px-3 py-2 font-bold">Produto</th>
                     <th className="px-3 py-2 font-bold">Esperado</th>
                     <th className="px-3 py-2 font-bold">Contado</th>
@@ -582,6 +677,18 @@ function DecideReceivingDialog({
                 <tbody>
                   {comparison.map((item) => (
                     <tr key={item.productId} className="border-b border-border last:border-0">
+                      {!isDecided && (
+                        <td className="px-3 py-2">
+                          {item.difference !== 0 && (
+                            <input
+                              type="checkbox"
+                              checked={recountProductIds.has(item.productId)}
+                              onChange={() => toggleRecountProduct(item.productId)}
+                              aria-label={`Recontar ${item.productName}`}
+                            />
+                          )}
+                        </td>
+                      )}
                       <td className="px-3 py-2">{item.productName}</td>
                       <td className="px-3 py-2">{item.expectedQuantity}</td>
                       <td className="px-3 py-2">{item.countedQuantity}</td>
@@ -600,6 +707,90 @@ function DecideReceivingDialog({
                 </tbody>
               </table>
             </div>
+
+            {!isDecided && (
+              <div className="space-y-2 rounded-md border border-border p-3">
+                <p className="text-sm font-bold">
+                  Pedir recontagem ({recountsLeft} de {MAX_RECEIVING_RECOUNTS} restantes)
+                </p>
+                {recountsLeft <= 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    Limite de recontagens deste recebimento já foi atingido.
+                  </p>
+                ) : (
+                  <>
+                    <textarea
+                      value={recountReason}
+                      onChange={(event) => setRecountReason(event.target.value)}
+                      placeholder="Motivo da recontagem"
+                      className="min-h-[60px] w-full rounded-md border border-input bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={requestingRecount}
+                      onClick={() => void handleRequestRecount()}
+                    >
+                      {requestingRecount ? (
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                      ) : (
+                        "Pedir recontagem dos itens marcados"
+                      )}
+                    </Button>
+                  </>
+                )}
+              </div>
+            )}
+
+            <div className="space-y-2 rounded-md border border-border p-3">
+              <p className="text-sm font-bold">Itens contados</p>
+              {countedItems.map((item) => (
+                <div key={item.id} className="rounded-md border border-border p-2 text-sm">
+                  <div className="flex items-center justify-between gap-2">
+                    <span>
+                      {item.productName} — {item.countedQuantity} ({item.packagingName})
+                      {item.rejected && (
+                        <span className="ml-2 font-bold text-destructive">Recusado</span>
+                      )}
+                    </span>
+                    {!isDecided && !item.rejected && rejectingItemId !== item.id && (
+                      <Button variant="ghost" size="sm" onClick={() => setRejectingItemId(item.id)}>
+                        Recusar
+                      </Button>
+                    )}
+                  </div>
+                  {item.rejected && (
+                    <p className="mt-1 text-muted-foreground">Motivo: {item.rejectionReason}</p>
+                  )}
+                  {rejectingItemId === item.id && (
+                    <div className="mt-2 space-y-2">
+                      <textarea
+                        value={itemRejectReason}
+                        onChange={(event) => setItemRejectReason(event.target.value)}
+                        placeholder="Motivo da recusa deste item"
+                        className="min-h-[50px] w-full rounded-md border border-input bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                      />
+                      <div className="flex gap-2">
+                        <Button size="sm" onClick={() => void handleRejectItem(item.id)}>
+                          Confirmar recusa
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setRejectingItemId(null);
+                            setItemRejectReason("");
+                          }}
+                        >
+                          Cancelar
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
             <div className="space-y-3">
               <Select value={destinationId} onValueChange={setDestinationId}>
                 <SelectTrigger className="h-10 bg-card">
@@ -630,15 +821,48 @@ function DecideReceivingDialog({
                 </p>
               )}
             </div>
+
+            {!isDecided && (
+              <div className="space-y-2 rounded-md border border-destructive/40 p-3">
+                {rejectingWhole ? (
+                  <div className="space-y-2">
+                    <textarea
+                      value={wholeRejectReason}
+                      onChange={(event) => setWholeRejectReason(event.target.value)}
+                      placeholder="Motivo da recusa da carga inteira"
+                      className="min-h-[60px] w-full rounded-md border border-input bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                    />
+                    <div className="flex gap-2">
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => void handleRejectWhole()}
+                      >
+                        Confirmar recusa da carga
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => setRejectingWhole(false)}>
+                        Cancelar
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <Button variant="destructive" size="sm" onClick={() => setRejectingWhole(true)}>
+                    Recusar a carga inteira
+                  </Button>
+                )}
+              </div>
+            )}
           </>
         )}
         <DialogFooter>
           <Button variant="ghost" onClick={onClose}>
             Cancelar
           </Button>
-          <Button disabled={submitting || loading} onClick={() => void handleFinalize()}>
-            {submitting ? <RefreshCw className="h-4 w-4 animate-spin" /> : "Finalizar"}
-          </Button>
+          {!isDecided && (
+            <Button disabled={submitting || loading} onClick={() => void handleFinalize()}>
+              {submitting ? <RefreshCw className="h-4 w-4 animate-spin" /> : "Finalizar"}
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

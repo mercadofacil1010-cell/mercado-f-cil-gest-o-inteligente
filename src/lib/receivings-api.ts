@@ -15,6 +15,7 @@ export const receivingStatusLabel: Record<ReceivingStatus, string> = {
   aguardando_aprovacao: "Aguardando aprovação",
   finalizado: "Finalizado",
   recusado: "Recusado",
+  em_recontagem: "Em recontagem",
 };
 
 export type Receiving = {
@@ -27,6 +28,8 @@ export type Receiving = {
   noInvoiceReason: string;
   status: ReceivingStatus;
   createdAt: string;
+  recountCount: number;
+  rejectionReason: string;
 };
 
 export type ReceivingItem = {
@@ -49,6 +52,8 @@ function mapReceiving(row: ReceivingRow, supplierName: string): Receiving {
     noInvoiceReason: row.no_invoice_reason ?? "",
     status: row.status,
     createdAt: row.created_at,
+    recountCount: row.recount_count,
+    rejectionReason: row.rejection_reason ?? "",
   };
 }
 
@@ -173,4 +178,52 @@ export async function finalizeReceiving(
     ok: true,
     status: status === "aguardando_aprovacao" ? "aguardando_aprovacao" : "finalizado",
   };
+}
+
+/** Máximo de recontagens por recebimento (PA-09), independente da reposição. */
+export const MAX_RECEIVING_RECOUNTS = 3;
+
+/**
+ * Pede recontagem de produtos específicos (B4.4, DEC-B4-06) — só dono/gerente.
+ * A contagem anterior nunca é apagada; a comparação/finalização passam a usar
+ * a tentativa mais recente de cada produto.
+ */
+export async function requestReceivingRecount(
+  receivingId: string,
+  productIds: string[],
+  reason: string,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const { error } = await supabase.rpc("request_receiving_recount", {
+    p_receiving_id: receivingId,
+    p_product_ids: productIds,
+    p_reason: reason,
+  });
+  if (error) return { ok: false, message: error.message };
+  return { ok: true };
+}
+
+/** Recusa um item contado específico (B4.4, RN-REC-07) — a quantidade nunca entra no estoque. */
+export async function rejectReceivingCount(
+  countedItemId: string,
+  reason: string,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const { error } = await supabase.rpc("reject_receiving_count", {
+    p_id: countedItemId,
+    p_reason: reason,
+  });
+  if (error) return { ok: false, message: error.message };
+  return { ok: true };
+}
+
+/** Recusa o recebimento inteiro (B4.4, DEC-B4-07) — nada entra no estoque. */
+export async function rejectReceiving(
+  receivingId: string,
+  reason: string,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const { error } = await supabase.rpc("reject_receiving", {
+    p_receiving_id: receivingId,
+    p_reason: reason,
+  });
+  if (error) return { ok: false, message: error.message };
+  return { ok: true };
 }
