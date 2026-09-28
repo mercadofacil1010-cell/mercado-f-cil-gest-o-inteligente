@@ -6,7 +6,7 @@ Cada linha aponta a etapa do plano (`docs/PLANO_FECHAMENTO.md`) em que o item é
 **Status:** `Pendente` → `Em andamento` → `Feito` (com evidência). `Parcial` = começou, falta completar. `Adiado` = decisão formal de tirar da versão.  
 **Decisão?** `Sim` = o item tem [A DEFINIR]; a decisão precisa estar registrada em `docs/DECISOES.md` antes de codificar.
 
-Total de itens rastreados: **426** · Feito: **118** · Parcial: **22**
+Total de itens rastreados: **426** · Feito: **124** · Parcial: **25**
 
 | Bloco                          | Itens |
 | ------------------------------ | ----- |
@@ -314,17 +314,17 @@ Correção 1 exige que o Conferente tenha experiência própria, não uma aba do
 
 | ID        | Item                                                                                                                                                           | Decisão? | Status   | Evidência |
 | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | -------- | --------- |
-| RF-REC-02 | Registrar início, término, conferente, dispositivo e duração.                                                                                                  |          | Pendente |           |
-| RF-REC-03 | Ler produto por scanner ou permitir digitação manual.                                                                                                          |          | Pendente |           |
-| RF-REC-04 | Contar por unidade, pacote, caixa, fardo, kg ou litro.                                                                                                         |          | Pendente |           |
-| RF-REC-05 | Registrar lote, fabricação, validade, condição, foto e observação.                                                                                             |          | Pendente |           |
-| RF-REC-06 | Ocultar quantidades esperadas durante a conferência.                                                                                                           |          | Pendente |           |
-| RF-REC-07 | Comparar esperado e contado somente após finalização.                                                                                                          |          | Pendente |           |
-| RN-REC-01 | O conferente não visualiza quantidade esperada, diferença ou percentual durante a contagem cega.                                                               |          | Pendente |           |
-| RN-REC-02 | O conferente pode visualizar identificação do recebimento e dados necessários para reconhecer a carga; exibição de volumes esperados [A DEFINIR].              | Sim      | Pendente |           |
-| RN-REC-03 | A conferência converte todas as embalagens para a unidade base antes da comparação.                                                                            |          | Pendente |           |
-| RN-REC-04 | Tolerância de quantidade, peso, preço, validade e prazo mínimo está [A DEFINIR].                                                                               | Sim      | Pendente |           |
-| PA-08     | O conferente vê quantidade de volumes esperada? — Sugestão do documento: mostrar apenas volumes físicos informados na chegada, não os esperados por documento. | Sim      | Pendente |           |
+| RF-REC-02 | Registrar início, término, conferente, dispositivo e duração.                                                                                                  |          | Parcial  | PR B4.2 · início/conferente registrados (`conference_started_at/by`); dispositivo já vem do mecanismo genérico de auditoria (B0.2); término/duração ficam para o B4.3 (finalização) |
+| RF-REC-03 | Ler produto por scanner ou permitir digitação manual.                                                                                                          |          | Parcial  | PR B4.2 · decisão em DECISOES.md (DEC-B4-02): digitação manual do código de barras (`findProductByBarcode`); câmera/scanner real fica para o B5.4 |
+| RF-REC-04 | Contar por unidade, pacote, caixa, fardo, kg ou litro.                                                                                                         |          | Feito    | PR B4.2 · seleciona a embalagem já cadastrada do produto (B2.2) ao contar, testado |
+| RF-REC-05 | Registrar lote, fabricação, validade, condição, foto e observação.                                                                                             |          | Parcial  | PR B4.2 · lote/fabricação/validade/condição/observação reais; foto fica pendente por falta de infraestrutura de upload — mesma decisão do B3.4 (DEC-B4-04), fica pro B5.4 |
+| RF-REC-06 | Ocultar quantidades esperadas durante a conferência.                                                                                                           |          | Feito    | PR B4.2 · a contagem nunca lê `receiving_items`; blindagem estrutural (nenhuma função devolve o esperado), testado |
+| RF-REC-07 | Comparar esperado e contado somente após finalização.                                                                                                          |          | Pendente | A comparação em si é o B4.3 (decisão e entrada no estoque), ainda não construído |
+| RN-REC-01 | O conferente não visualiza quantidade esperada, diferença ou percentual durante a contagem cega.                                                               |          | Feito    | PR B4.2 · RLS bloqueia `receiving_items` para o perfil `receiver` desde o B4.1; nenhuma função do B4.2 expõe esperado/diferença, testado |
+| RN-REC-02 | O conferente pode visualizar identificação do recebimento e dados necessários para reconhecer a carga; exibição de volumes esperados [A DEFINIR].              | Sim      | Feito    | PR B4.2 · decisão em DECISOES.md; conferente vê fornecedor/nota/pedido/data, nada além disso |
+| RN-REC-03 | A conferência converte todas as embalagens para a unidade base antes da comparação.                                                                            |          | Feito    | PR B4.2 · `add_receiving_count` converte pela `conversion_factor` da embalagem no momento da contagem, testado |
+| RN-REC-04 | Tolerância de quantidade, peso, preço, validade e prazo mínimo está [A DEFINIR].                                                                               | Sim      | Pendente | Decisão fica para o B4.3, quando a comparação/decisão existir |
+| PA-08     | O conferente vê quantidade de volumes esperada? — Sugestão do documento: mostrar apenas volumes físicos informados na chegada, não os esperados por documento. | Sim      | Feito    | PR B4.2 · decisão em DECISOES.md: nem volumes nem itens esperados são exibidos ao conferente |
 
 ## B4.3 — Decisão, entrada no estoque e finalização
 

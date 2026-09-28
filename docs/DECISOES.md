@@ -208,7 +208,10 @@ A "matriz de permissões (seção 2.2)" da Documentação Funcional Completa ori
 
 | ID | Pergunta | Sugestão | Decisão |
 |---|---|---|---|
-| PA-08 | O conferente vê quantidade de volumes esperada? | mostrar apenas volumes físicos informados na chegada, não os esperados por documento. | _pendente_ |
+| PA-08 / RN-REC-02 | O conferente vê quantidade de volumes esperada? | mostrar apenas volumes físicos informados na chegada, não os esperados por documento. | **Aceita a sugestão** (28/09/2026, proprietário): conferente só vê fornecedor, nota fiscal/pedido e data — nenhum item/quantidade esperada; sem campo novo de "volumes esperados" nesta etapa |
+| DEC-B4-02 | O conferente lê o produto por câmera/scanner real ou digita o código de barras nesta etapa? | Só digitação manual do código de barras por enquanto; leitura por câmera fica para o B5.4 (etapa dedicada a câmera/scanner, reaproveitada depois pelo repositor também). | **Aceita a sugestão** (28/09/2026, proprietário) |
+| DEC-B4-03 | Quem inicia a conferência de um recebimento? | O próprio conferente, pela rota `/conferente` — abre o recebimento da lista e inicia; muda o status para "Em conferência". | **Aceita a sugestão** (28/09/2026, proprietário) |
+| DEC-B4-04 | Foto de evidência na contagem (RF-REC-05)? | Mesma decisão já tomada no B3.4 (PA-21): sem infraestrutura de upload de foto ainda — evidência por texto (observação); foto real fica para o B5.4 junto com a câmera. | **Aplicação da mesma decisão do B3.4** (28/09/2026) |
 
 ### B4.3 — Decisão, entrada no estoque e finalização
 
