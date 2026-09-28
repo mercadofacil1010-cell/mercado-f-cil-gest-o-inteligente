@@ -1,12 +1,38 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
-import { ArrowRight, Eye, EyeOff, Loader2, PackageSearch, ShieldAlert, Truck } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Eye,
+  EyeOff,
+  Loader2,
+  PackageSearch,
+  Search,
+  ShieldAlert,
+  Trash2,
+  Truck,
+} from "lucide-react";
 import { BrandLogo } from "@/components/brand-logo";
 import { Button } from "@/components/ui/button";
 import { AlertPill } from "@/components/dashboard-ui";
 import { useAuth } from "@/lib/auth-context";
 import { getConferenteContext, type ConferenteContext } from "@/lib/conferente-api";
 import { listReceivings, receivingStatusLabel, type Receiving } from "@/lib/receivings-api";
+import {
+  findProductByBarcode,
+  listPackagings,
+  type Packaging,
+  type Product,
+} from "@/lib/products-api";
+import {
+  addReceivingCount,
+  conditionLabel,
+  listCountedItems,
+  removeReceivingCount,
+  startReceivingConference,
+  type CountedItem,
+  type ReceivingItemCondition,
+} from "@/lib/receiving-conference-api";
 
 export const Route = createFileRoute("/conferente")({
   head: () => ({
@@ -77,7 +103,13 @@ function ConferenteRoute() {
     );
   }
 
-  return <ConferenteHome markets={context.markets} onSignOut={() => void signOut()} />;
+  return (
+    <ConferenteHome
+      companyId={context.companyId}
+      markets={context.markets}
+      onSignOut={() => void signOut()}
+    />
+  );
 }
 
 type SignIn = ReturnType<typeof useAuth>["signIn"];
@@ -184,17 +216,20 @@ function ConferenteLogin({ onLoggedIn, signIn }: { onLoggedIn: () => void; signI
 }
 
 function ConferenteHome({
+  companyId,
   markets,
   onSignOut,
 }: {
+  companyId: string;
   markets: { id: string; name: string }[];
   onSignOut: () => void;
 }) {
   const [selectedMarket, setSelectedMarket] = useState(markets[0]?.id ?? "");
   const [receivings, setReceivings] = useState<Receiving[]>([]);
   const [loading, setLoading] = useState(true);
+  const [openReceiving, setOpenReceiving] = useState<Receiving | null>(null);
 
-  useEffect(() => {
+  const reload = () => {
     if (!selectedMarket) {
       setReceivings([]);
       setLoading(false);
@@ -205,7 +240,22 @@ function ConferenteHome({
       setReceivings(list);
       setLoading(false);
     });
-  }, [selectedMarket]);
+  };
+
+  useEffect(reload, [selectedMarket]);
+
+  if (openReceiving) {
+    return (
+      <BlindCountScreen
+        companyId={companyId}
+        receiving={openReceiving}
+        onBack={() => {
+          setOpenReceiving(null);
+          reload();
+        }}
+      />
+    );
+  }
 
   return (
     <div className="mx-auto min-h-screen max-w-lg space-y-5 bg-background p-5">
@@ -258,7 +308,13 @@ function ConferenteHome({
               {receivings.map((receiving) => (
                 <li
                   key={receiving.id}
-                  className="rounded-lg border border-border bg-card p-4 shadow-card"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setOpenReceiving(receiving)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") setOpenReceiving(receiving);
+                  }}
+                  className="cursor-pointer rounded-lg border border-border bg-card p-4 shadow-card outline-none transition hover:border-primary/50 focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
@@ -273,14 +329,323 @@ function ConferenteHome({
                     </div>
                     <AlertPill label={receivingStatusLabel[receiving.status]} tone="neutral" />
                   </div>
-                  <div className="mt-3 flex items-center gap-2 rounded-md bg-muted p-2.5 text-sm text-muted-foreground">
-                    <PackageSearch className="h-4 w-4 shrink-0" />
-                    Conferência cega chega numa próxima etapa.
-                  </div>
                 </li>
               ))}
             </ul>
           )}
+        </>
+      )}
+    </div>
+  );
+}
+
+const emptyCountForm = {
+  quantity: "",
+  batchNumber: "",
+  manufacturedAt: "",
+  expiresAt: "",
+  condition: "bom_estado" as ReceivingItemCondition,
+  note: "",
+};
+
+function BlindCountScreen({
+  companyId,
+  receiving,
+  onBack,
+}: {
+  companyId: string;
+  receiving: Receiving;
+  onBack: () => void;
+}) {
+  const [status, setStatus] = useState(receiving.status);
+  const [starting, setStarting] = useState(false);
+  const [items, setItems] = useState<CountedItem[]>([]);
+  const [loadingItems, setLoadingItems] = useState(true);
+  const [barcode, setBarcode] = useState("");
+  const [searching, setSearching] = useState(false);
+  const [searchError, setSearchError] = useState("");
+  const [product, setProduct] = useState<Product | null>(null);
+  const [packagings, setPackagings] = useState<Packaging[]>([]);
+  const [packagingId, setPackagingId] = useState("");
+  const [form, setForm] = useState(emptyCountForm);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
+  const reloadItems = () => {
+    setLoadingItems(true);
+    void listCountedItems(receiving.id).then((list) => {
+      setItems(list);
+      setLoadingItems(false);
+    });
+  };
+
+  useEffect(() => {
+    if (status === "em_conferencia") reloadItems();
+    else setLoadingItems(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- recarrega só quando muda o status
+  }, [status]);
+
+  const handleStart = async () => {
+    setStarting(true);
+    const result = await startReceivingConference(receiving.id);
+    setStarting(false);
+    if (!result.ok) {
+      setError(result.message);
+      return;
+    }
+    setStatus("em_conferencia");
+  };
+
+  const handleSearch = async () => {
+    setSearchError("");
+    const code = barcode.trim();
+    if (!code) {
+      setSearchError("Digite o código de barras.");
+      return;
+    }
+    setSearching(true);
+    const found = await findProductByBarcode(companyId, code);
+    if (!found) {
+      setSearching(false);
+      setProduct(null);
+      setSearchError("Produto não encontrado para este código de barras.");
+      return;
+    }
+    const packagingList = await listPackagings(found.id);
+    setSearching(false);
+    setProduct(found);
+    setPackagings(packagingList);
+    setPackagingId(packagingList.find((item) => item.isBase)?.id ?? packagingList[0]?.id ?? "");
+    setForm(emptyCountForm);
+  };
+
+  const handleAdd = async () => {
+    if (!product || !packagingId) return;
+    setError("");
+    const quantity = Number(form.quantity);
+    if (!form.quantity.trim() || quantity <= 0) {
+      setError("Informe a quantidade contada.");
+      return;
+    }
+    setSubmitting(true);
+    const result = await addReceivingCount(receiving.id, product.id, packagingId, quantity, {
+      batchNumber: form.batchNumber,
+      manufacturedAt: form.manufacturedAt,
+      expiresAt: form.expiresAt,
+      condition: form.condition,
+      note: form.note,
+    });
+    setSubmitting(false);
+    if (!result.ok) {
+      setError(result.message);
+      return;
+    }
+    setProduct(null);
+    setBarcode("");
+    setForm(emptyCountForm);
+    reloadItems();
+  };
+
+  const handleRemove = async (id: string) => {
+    const result = await removeReceivingCount(id);
+    if (!result.ok) {
+      setError(result.message);
+      return;
+    }
+    reloadItems();
+  };
+
+  return (
+    <div className="mx-auto min-h-screen max-w-lg space-y-5 bg-background p-5">
+      <div className="flex items-center gap-3">
+        <Button variant="ghost" size="icon" onClick={onBack} aria-label="Voltar">
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
+        <div className="min-w-0">
+          <h1 className="truncate text-lg font-extrabold">
+            {receiving.supplierName || "Recebimento"}
+          </h1>
+          <span className="text-sm text-muted-foreground">
+            {receiving.invoiceNumber ? `NF ${receiving.invoiceNumber}` : "Sem nota fiscal"}
+          </span>
+        </div>
+      </div>
+
+      {status === "aguardando_recebimento" ? (
+        <div className="rounded-lg border border-dashed border-border bg-card p-8 text-center">
+          <PackageSearch className="mx-auto h-8 w-8 text-muted-foreground" />
+          <p className="mt-2 text-sm text-muted-foreground">
+            Confira o fornecedor e a nota acima. Ao iniciar, o sistema não mostra o que é esperado —
+            conte fisicamente cada item.
+          </p>
+          <Button className="mt-4 w-full" disabled={starting} onClick={() => void handleStart()}>
+            {starting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Iniciar conferência"}
+          </Button>
+        </div>
+      ) : status !== "em_conferencia" ? (
+        <div className="rounded-lg border border-dashed border-border bg-card p-8 text-center">
+          <p className="text-sm text-muted-foreground">
+            Esta conferência já foi encerrada ({receivingStatusLabel[status]}). O resultado fica com
+            o gestor.
+          </p>
+        </div>
+      ) : (
+        <>
+          <div className="flex items-center gap-2 rounded-md border border-warning/40 bg-warning/10 p-3 text-sm font-semibold">
+            <EyeOff className="h-4 w-4 shrink-0" /> Conte fisicamente cada item. O sistema não
+            mostra quantidades esperadas.
+          </div>
+
+          <section className="rounded-lg border border-border bg-card p-4 shadow-card">
+            <h2 className="font-extrabold">Identificar produto</h2>
+            <div className="mt-3 flex gap-2">
+              <input
+                value={barcode}
+                onChange={(event) => setBarcode(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") void handleSearch();
+                }}
+                inputMode="numeric"
+                placeholder="Código de barras"
+                className="h-10 flex-1 rounded-md border border-input bg-card px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+              />
+              <Button variant="outline" disabled={searching} onClick={() => void handleSearch()}>
+                {searching ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Search className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+            {searchError && <p className="mt-2 text-sm text-destructive">{searchError}</p>}
+
+            {product && (
+              <div className="mt-4 space-y-3">
+                <p className="font-semibold">{product.name}</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <select
+                    value={packagingId}
+                    onChange={(event) => setPackagingId(event.target.value)}
+                    className="h-10 rounded-md border border-input bg-card px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+                  >
+                    {packagings.map((packaging) => (
+                      <option key={packaging.id} value={packaging.id}>
+                        {packaging.name}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.001"
+                    value={form.quantity}
+                    onChange={(event) => setForm((f) => ({ ...f, quantity: event.target.value }))}
+                    placeholder="Quantidade contada"
+                    className="h-10 rounded-md border border-input bg-card px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <input
+                    value={form.batchNumber}
+                    onChange={(event) =>
+                      setForm((f) => ({ ...f, batchNumber: event.target.value }))
+                    }
+                    placeholder="Lote (opcional)"
+                    className="h-10 rounded-md border border-input bg-card px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+                  />
+                  <select
+                    value={form.condition}
+                    onChange={(event) =>
+                      setForm((f) => ({
+                        ...f,
+                        condition: event.target.value as ReceivingItemCondition,
+                      }))
+                    }
+                    className="h-10 rounded-md border border-input bg-card px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+                  >
+                    {(Object.keys(conditionLabel) as ReceivingItemCondition[]).map((key) => (
+                      <option key={key} value={key}>
+                        {conditionLabel[key]}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <label className="block">
+                    <span className="mb-1 block text-xs text-muted-foreground">Fabricação</span>
+                    <input
+                      type="date"
+                      value={form.manufacturedAt}
+                      onChange={(event) =>
+                        setForm((f) => ({ ...f, manufacturedAt: event.target.value }))
+                      }
+                      className="h-10 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="mb-1 block text-xs text-muted-foreground">Validade</span>
+                    <input
+                      type="date"
+                      value={form.expiresAt}
+                      onChange={(event) =>
+                        setForm((f) => ({ ...f, expiresAt: event.target.value }))
+                      }
+                      className="h-10 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+                    />
+                  </label>
+                </div>
+                <textarea
+                  value={form.note}
+                  onChange={(event) => setForm((f) => ({ ...f, note: event.target.value }))}
+                  placeholder="Observação (opcional)"
+                  rows={2}
+                  className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                />
+                {error && <p className="text-sm text-destructive">{error}</p>}
+                <Button className="w-full" disabled={submitting} onClick={() => void handleAdd()}>
+                  {submitting ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    "Adicionar à conferência"
+                  )}
+                </Button>
+              </div>
+            )}
+          </section>
+
+          <section>
+            <h2 className="mb-2 font-extrabold">Itens contados</h2>
+            {loadingItems ? (
+              <div className="grid place-items-center p-6">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              </div>
+            ) : items.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Nenhum item contado ainda.</p>
+            ) : (
+              <ul className="space-y-2">
+                {items.map((item) => (
+                  <li key={item.id} className="rounded-md border border-border bg-card p-3 text-sm">
+                    <div className="flex items-start justify-between gap-2">
+                      <strong>{item.productName}</strong>
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        onClick={() => void handleRemove(item.id)}
+                        aria-label={`Remover ${item.productName}`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <span className="block text-muted-foreground">
+                      {item.countedQuantity} {item.packagingName}
+                      {item.batchNumber && ` · Lote ${item.batchNumber}`}
+                      {item.condition !== "bom_estado" && ` · ${conditionLabel[item.condition]}`}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
         </>
       )}
     </div>
