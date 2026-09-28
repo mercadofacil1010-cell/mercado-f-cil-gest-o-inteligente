@@ -6,7 +6,7 @@ Cada linha aponta a etapa do plano (`docs/PLANO_FECHAMENTO.md`) em que o item é
 **Status:** `Pendente` → `Em andamento` → `Feito` (com evidência). `Parcial` = começou, falta completar. `Adiado` = decisão formal de tirar da versão.  
 **Decisão?** `Sim` = o item tem [A DEFINIR]; a decisão precisa estar registrada em `docs/DECISOES.md` antes de codificar.
 
-Total de itens rastreados: **426** · Feito: **130** · Parcial: **28**
+Total de itens rastreados: **427** · Feito: **140** · Parcial: **25**
 
 | Bloco                          | Itens |
 | ------------------------------ | ----- |
@@ -330,7 +330,7 @@ Correção 1 exige que o Conferente tenha experiência própria, não uma aba do
 
 | ID        | Item                                                                                                                              | Decisão? | Status   | Evidência |
 | --------- | --------------------------------------------------------------------------------------------------------------------------------- | -------- | -------- | --------- |
-| RF-REC-08 | Permitir aprovar divergência, solicitar recontagem, recusar item ou finalizar.                                                    |          | Parcial  | PR B4.3 · aprovar (dentro/fora do limite) e finalizar prontos; recontagem e recusa ficam para o B4.4 (RF-REC-08 é a outra metade, ainda não decidida) |
+| RF-REC-08 | Permitir aprovar divergência, solicitar recontagem, recusar item ou finalizar.                                                    |          | Feito    | PR B4.3/B4.4 · aprovar, finalizar, pedir recontagem (`request_receiving_recount`) e recusar (item ou carga, `reject_receiving_count`/`reject_receiving`) — as quatro ações prontas e testadas |
 | RF-REC-09 | Gerar entrada de estoque apenas conforme decisão aprovada.                                                                        |          | Feito    | PR B4.3 · `finalize_receiving` só lança em `stock_movements` quando a decisão é tomada (direto sem divergência, ou aprovada por quem tem alçada); acima do limite fica `aguardando_aprovacao` sem tocar o estoque, testado |
 | RN-REC-05 | Aprovação de divergência cabe ao gerente ou dono; limites por valor/percentual [A DEFINIR].                                       | Sim      | Feito    | PR B4.3 · decisão em DECISOES.md (DEC-B4-05): reaproveita `companies.loss_adjustment_approval_threshold` do B3.4 — gerente decide dentro do limite, dono decide acima, testado |
 | RN-REC-08 | Finalizar sem divergência gera entrada dos itens aceitos por lote e localização de recebimento ou depósito.                       |          | Feito    | PR B4.3 · uma entrada por item contado, lote criado/reaproveitado via `get_or_create_lot` no endereço de destino escolhido por quem finaliza, testado |
@@ -338,19 +338,20 @@ Correção 1 exige que o Conferente tenha experiência própria, não uma aba do
 | PA-05     | Quem aprova divergência de recebimento? — Sugestão do documento: gerente até um limite e dono acima dele.                         | Sim      | Feito    | PR B4.3 · decisão em DECISOES.md: aceita a sugestão, mesmo padrão gerente/dono + limite do B3.4 |
 | PA-06     | Quais tolerâncias de recebimento? — Sugestão do documento: começar sem tolerância automática; todas as diferenças ficam visíveis. | Sim      | Feito    | PR B4.3 · decisão em DECISOES.md: aceita a sugestão — qualquer diferença, por menor que seja, é divergência e exige justificativa |
 | PA-20     | Qual prazo mínimo de validade no recebimento? — Sugestão do documento: configurável por categoria/produto/fornecedor.             | Sim      | Adiado   | PR B4.3 · decisão em DECISOES.md: adiado — validade de cada lote já visível na comparação, sem bloqueio automático ainda |
-| F-5.4     | Fluxo: recebimento de mercadoria ponta a ponta                                                                                    |          | Parcial  | PR B4.3 · fluxo completo criar → conferir cego → decidir → estoque atualizado já funciona; recontagem/recusa (B4.4) e XML de NF-e ainda faltam |
-| AUD-05    | Evento de auditoria: Recebimento: início, contagem, recontagem, aprovação, recusa, finalização (seção 8.1)                        |          | Parcial  | PR B4.3 · início/contagem/finalização já auditados (trigger genérico do B0.2 estendido); recontagem/aprovação/recusa formal ficam para o B4.4 |
+| F-5.4     | Fluxo: recebimento de mercadoria ponta a ponta                                                                                    |          | Feito    | PR B4.3/B4.4 · fluxo completo: criar → conferir cego → decidir (finalizar, pedir recontagem ou recusar) → estoque atualizado; só o XML de NF-e (INT-NFE) fica fora, decisão separada de escopo |
+| AUD-05    | Evento de auditoria: Recebimento: início, contagem, recontagem, aprovação, recusa, finalização (seção 8.1)                        |          | Feito    | PR B4.3/B4.4 · início/contagem/finalização/recontagem/recusa todos auditados (trigger genérico do B0.2 estendido, mais o histórico dedicado de `receiving_recount_requests`) |
 
 ## B4.4 — Recontagem, recusa e histórico
 
 | ID        | Item                                                                                                                                 | Decisão? | Status   | Evidência |
 | --------- | ------------------------------------------------------------------------------------------------------------------------------------ | -------- | -------- | --------- |
-| RF-REC-10 | Manter histórico de recontagens e decisões.                                                                                          |          | Pendente |           |
-| RN-REC-06 | Solicitar recontagem preserva a primeira contagem, oculta o esperado e cria nova tentativa.                                          |          | Pendente |           |
-| RN-REC-07 | Recusar item não gera entrada para a quantidade recusada e registra motivo e evidência.                                              |          | Pendente |           |
-| RN-REC-10 | Edição depois da finalização deve ocorrer por estorno/ajuste autorizado, sem apagar o recebimento.                                   |          | Pendente |           |
-| PA-09     | Há limite de recontagens no recebimento? — Sugestão do documento: configurar separadamente da regra de três tentativas da reposição. | Sim      | Pendente |           |
-| E-04      | Incoerência: recebimento sem saída do status 'Em recontagem'                                                                         |          | Pendente |           |
+| RF-REC-10 | Manter histórico de recontagens e decisões.                                                                                          |          | Feito    | PR B4.4 · tabela `receiving_recount_requests` guarda cada pedido (quem, quando, quais produtos, motivo); auditoria genérica (B0.2) cobre as decisões, testado |
+| RN-REC-06 | Solicitar recontagem preserva a primeira contagem, oculta o esperado e cria nova tentativa.                                          |          | Feito    | PR B4.4 · decisão em DECISOES.md (DEC-B4-06): só os itens com divergência são refeitos; a contagem anterior nunca é apagada (attempt antigo preservado), comparação/finalização usam sempre a tentativa mais recente por produto, testado |
+| RN-REC-07 | Recusar item não gera entrada para a quantidade recusada e registra motivo e evidência.                                              |          | Feito    | PR B4.4 · `reject_receiving_count` marca o item recusado com motivo obrigatório; `finalize_receiving` pula itens recusados ao lançar a entrada; evidência em foto fica pro B5.4 (DEC-B4-08, mesma decisão do B3.4/B4.2), testado |
+| RN-REC-10 | Edição depois da finalização deve ocorrer por estorno/ajuste autorizado, sem apagar o recebimento.                                   |          | Feito    | PR B4.4 · decisão em DECISOES.md (DEC-B4-09): reaproveita o mecanismo de perdas/ajustes do B3.4 (`pending_stock_adjustments`/`register_stock_movement`) — nenhum fluxo novo, o recebimento nunca é apagado |
+| PA-09     | Há limite de recontagens no recebimento? — Sugestão do documento: configurar separadamente da regra de três tentativas da reposição. | Sim      | Feito    | PR B4.1/B4.4 · decisão em DECISOES.md: 3 tentativas, regra própria (`receivings.recount_count`), independente da reposição, testado |
+| E-04      | Incoerência: recebimento sem saída do status 'Em recontagem'                                                                         |          | Feito    | PR B4.4 · `finalize_receiving` e `reject_receiving` aceitam o status `em_recontagem` como entrada — não existe estado sem saída, testado |
+| DEC-B4-07 | É possível recusar só um item específico da carga, ou a recusa sempre derruba o recebimento inteiro?                                 | Sim      | Feito    | PR B4.4 · decisão em DECISOES.md: os dois — `reject_receiving_count` (item) e `reject_receiving` (carga inteira, status `recusado`), testado |
 
 ## B5.1 — Geração automática de tarefas de reposição
 

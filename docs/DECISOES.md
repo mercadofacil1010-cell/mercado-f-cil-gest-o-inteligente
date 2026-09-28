@@ -227,6 +227,10 @@ A "matriz de permissões (seção 2.2)" da Documentação Funcional Completa ori
 | ID | Pergunta | Sugestão | Decisão |
 |---|---|---|---|
 | PA-09 | Há limite de recontagens no recebimento? | configurar separadamente da regra de três tentativas da reposição. | **Aceita a sugestão** (25/09/2026, proprietário): 3 tentativas, regra independente da reposição (mesmo número, mecanismo próprio) |
+| DEC-B4-06 | Quando o dono/gerente pede uma recontagem (dentro das 3 tentativas do PA-09), o que é refeito? | Só os itens com divergência; os que já bateram ficam como estão. | **Aceita a sugestão** (28/09/2026, proprietário) |
+| DEC-B4-07 | É possível recusar só um item específico da carga, ou a recusa sempre derruba o recebimento inteiro? | Os dois: por item específico (o resto do recebimento segue) e, se quiser, a carga inteira de uma vez. | **Aceita a sugestão** (28/09/2026, proprietário) |
+| DEC-B4-08 | A evidência da recusa (RN-REC-07) já exige foto agora? | Mesma decisão já tomada no B3.4/B4.2 (PA-21/DEC-B4-04): só motivo em texto por enquanto; foto fica para o B5.4. | **Aceita a sugestão** (28/09/2026, proprietário) |
+| DEC-B4-09 | Correção depois de um recebimento já finalizado (RN-REC-10) reaproveita o mecanismo de estorno/ajuste do B3.4 ou é um fluxo próprio? | Reaproveitar `pending_stock_adjustments`/`register_stock_movement` do B3.4 — a correção vira um ajuste de estoque comum, mesma fila de aprovação por limite. | **Aceita a sugestão** (28/09/2026, proprietário) |
 
 
 ## Bloco B5

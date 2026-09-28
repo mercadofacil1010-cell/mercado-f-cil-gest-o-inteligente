@@ -380,7 +380,7 @@ function BlindCountScreen({
   };
 
   useEffect(() => {
-    if (status === "em_conferencia") reloadItems();
+    if (status === "em_conferencia" || status === "em_recontagem") reloadItems();
     else setLoadingItems(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- recarrega só quando muda o status
   }, [status]);
@@ -482,7 +482,7 @@ function BlindCountScreen({
             {starting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Iniciar conferência"}
           </Button>
         </div>
-      ) : status !== "em_conferencia" ? (
+      ) : status !== "em_conferencia" && status !== "em_recontagem" ? (
         <div className="rounded-lg border border-dashed border-border bg-card p-8 text-center">
           <p className="text-sm text-muted-foreground">
             Esta conferência já foi encerrada ({receivingStatusLabel[status]}). O resultado fica com
@@ -492,8 +492,10 @@ function BlindCountScreen({
       ) : (
         <>
           <div className="flex items-center gap-2 rounded-md border border-warning/40 bg-warning/10 p-3 text-sm font-semibold">
-            <EyeOff className="h-4 w-4 shrink-0" /> Conte fisicamente cada item. O sistema não
-            mostra quantidades esperadas.
+            <EyeOff className="h-4 w-4 shrink-0" />
+            {status === "em_recontagem"
+              ? "O gestor pediu recontagem de alguns itens. Conte fisicamente de novo — o sistema não mostra quantidades esperadas."
+              : "Conte fisicamente cada item. O sistema não mostra quantidades esperadas."}
           </div>
 
           <section className="rounded-lg border border-border bg-card p-4 shadow-card">
@@ -623,26 +625,36 @@ function BlindCountScreen({
               <p className="text-sm text-muted-foreground">Nenhum item contado ainda.</p>
             ) : (
               <ul className="space-y-2">
-                {items.map((item) => (
-                  <li key={item.id} className="rounded-md border border-border bg-card p-3 text-sm">
-                    <div className="flex items-start justify-between gap-2">
-                      <strong>{item.productName}</strong>
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        onClick={() => void handleRemove(item.id)}
-                        aria-label={`Remover ${item.productName}`}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    <span className="block text-muted-foreground">
-                      {item.countedQuantity} {item.packagingName}
-                      {item.batchNumber && ` · Lote ${item.batchNumber}`}
-                      {item.condition !== "bom_estado" && ` · ${conditionLabel[item.condition]}`}
-                    </span>
-                  </li>
-                ))}
+                {items.map((item) => {
+                  const maxAttempt = Math.max(...items.map((counted) => counted.attempt));
+                  const canRemove = item.attempt === maxAttempt && !item.rejected;
+                  return (
+                    <li
+                      key={item.id}
+                      className="rounded-md border border-border bg-card p-3 text-sm"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <strong>{item.productName}</strong>
+                        {canRemove && (
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={() => void handleRemove(item.id)}
+                            aria-label={`Remover ${item.productName}`}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                      <span className="block text-muted-foreground">
+                        {item.countedQuantity} {item.packagingName}
+                        {item.batchNumber && ` · Lote ${item.batchNumber}`}
+                        {item.condition !== "bom_estado" && ` · ${conditionLabel[item.condition]}`}
+                        {item.rejected && " · Recusado pelo gestor"}
+                      </span>
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </section>

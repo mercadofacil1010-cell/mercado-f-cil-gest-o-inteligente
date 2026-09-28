@@ -28,6 +28,9 @@ export type CountedItem = {
   condition: ReceivingItemCondition;
   note: string;
   createdAt: string;
+  attempt: number;
+  rejected: boolean;
+  rejectionReason: string;
 };
 
 type CountedItemRow = Database["public"]["Tables"]["receiving_counted_items"]["Row"];
@@ -51,6 +54,9 @@ function mapCountedItem(
     condition: row.condition,
     note: row.note ?? "",
     createdAt: row.created_at,
+    attempt: row.attempt,
+    rejected: row.rejected,
+    rejectionReason: row.rejection_reason ?? "",
   };
 }
 

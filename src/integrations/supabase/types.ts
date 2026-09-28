@@ -1037,6 +1037,7 @@ export type Database = {
       }
       receiving_counted_items: {
         Row: {
+          attempt: number
           base_quantity: number
           batch_number: string | null
           condition: Database["public"]["Enums"]["receiving_item_condition"]
@@ -1050,8 +1051,13 @@ export type Database = {
           packaging_id: string
           product_id: string
           receiving_id: string
+          rejected: boolean
+          rejected_at: string | null
+          rejected_by: string | null
+          rejection_reason: string | null
         }
         Insert: {
+          attempt?: number
           base_quantity: number
           batch_number?: string | null
           condition?: Database["public"]["Enums"]["receiving_item_condition"]
@@ -1065,8 +1071,13 @@ export type Database = {
           packaging_id: string
           product_id: string
           receiving_id: string
+          rejected?: boolean
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejection_reason?: string | null
         }
         Update: {
+          attempt?: number
           base_quantity?: number
           batch_number?: string | null
           condition?: Database["public"]["Enums"]["receiving_item_condition"]
@@ -1080,6 +1091,10 @@ export type Database = {
           packaging_id?: string
           product_id?: string
           receiving_id?: string
+          rejected?: boolean
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejection_reason?: string | null
         }
         Relationships: [
           {
@@ -1149,6 +1164,7 @@ export type Database = {
       }
       receivings: {
         Row: {
+          active_attempt: number
           conference_started_at: string | null
           conference_started_by: string | null
           created_at: string
@@ -1160,10 +1176,15 @@ export type Database = {
           market_id: string
           no_invoice_reason: string | null
           order_reference: string | null
+          recount_count: number
+          rejected_at: string | null
+          rejected_by: string | null
+          rejection_reason: string | null
           status: Database["public"]["Enums"]["receiving_status"]
           supplier_id: string | null
         }
         Insert: {
+          active_attempt?: number
           conference_started_at?: string | null
           conference_started_by?: string | null
           created_at?: string
@@ -1175,10 +1196,15 @@ export type Database = {
           market_id: string
           no_invoice_reason?: string | null
           order_reference?: string | null
+          recount_count?: number
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejection_reason?: string | null
           status?: Database["public"]["Enums"]["receiving_status"]
           supplier_id?: string | null
         }
         Update: {
+          active_attempt?: number
           conference_started_at?: string | null
           conference_started_by?: string | null
           created_at?: string
@@ -1190,6 +1216,10 @@ export type Database = {
           market_id?: string
           no_invoice_reason?: string | null
           order_reference?: string | null
+          recount_count?: number
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejection_reason?: string | null
           status?: Database["public"]["Enums"]["receiving_status"]
           supplier_id?: string | null
         }
@@ -1206,6 +1236,44 @@ export type Database = {
             columns: ["supplier_id"]
             isOneToOne: false
             referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      receiving_recount_requests: {
+        Row: {
+          attempt: number
+          id: string
+          product_ids: string[]
+          reason: string
+          receiving_id: string
+          requested_at: string
+          requested_by: string
+        }
+        Insert: {
+          attempt: number
+          id?: string
+          product_ids: string[]
+          reason: string
+          receiving_id: string
+          requested_at?: string
+          requested_by: string
+        }
+        Update: {
+          attempt?: number
+          id?: string
+          product_ids?: string[]
+          reason?: string
+          receiving_id?: string
+          requested_at?: string
+          requested_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "receiving_recount_requests_receiving_id_fkey"
+            columns: ["receiving_id"]
+            isOneToOne: false
+            referencedRelation: "receivings"
             referencedColumns: ["id"]
           },
         ]
@@ -1669,8 +1737,20 @@ export type Database = {
         Args: { p_id: string; p_note: string }
         Returns: Database["public"]["Tables"]["pending_stock_adjustments"]["Row"]
       }
+      reject_receiving: {
+        Args: { p_reason: string; p_receiving_id: string }
+        Returns: Database["public"]["Tables"]["receivings"]["Row"]
+      }
+      reject_receiving_count: {
+        Args: { p_id: string; p_reason: string }
+        Returns: Database["public"]["Tables"]["receiving_counted_items"]["Row"]
+      }
       remove_receiving_count: { Args: { p_id: string }; Returns: undefined }
       remove_receiving_item: { Args: { p_id: string }; Returns: undefined }
+      request_receiving_recount: {
+        Args: { p_product_ids: string[]; p_reason: string; p_receiving_id: string }
+        Returns: Database["public"]["Tables"]["receivings"]["Row"]
+      }
       resend_invite: { Args: { p_invite_id: string }; Returns: undefined }
       reverse_stock_movement: {
         Args: { p_movement_id: string; p_reason: string }
@@ -1733,6 +1813,7 @@ export type Database = {
         | "aguardando_aprovacao"
         | "finalizado"
         | "recusado"
+        | "em_recontagem"
       stock_movement_type:
         | "entrada"
         | "saida"
@@ -1899,6 +1980,7 @@ export const Constants = {
         "aguardando_aprovacao",
         "finalizado",
         "recusado",
+        "em_recontagem",
       ],
       stock_movement_type: [
         "entrada",
