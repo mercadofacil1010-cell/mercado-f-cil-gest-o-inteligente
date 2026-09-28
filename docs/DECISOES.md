@@ -239,9 +239,11 @@ A "matriz de permissões (seção 2.2)" da Documentação Funcional Completa ori
 
 | ID | Pergunta | Sugestão | Decisão |
 |---|---|---|---|
-| PA-10 | Reposição completa até ideal ou máximo? | até ideal; máximo funciona como limite. | _pendente_ |
-| PA-11 | Como calcular prioridade da reposição? | ruptura, vendas recentes, tempo aguardando, validade e criticidade. | _pendente_ |
-| PA-13 | Pode haver tarefa duplicada? | impedir para mesmo produto/posição enquanto existir tarefa ativa. | _pendente_ |
+| PA-10 | Reposição completa até ideal ou máximo? | até ideal; máximo funciona como limite. | **Aceita a sugestão** (28/09/2026, proprietário): até o ideal; o máximo continua só como limite de capacidade da posição |
+| PA-11 | Como calcular prioridade da reposição? | ruptura, vendas recentes, tempo aguardando, validade e criticidade. | **Aceita a sugestão, com adaptação** (28/09/2026, proprietário): ruptura + tempo aguardando na fila + validade (ver DEC-B5-02) compõem a prioridade; "vendas recentes" fica de fora até existir o PDV (B7) e "criticidade" fica de fora até existir um campo próprio para isso (DEC-B5-01) — nenhum dos dois é inventado agora |
+| DEC-B5-01 | O fator "criticidade" da prioridade não tem campo próprio no cadastro do produto — como calcular agora? | Deixar de fora por enquanto; um campo de criticidade fica para quando o dono pedir isso explicitamente. | **Aceita a sugestão** (28/09/2026, proprietário) |
+| DEC-B5-02 | O que significa concretamente o fator "validade" da prioridade, e qual o prazo que conta como "perto de vencer"? | Lote daquele produto perto de vencer no depósito (reaproveitando a lógica FEFO do B3.3) dá bônus de prioridade; prazo de 7 dias, configurável por empresa (mesmo padrão do limite de aprovação do B3.4). | **Aceita a sugestão** (28/09/2026, proprietário): `companies.near_expiry_priority_days`, default 7 |
+| PA-13 | Pode haver tarefa duplicada? | impedir para mesmo produto/posição enquanto existir tarefa ativa. | **Aceita a sugestão** (28/09/2026, proprietário) |
 
 ### B5.2 — Fluxo do repositor gravado no banco
 

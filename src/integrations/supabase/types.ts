@@ -166,6 +166,7 @@ export type Database = {
           id: string
           legal_name: string
           loss_adjustment_approval_threshold: number
+          near_expiry_priority_days: number
           number: string | null
           phone: string | null
           pos_name: string | null
@@ -193,6 +194,7 @@ export type Database = {
           id?: string
           legal_name: string
           loss_adjustment_approval_threshold?: number
+          near_expiry_priority_days?: number
           number?: string | null
           phone?: string | null
           pos_name?: string | null
@@ -220,6 +222,7 @@ export type Database = {
           id?: string
           legal_name?: string
           loss_adjustment_approval_threshold?: number
+          near_expiry_priority_days?: number
           number?: string | null
           phone?: string | null
           pos_name?: string | null
@@ -277,9 +280,12 @@ export type Database = {
       gondola_positions: {
         Row: {
           aisle: string
+          balance_updated_at: string | null
+          balance_updated_by: string | null
           capacity: number
           code: string
           created_at: string
+          current_balance: number
           gondola_number: string
           id: string
           ideal_quantity: number
@@ -297,9 +303,12 @@ export type Database = {
         }
         Insert: {
           aisle: string
+          balance_updated_at?: string | null
+          balance_updated_by?: string | null
           capacity: number
           code: string
           created_at?: string
+          current_balance?: number
           gondola_number: string
           id?: string
           ideal_quantity?: number
@@ -317,9 +326,12 @@ export type Database = {
         }
         Update: {
           aisle?: string
+          balance_updated_at?: string | null
+          balance_updated_by?: string | null
           capacity?: number
           code?: string
           created_at?: string
+          current_balance?: number
           gondola_number?: string
           id?: string
           ideal_quantity?: number
@@ -1278,6 +1290,67 @@ export type Database = {
           },
         ]
       }
+      replenishment_tasks: {
+        Row: {
+          created_at: string
+          created_by: string
+          gondola_position_id: string
+          id: string
+          is_near_expiry: boolean
+          is_ruptura: boolean
+          market_id: string
+          product_id: string
+          quantity_needed: number
+          status: Database["public"]["Enums"]["replenishment_task_status"]
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          gondola_position_id: string
+          id?: string
+          is_near_expiry?: boolean
+          is_ruptura?: boolean
+          market_id: string
+          product_id: string
+          quantity_needed: number
+          status?: Database["public"]["Enums"]["replenishment_task_status"]
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          gondola_position_id?: string
+          id?: string
+          is_near_expiry?: boolean
+          is_ruptura?: boolean
+          market_id?: string
+          product_id?: string
+          quantity_needed?: number
+          status?: Database["public"]["Enums"]["replenishment_task_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "replenishment_tasks_gondola_position_id_fkey"
+            columns: ["gondola_position_id"]
+            isOneToOne: false
+            referencedRelation: "gondola_positions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "replenishment_tasks_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "markets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "replenishment_tasks_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stock_movements: {
         Row: {
           created_at: string
@@ -1690,6 +1763,22 @@ export type Database = {
       }
       is_valid_cnpj: { Args: { value: string }; Returns: boolean }
       is_valid_cpf: { Args: { value: string }; Returns: boolean }
+      list_replenishment_tasks: {
+        Args: { p_market_id: string }
+        Returns: {
+          created_at: string
+          gondola_position_code: string
+          gondola_position_id: string
+          id: string
+          is_near_expiry: boolean
+          is_ruptura: boolean
+          priority_score: number
+          product_id: string
+          product_name: string
+          quantity_needed: number
+          waiting_hours: number
+        }[]
+      }
       log_audit_event: {
         Args: {
           p_company_id?: string
@@ -1703,6 +1792,10 @@ export type Database = {
       log_security_event: {
         Args: { p_details?: Json; p_entity: string }
         Returns: number
+      }
+      record_gondola_balance: {
+        Args: { p_balance: number; p_position_id: string }
+        Returns: Json
       }
       register_login_attempt: {
         Args: { p_email: string; p_success: boolean }
@@ -1814,6 +1907,7 @@ export type Database = {
         | "finalizado"
         | "recusado"
         | "em_recontagem"
+      replenishment_task_status: "pendente"
       stock_movement_type:
         | "entrada"
         | "saida"
@@ -1982,6 +2076,7 @@ export const Constants = {
         "recusado",
         "em_recontagem",
       ],
+      replenishment_task_status: ["pendente"],
       stock_movement_type: [
         "entrada",
         "saida",
