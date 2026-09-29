@@ -249,7 +249,11 @@ A "matriz de permissões (seção 2.2)" da Documentação Funcional Completa ori
 
 | ID | Pergunta | Sugestão | Decisão |
 |---|---|---|---|
-| PA-12 | Como atribuir tarefa ao repositor? | fila do mercado com aceite; gerente pode atribuir manualmente. | _pendente_ |
+| PA-12 | Como atribuir tarefa ao repositor? | fila do mercado com aceite; gerente pode atribuir manualmente. | **Aceita a sugestão** (29/09/2026, proprietário): o repositor aceita da fila do mercado, e o gerente/dono também pode atribuir direto a um repositor específico |
+| DEC-B5-03 | Ao retirar do depósito, o repositor pode ajustar a quantidade sugerida pela tarefa? | Sim — a tarefa sugere, mas o repositor registra a quantidade real retirada. | **Aceita a sugestão** (29/09/2026, proprietário) |
+| DEC-B5-04 | RN-REP-08 (tarefa só conclui quando as quantidades fecham): a divergência reaproveita o limite de aprovação do B3.4 ou sempre exige decisão do gerente/dono? | Sempre decisão do gerente/dono, sem limite automático — volume de tarefas é maior e a quantidade normalmente é pequena. | **Aceita a sugestão** (29/09/2026, proprietário) |
+| DEC-B5-05 | RF-REP-08 (foto, observação, impedimentos): a foto já entra nesta etapa? | Mesma decisão já tomada em B3.4/B4.2/B4.4: só texto por enquanto; foto fica para o B5.4. | **Aceita a sugestão** (29/09/2026, proprietário) |
+| DEC-B5-06 | O que acontece com a tarefa quando o repositor registra um impedimento (ex.: gôndola quebrada)? | Volta para pendente na fila, com o motivo registrado; não exige decisão imediata do gerente. | **Aceita a sugestão** (29/09/2026, proprietário) |
 
 ### B5.3 — Contagem cega da gôndola (3 tentativas)
 

@@ -14,6 +14,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as ConferenteRouteImport } from './routes/conferente'
 import { Route as ConviteRouteImport } from './routes/convite'
 import { Route as RedefinirSenhaRouteImport } from './routes/redefinir-senha'
+import { Route as RepositorRouteImport } from './routes/repositor'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -40,6 +41,11 @@ const RedefinirSenhaRoute = RedefinirSenhaRouteImport.update({
   path: '/redefinir-senha',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RepositorRoute = RepositorRouteImport.update({
+  id: '/repositor',
+  path: '/repositor',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -47,6 +53,7 @@ export interface FileRoutesByFullPath {
   '/conferente': typeof ConferenteRoute
   '/convite': typeof ConviteRoute
   '/redefinir-senha': typeof RedefinirSenhaRoute
+  '/repositor': typeof RepositorRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -54,6 +61,7 @@ export interface FileRoutesByTo {
   '/conferente': typeof ConferenteRoute
   '/convite': typeof ConviteRoute
   '/redefinir-senha': typeof RedefinirSenhaRoute
+  '/repositor': typeof RepositorRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -62,12 +70,25 @@ export interface FileRoutesById {
   '/conferente': typeof ConferenteRoute
   '/convite': typeof ConviteRoute
   '/redefinir-senha': typeof RedefinirSenhaRoute
+  '/repositor': typeof RepositorRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/admin' | '/conferente' | '/convite' | '/redefinir-senha'
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/conferente'
+    | '/convite'
+    | '/redefinir-senha'
+    | '/repositor'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/admin' | '/conferente' | '/convite' | '/redefinir-senha'
+  to:
+    | '/'
+    | '/admin'
+    | '/conferente'
+    | '/convite'
+    | '/redefinir-senha'
+    | '/repositor'
   id:
     | '__root__'
     | '/'
@@ -75,6 +96,7 @@ export interface FileRouteTypes {
     | '/conferente'
     | '/convite'
     | '/redefinir-senha'
+    | '/repositor'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -83,6 +105,7 @@ export interface RootRouteChildren {
   ConferenteRoute: typeof ConferenteRoute
   ConviteRoute: typeof ConviteRoute
   RedefinirSenhaRoute: typeof RedefinirSenhaRoute
+  RepositorRoute: typeof RepositorRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -122,6 +145,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RedefinirSenhaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/repositor': {
+      id: '/repositor'
+      path: '/repositor'
+      fullPath: '/repositor'
+      preLoaderRoute: typeof RepositorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -131,6 +161,7 @@ const rootRouteChildren: RootRouteChildren = {
   ConferenteRoute: ConferenteRoute,
   ConviteRoute: ConviteRoute,
   RedefinirSenhaRoute: RedefinirSenhaRoute,
+  RepositorRoute: RepositorRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

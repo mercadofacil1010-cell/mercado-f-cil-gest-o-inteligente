@@ -6,7 +6,7 @@ Cada linha aponta a etapa do plano (`docs/PLANO_FECHAMENTO.md`) em que o item é
 **Status:** `Pendente` → `Em andamento` → `Feito` (com evidência). `Parcial` = começou, falta completar. `Adiado` = decisão formal de tirar da versão.  
 **Decisão?** `Sim` = o item tem [A DEFINIR]; a decisão precisa estar registrada em `docs/DECISOES.md` antes de codificar.
 
-Total de itens rastreados: **427** · Feito: **150** · Parcial: **28**
+Total de itens rastreados: **427** · Feito: **158** · Parcial: **32**
 
 | Bloco                          | Itens |
 | ------------------------------ | ----- |
@@ -375,18 +375,18 @@ Correção 1 exige que o Conferente tenha experiência própria, não uma aba do
 
 | ID            | Item                                                                                                                       | Decisão? | Status   | Evidência |
 | ------------- | -------------------------------------------------------------------------------------------------------------------------- | -------- | -------- | --------- |
-| RF-REP-02     | Exibir produto, foto, endereços, prioridade e quantidade sugerida.                                                         |          | Pendente |           |
-| RF-REP-03     | Permitir ao repositor aceitar ou iniciar a tarefa.                                                                         |          | Pendente |           |
-| RF-REP-04     | Registrar entrada no depósito e horários automaticamente.                                                                  |          | Pendente |           |
-| RF-REP-06     | Registrar quantidade retirada, contada, reposta e devolvida.                                                               |          | Pendente |           |
-| RF-REP-08     | Registrar foto, observação e impedimentos.                                                                                 |          | Pendente |           |
-| RF-REP-10     | Calcular duração e manter trilha completa da tarefa.                                                                       |          | Pendente |           |
-| RN-REP-07     | Retirada reduz depósito; reposição aumenta gôndola; sobra devolvida retorna ao endereço informado.                         |          | Pendente |           |
-| RN-REP-08     | A tarefa só conclui quando as quantidades fecham ou quando responsável autorizado decide sobre a inconsistência.           |          | Pendente |           |
-| RN-CRT-REP-03 | Registrar horários de aceite, entrada no depósito, retirada, chegada à gôndola e conclusão.                                |          | Pendente |           |
-| PA-12         | Como atribuir tarefa ao repositor? — Sugestão do documento: fila do mercado com aceite; gerente pode atribuir manualmente. | Sim      | Pendente |           |
-| G-09          | Lacuna: local 'em trânsito' do produto nas mãos do repositor                                                               |          | Pendente |           |
-| AUD-06        | Evento de auditoria: Reposição: criação, aceite, retirada, tentativas, inconsistência, conclusão (seção 8.1)               |          | Pendente |           |
+| RF-REP-02     | Exibir produto, foto, endereços, prioridade e quantidade sugerida.                                                         |          | Parcial  | PR B5.2 · `/repositor` mostra produto, posição, prioridade (ruptura/validade) e quantidade sugerida; endereços aparecem na hora de retirar/devolver; foto fica para o B5.4 (DEC-B5-05) |
+| RF-REP-03     | Permitir ao repositor aceitar ou iniciar a tarefa.                                                                         |          | Feito    | PR B5.2 · `accept_replenishment_task` (fila) e `assign_replenishment_task` (atribuição direta do gerente, PA-12), testado |
+| RF-REP-04     | Registrar entrada no depósito e horários automaticamente.                                                                  |          | Feito    | PR B5.2 · `accepted_at`/`withdrawn_at`/`completed_at`/`resolved_at` gravados automaticamente em cada passo, testado |
+| RF-REP-06     | Registrar quantidade retirada, contada, reposta e devolvida.                                                               |          | Parcial  | PR B5.2 · retirada, reposta e devolvida registradas (`register_replenishment_withdrawal`/`register_replenishment_completion`); "contada" (contagem cega da gôndola) é o B5.3 |
+| RF-REP-08     | Registrar foto, observação e impedimentos.                                                                                 |          | Parcial  | PR B5.2 · `register_replenishment_impediment` registra motivo em texto; observação na conclusão; foto fica para o B5.4 (DEC-B5-05, mesma decisão do B3.4/B4.2/B4.4) |
+| RF-REP-10     | Calcular duração e manter trilha completa da tarefa.                                                                       |          | Parcial  | PR B5.2 · timestamps de cada passo já existem (dá para calcular a duração); trilha completa via auditoria genérica (B0.2) estendida para cobrir updates; um cálculo de duração exibido na tela ainda não existe |
+| RN-REP-07     | Retirada reduz depósito; reposição aumenta gôndola; sobra devolvida retorna ao endereço informado.                         |          | Feito    | PR B5.2 · `register_replenishment_withdrawal` reduz o depósito (saída real via `private.post_stock_movement`), `register_replenishment_completion` aumenta `gondola_positions.current_balance` e devolve a sobra ao endereço escolhido, testado |
+| RN-REP-08     | A tarefa só conclui quando as quantidades fecham ou quando responsável autorizado decide sobre a inconsistência.           |          | Feito    | PR B5.2 · decisão em DECISOES.md (DEC-B5-04): sem limite automático — reposto+devolvido ≠ retirado sempre vira `com_inconsistencia`, só dono/gerente decide (`resolve_replenishment_inconsistency`), testado |
+| RN-CRT-REP-03 | Registrar horários de aceite, entrada no depósito, retirada, chegada à gôndola e conclusão.                                |          | Feito    | PR B5.2 · mesma evidência de RF-REP-04 |
+| PA-12         | Como atribuir tarefa ao repositor? — Sugestão do documento: fila do mercado com aceite; gerente pode atribuir manualmente. | Sim      | Feito    | PR B5.2 · decisão em DECISOES.md: aceita a sugestão — os dois caminhos existem e são testados |
+| G-09          | Lacuna: local 'em trânsito' do produto nas mãos do repositor                                                               |          | Feito    | PR B5.2 · não é um endereço novo — o status `em_transito` da tarefa é o próprio local, entre a retirada e a reposição/devolução, testado |
+| AUD-06        | Evento de auditoria: Reposição: criação, aceite, retirada, tentativas, inconsistência, conclusão (seção 8.1)               |          | Feito    | PR B5.2 · auditoria genérica (B0.2) estendida para cobrir `insert`/`update` de `replenishment_tasks` — cada transição de status fica registrada |
 
 ## B5.3 — Contagem cega da gôndola (3 tentativas)
 
