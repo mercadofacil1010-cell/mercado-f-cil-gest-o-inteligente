@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { AlertPill } from "@/components/dashboard-ui";
+import { PhotoCapture } from "@/components/photo-capture";
 import { listProducts, type Product } from "@/lib/products-api";
 import { listSuppliers, type Supplier } from "@/lib/catalog-support-api";
 import { listWarehouseAddresses, type WarehouseAddress } from "@/lib/locations-api";
@@ -206,8 +207,9 @@ export function ReceivingsCatalogModule({
           notify={notify}
         />
       )}
-      {decidingReceiving && (
+      {decidingReceiving && companyId && (
         <DecideReceivingDialog
+          companyId={companyId}
           receiving={decidingReceiving}
           warehouseAddresses={warehouseAddresses}
           onClose={() => setDecidingReceiving(null)}
@@ -505,12 +507,14 @@ function ReceivingItemsDialog({
 }
 
 function DecideReceivingDialog({
+  companyId,
   receiving,
   warehouseAddresses,
   onClose,
   onDecided,
   notify,
 }: {
+  companyId: string;
   receiving: Receiving;
   warehouseAddresses: WarehouseAddress[];
   onClose: () => void;
@@ -531,9 +535,11 @@ function DecideReceivingDialog({
 
   const [rejectingItemId, setRejectingItemId] = useState<string | null>(null);
   const [itemRejectReason, setItemRejectReason] = useState("");
+  const [itemRejectPhotoPath, setItemRejectPhotoPath] = useState<string | null>(null);
 
   const [rejectingWhole, setRejectingWhole] = useState(false);
   const [wholeRejectReason, setWholeRejectReason] = useState("");
+  const [wholeRejectPhotoPath, setWholeRejectPhotoPath] = useState<string | null>(null);
 
   const isDecided = receiving.status === "finalizado" || receiving.status === "recusado";
 
@@ -594,13 +600,14 @@ function DecideReceivingDialog({
       notify("Informe o motivo da recusa.");
       return;
     }
-    const result = await rejectReceivingCount(id, itemRejectReason);
+    const result = await rejectReceivingCount(id, itemRejectReason, itemRejectPhotoPath);
     if (!result.ok) {
       notify(result.message);
       return;
     }
     setRejectingItemId(null);
     setItemRejectReason("");
+    setItemRejectPhotoPath(null);
     void reload();
   };
 
@@ -609,7 +616,7 @@ function DecideReceivingDialog({
       notify("Informe o motivo da recusa.");
       return;
     }
-    const result = await rejectReceiving(receiving.id, wholeRejectReason);
+    const result = await rejectReceiving(receiving.id, wholeRejectReason, wholeRejectPhotoPath);
     if (!result.ok) {
       notify(result.message);
       return;
@@ -770,6 +777,14 @@ function DecideReceivingDialog({
                         placeholder="Motivo da recusa deste item"
                         className="min-h-[50px] w-full rounded-md border border-input bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
                       />
+                      <PhotoCapture
+                        companyId={companyId}
+                        marketId={receiving.marketId}
+                        photoPath={itemRejectPhotoPath}
+                        onChange={setItemRejectPhotoPath}
+                        notify={notify}
+                        label="Adicionar foto da recusa (opcional)"
+                      />
                       <div className="flex gap-2">
                         <Button size="sm" onClick={() => void handleRejectItem(item.id)}>
                           Confirmar recusa
@@ -780,6 +795,7 @@ function DecideReceivingDialog({
                           onClick={() => {
                             setRejectingItemId(null);
                             setItemRejectReason("");
+                            setItemRejectPhotoPath(null);
                           }}
                         >
                           Cancelar
@@ -832,6 +848,14 @@ function DecideReceivingDialog({
                       placeholder="Motivo da recusa da carga inteira"
                       className="min-h-[60px] w-full rounded-md border border-input bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
                     />
+                    <PhotoCapture
+                      companyId={companyId}
+                      marketId={receiving.marketId}
+                      photoPath={wholeRejectPhotoPath}
+                      onChange={setWholeRejectPhotoPath}
+                      notify={notify}
+                      label="Adicionar foto da recusa (opcional)"
+                    />
                     <div className="flex gap-2">
                       <Button
                         variant="destructive"
@@ -840,7 +864,14 @@ function DecideReceivingDialog({
                       >
                         Confirmar recusa da carga
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={() => setRejectingWhole(false)}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setRejectingWhole(false);
+                          setWholeRejectPhotoPath(null);
+                        }}
+                      >
                         Cancelar
                       </Button>
                     </div>

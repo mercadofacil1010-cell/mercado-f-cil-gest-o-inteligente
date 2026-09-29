@@ -267,7 +267,13 @@ A "matriz de permissões (seção 2.2)" da Documentação Funcional Completa ori
 
 | ID | Pergunta | Sugestão | Decisão |
 |---|---|---|---|
-| PA-47 | Quais dispositivos e scanners serão suportados? | validar câmera do celular e leitores usados no piloto. | _pendente_ |
+| PA-47 | Quais dispositivos e scanners serão suportados? | validar câmera do celular e leitores usados no piloto. | **Aceita a sugestão, com adaptação** (29/09/2026, proprietário): só câmera do celular por enquanto (DEC-B5-10) — leitor físico USB/Bluetooth normalmente emula teclado e já funciona digitando no campo manual existente, sem código novo; validar um leitor físico específico do piloto fica para quando existir um piloto de verdade |
+| DEC-B5-09 | A foto de evidência (adiada em B3.4/B4.2/B4.4/B5.2) entra em todos os lugares de uma vez ou só num conjunto menor? | Em todos de uma vez — mesma infraestrutura de upload (Supabase Storage), só muda onde anexa. | **Aceita a sugestão** (29/09/2026, proprietário) |
+| DEC-B5-10 | Leitura de código de barras pela câmera do celular substitui a digitação manual em quais apps? | /conferente (busca de produto, B4.2). Leitor físico dedicado fora de escopo (ver PA-47). | **Aceita a sugestão** (29/09/2026, proprietário) |
+| DEC-B5-11 | Quem pode ver as fotos de evidência enviadas? | Mesmo acesso de quem já vê o registro onde a foto foi anexada (dono/gerente conforme o caso; quem enviou também consegue ver a própria foto). | **Aceita a sugestão** (29/09/2026, proprietário) |
+| DEC-B5-12 | RF-REP-05 (escanear endereço e produto no /repositor): o scanner serve para quê, já que a tarefa já diz qual produto/posição é? | Conferência: repositor escaneia o produto e o endereço/posição físicos; o sistema trava se não bater com o que a tarefa espera — reduz erro de pegar produto errado ou repor na gôndola errada. | **Aceita a sugestão** (29/09/2026, proprietário) |
+
+**Bug encontrado e corrigido junto**: a busca por código de barras do B4.2 (`findProductByBarcode`) nunca funcionou de verdade para o conferente — a política de leitura de `products`/`product_packagings` só permitia dono/gerente desde o B2.2, então a busca sempre devolvia "não encontrado" para o perfil `receiver`. Corrigido nesta etapa ampliando a leitura (nunca a escrita, que continua só dono/gerente, PA-04) para `receiver` e `stocker` também — consistente com o próprio DEC-B1-10 (a restrição de menu daquela decisão era porque as telas de trabalho reais desses perfis "ainda não existiam"; agora existem, e precisam ler produto para funcionar).
 
 ### B5.5 — App instalável e funcionamento sem internet
 

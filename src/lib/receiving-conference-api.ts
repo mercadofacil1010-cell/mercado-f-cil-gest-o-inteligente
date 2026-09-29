@@ -99,6 +99,7 @@ export async function addReceivingCount(
     expiresAt?: string;
     condition?: ReceivingItemCondition;
     note?: string;
+    photoPath?: string | null;
   },
 ): Promise<{ ok: true } | { ok: false; message: string }> {
   const { error } = await supabase.rpc("add_receiving_count", {
@@ -111,6 +112,7 @@ export async function addReceivingCount(
     ...(options?.expiresAt ? { p_expires_at: options.expiresAt } : {}),
     ...(options?.condition ? { p_condition: options.condition } : {}),
     ...(options?.note ? { p_note: options.note } : {}),
+    ...(options?.photoPath ? { p_photo_path: options.photoPath } : {}),
   });
   if (error) return { ok: false, message: error.message };
   return { ok: true };

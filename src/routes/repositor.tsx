@@ -13,6 +13,8 @@ import {
 import { BrandLogo } from "@/components/brand-logo";
 import { Button } from "@/components/ui/button";
 import { AlertPill, type Tone } from "@/components/dashboard-ui";
+import { PhotoCapture } from "@/components/photo-capture";
+import { BarcodeScannerButton } from "@/components/barcode-scanner";
 import { useAuth } from "@/lib/auth-context";
 import { getRepositorContext, type RepositorContext } from "@/lib/repositor-api";
 import { listWarehouseAddresses, type WarehouseAddress } from "@/lib/locations-api";
@@ -103,7 +105,13 @@ function RepositorRoute() {
     );
   }
 
-  return <RepositorHome markets={context.markets} onSignOut={() => void signOut()} />;
+  return (
+    <RepositorHome
+      companyId={context.companyId}
+      markets={context.markets}
+      onSignOut={() => void signOut()}
+    />
+  );
 }
 
 type SignIn = ReturnType<typeof useAuth>["signIn"];
@@ -210,9 +218,11 @@ function RepositorLogin({ onLoggedIn, signIn }: { onLoggedIn: () => void; signIn
 }
 
 function RepositorHome({
+  companyId,
   markets,
   onSignOut,
 }: {
+  companyId: string;
   markets: { id: string; name: string }[];
   onSignOut: () => void;
 }) {
@@ -239,6 +249,7 @@ function RepositorHome({
   if (openTask) {
     return (
       <TaskScreen
+        companyId={companyId}
         marketId={selectedMarket}
         task={openTask}
         onBack={() => {
@@ -334,10 +345,12 @@ function RepositorHome({
 }
 
 function TaskScreen({
+  companyId,
   marketId,
   task,
   onBack,
 }: {
+  companyId: string;
   marketId: string;
   task: ReplenishmentTask;
   onBack: () => void;
@@ -349,16 +362,21 @@ function TaskScreen({
 
   const [withdrawQuantity, setWithdrawQuantity] = useState(String(task.quantityNeeded));
   const [sourceAddressId, setSourceAddressId] = useState("");
+  const [productScanned, setProductScanned] = useState(false);
+  const [productScanError, setProductScanError] = useState("");
 
   const [returnDone, setReturnDone] = useState(false);
   const [returnedQuantity, setReturnedQuantity] = useState("0");
   const [returnAddressId, setReturnAddressId] = useState("");
+  const [positionScanned, setPositionScanned] = useState(false);
+  const [positionScanError, setPositionScanError] = useState("");
 
   const [countedQuantity, setCountedQuantity] = useState("");
   const [countFeedback, setCountFeedback] = useState("");
 
   const [showImpediment, setShowImpediment] = useState(false);
   const [impedimentReason, setImpedimentReason] = useState("");
+  const [impedimentPhotoPath, setImpedimentPhotoPath] = useState<string | null>(null);
 
   useEffect(() => {
     void listWarehouseAddresses(marketId).then(setAddresses);
@@ -376,6 +394,30 @@ function TaskScreen({
     setStatus("aceita");
   };
 
+  const handleProductScan = (code: string) => {
+    setProductScanError("");
+    if (code !== task.productBarcode) {
+      setProductScanned(false);
+      setProductScanError(
+        "Código não bate com o produto desta tarefa. Confira e escaneie de novo.",
+      );
+      return;
+    }
+    setProductScanned(true);
+  };
+
+  const handlePositionScan = (code: string) => {
+    setPositionScanError("");
+    if (code !== task.gondolaPositionCode) {
+      setPositionScanned(false);
+      setPositionScanError(
+        "Código não bate com a posição desta tarefa. Confira e escaneie de novo.",
+      );
+      return;
+    }
+    setPositionScanned(true);
+  };
+
   const handleWithdrawal = async () => {
     setError("");
     const quantity = Number(withdrawQuantity);
@@ -385,6 +427,10 @@ function TaskScreen({
     }
     if (!sourceAddressId) {
       setError("Escolha o endereço de depósito.");
+      return;
+    }
+    if (task.productBarcode && !productScanned) {
+      setError("Escaneie o código de barras do produto para confirmar antes de retirar.");
       return;
     }
     setBusy(true);
@@ -402,6 +448,10 @@ function TaskScreen({
     const returned = Number(returnedQuantity || "0");
     if (returned > 0 && !returnAddressId) {
       setError("Escolha o endereço para devolver a sobra.");
+      return;
+    }
+    if (task.gondolaPositionCode && !positionScanned) {
+      setError("Escaneie o código da posição da gôndola para confirmar antes de continuar.");
       return;
     }
     setBusy(true);
@@ -452,7 +502,11 @@ function TaskScreen({
       return;
     }
     setBusy(true);
-    const result = await registerReplenishmentImpediment(task.id, impedimentReason);
+    const result = await registerReplenishmentImpediment(
+      task.id,
+      impedimentReason,
+      impedimentPhotoPath,
+    );
     setBusy(false);
     if (!result.ok) {
       setError(result.message);
@@ -516,6 +570,20 @@ function TaskScreen({
             placeholder="Quantidade retirada"
             className="h-10 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
           />
+          {task.productBarcode && (
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <BarcodeScannerButton
+                  label={productScanned ? "Produto conferido" : "Escanear produto"}
+                  onScan={handleProductScan}
+                />
+                {productScanned && (
+                  <span className="text-sm font-semibold text-success">Bateu com a tarefa.</span>
+                )}
+              </div>
+              {productScanError && <p className="text-sm text-destructive">{productScanError}</p>}
+            </div>
+          )}
           <Button className="w-full" disabled={busy} onClick={() => void handleWithdrawal()}>
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Registrar retirada"}
           </Button>
@@ -556,6 +624,20 @@ function TaskScreen({
               ))}
             </select>
           )}
+          {task.gondolaPositionCode && (
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <BarcodeScannerButton
+                  label={positionScanned ? "Posição conferida" : "Escanear posição da gôndola"}
+                  onScan={handlePositionScan}
+                />
+                {positionScanned && (
+                  <span className="text-sm font-semibold text-success">Bateu com a tarefa.</span>
+                )}
+              </div>
+              {positionScanError && <p className="text-sm text-destructive">{positionScanError}</p>}
+            </div>
+          )}
           <Button className="w-full" disabled={busy} onClick={() => void handleReturn()}>
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Continuar"}
           </Button>
@@ -595,11 +677,26 @@ function TaskScreen({
                 placeholder="Motivo do impedimento (ex.: gôndola quebrada)"
                 className="min-h-[60px] w-full rounded-md border border-input bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
               />
+              <PhotoCapture
+                companyId={companyId}
+                marketId={marketId}
+                photoPath={impedimentPhotoPath}
+                onChange={setImpedimentPhotoPath}
+                notify={setError}
+                label="Adicionar foto do impedimento (opcional)"
+              />
               <div className="flex gap-2">
                 <Button size="sm" disabled={busy} onClick={() => void handleImpediment()}>
                   Confirmar impedimento
                 </Button>
-                <Button variant="ghost" size="sm" onClick={() => setShowImpediment(false)}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setShowImpediment(false);
+                    setImpedimentPhotoPath(null);
+                  }}
+                >
                   Cancelar
                 </Button>
               </div>

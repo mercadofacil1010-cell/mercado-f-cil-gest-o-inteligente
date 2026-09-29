@@ -206,10 +206,12 @@ export async function requestReceivingRecount(
 export async function rejectReceivingCount(
   countedItemId: string,
   reason: string,
+  photoPath?: string | null,
 ): Promise<{ ok: true } | { ok: false; message: string }> {
   const { error } = await supabase.rpc("reject_receiving_count", {
     p_id: countedItemId,
     p_reason: reason,
+    ...(photoPath ? { p_photo_path: photoPath } : {}),
   });
   if (error) return { ok: false, message: error.message };
   return { ok: true };
@@ -219,10 +221,12 @@ export async function rejectReceivingCount(
 export async function rejectReceiving(
   receivingId: string,
   reason: string,
+  photoPath?: string | null,
 ): Promise<{ ok: true } | { ok: false; message: string }> {
   const { error } = await supabase.rpc("reject_receiving", {
     p_receiving_id: receivingId,
     p_reason: reason,
+    ...(photoPath ? { p_photo_path: photoPath } : {}),
   });
   if (error) return { ok: false, message: error.message };
   return { ok: true };

@@ -81,14 +81,19 @@ insert into public.products (company_id, name, base_unit)
 values (:'rede_produtos_id'::uuid, 'Produto do Gerente', 'unidade');
 select test.ok((select count(*) from public.products where name = 'Produto do Gerente') = 1, 'Gerente também cadastra produto');
 
--- Repositor não vê nem cadastra (matriz de perfis, DEC-B1-10).
+-- Repositor não cadastra (matriz de perfis, DEC-B1-10 — cadastro continua só
+-- dono/gerente, PA-04). Leitura, porém, precisa existir: desde o B5.4, o
+-- /conferente e o /repositor buscam produto por código de barras de verdade
+-- (findProductByBarcode), o que exige select — sem isso, a busca sempre
+-- devolvia "não encontrado" para esses dois perfis (bug descoberto ao
+-- construir a câmera do B5.4, corrigido junto).
 reset role;
 select test.as_user('40000000-0000-0000-0000-00000000000c');
-select test.ok((select count(*) from public.products) = 0, 'Repositor não enxerga produtos da empresa');
+select test.ok((select count(*) from public.products) > 0, 'Repositor enxerga produtos da empresa (leitura, para buscar por código de barras)');
 select test.throws(format($$insert into public.products (company_id, name, base_unit)
   values ('%s'::uuid, 'Produto do Repositor', 'unidade')$$, :'rede_produtos_id'),
   'Repositor não cadastra produto — permission denied pela política de INSERT');
-select test.ok((select count(*) from public.product_packagings) = 0, 'Repositor também não enxerga embalagens');
+select test.ok((select count(*) from public.product_packagings) > 0, 'Repositor também enxerga embalagens (mesma razão)');
 
 -- Ninguém apaga produto/embalagem de verdade (RN-ACL-06).
 reset role;

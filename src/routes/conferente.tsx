@@ -15,6 +15,8 @@ import {
 import { BrandLogo } from "@/components/brand-logo";
 import { Button } from "@/components/ui/button";
 import { AlertPill } from "@/components/dashboard-ui";
+import { PhotoCapture } from "@/components/photo-capture";
+import { BarcodeScannerButton } from "@/components/barcode-scanner";
 import { useAuth } from "@/lib/auth-context";
 import { getConferenteContext, type ConferenteContext } from "@/lib/conferente-api";
 import { listReceivings, receivingStatusLabel, type Receiving } from "@/lib/receivings-api";
@@ -368,6 +370,7 @@ function BlindCountScreen({
   const [packagings, setPackagings] = useState<Packaging[]>([]);
   const [packagingId, setPackagingId] = useState("");
   const [form, setForm] = useState(emptyCountForm);
+  const [photoPath, setPhotoPath] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
@@ -396,9 +399,9 @@ function BlindCountScreen({
     setStatus("em_conferencia");
   };
 
-  const handleSearch = async () => {
+  const handleSearch = async (scannedCode?: string) => {
     setSearchError("");
-    const code = barcode.trim();
+    const code = (scannedCode ?? barcode).trim();
     if (!code) {
       setSearchError("Digite o código de barras.");
       return;
@@ -434,6 +437,7 @@ function BlindCountScreen({
       expiresAt: form.expiresAt,
       condition: form.condition,
       note: form.note,
+      photoPath,
     });
     setSubmitting(false);
     if (!result.ok) {
@@ -443,6 +447,7 @@ function BlindCountScreen({
     setProduct(null);
     setBarcode("");
     setForm(emptyCountForm);
+    setPhotoPath(null);
     reloadItems();
   };
 
@@ -518,6 +523,13 @@ function BlindCountScreen({
                   <Search className="h-4 w-4" />
                 )}
               </Button>
+              <BarcodeScannerButton
+                label="Câmera"
+                onScan={(code) => {
+                  setBarcode(code);
+                  void handleSearch(code);
+                }}
+              />
             </div>
             {searchError && <p className="mt-2 text-sm text-destructive">{searchError}</p>}
 
@@ -602,6 +614,14 @@ function BlindCountScreen({
                   placeholder="Observação (opcional)"
                   rows={2}
                   className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                />
+                <PhotoCapture
+                  companyId={companyId}
+                  marketId={receiving.marketId}
+                  photoPath={photoPath}
+                  onChange={setPhotoPath}
+                  notify={setError}
+                  label="Adicionar foto do item (opcional)"
                 />
                 {error && <p className="text-sm text-destructive">{error}</p>}
                 <Button className="w-full" disabled={submitting} onClick={() => void handleAdd()}>
