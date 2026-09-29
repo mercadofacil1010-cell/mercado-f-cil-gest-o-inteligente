@@ -1290,10 +1290,49 @@ export type Database = {
           },
         ]
       }
+      replenishment_task_counts: {
+        Row: {
+          attempt: number
+          counted_at: string
+          counted_by: string
+          counted_quantity: number
+          id: string
+          matches: boolean
+          task_id: string
+        }
+        Insert: {
+          attempt: number
+          counted_at?: string
+          counted_by: string
+          counted_quantity: number
+          id?: string
+          matches: boolean
+          task_id: string
+        }
+        Update: {
+          attempt?: number
+          counted_at?: string
+          counted_by?: string
+          counted_quantity?: number
+          id?: string
+          matches?: boolean
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "replenishment_task_counts_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "replenishment_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       replenishment_tasks: {
         Row: {
           accepted_at: string | null
           accepted_by: string | null
+          balance_before: number | null
           completed_at: string | null
           completed_by: string | null
           created_at: string
@@ -1323,6 +1362,7 @@ export type Database = {
         Insert: {
           accepted_at?: string | null
           accepted_by?: string | null
+          balance_before?: number | null
           completed_at?: string | null
           completed_by?: string | null
           created_at?: string
@@ -1352,6 +1392,7 @@ export type Database = {
         Update: {
           accepted_at?: string | null
           accepted_by?: string | null
+          balance_before?: number | null
           completed_at?: string | null
           completed_by?: string | null
           created_at?: string
@@ -1864,18 +1905,16 @@ export type Database = {
         Args: { p_email: string; p_success: boolean }
         Returns: undefined
       }
-      register_replenishment_completion: {
+      register_replenishment_impediment: {
+        Args: { p_reason: string; p_task_id: string }
+        Returns: Database["public"]["Tables"]["replenishment_tasks"]["Row"]
+      }
+      register_replenishment_return: {
         Args: {
-          p_note?: string
-          p_quantity_placed: number
           p_quantity_returned?: number
           p_return_warehouse_address_id?: string
           p_task_id: string
         }
-        Returns: Json
-      }
-      register_replenishment_impediment: {
-        Args: { p_reason: string; p_task_id: string }
         Returns: Database["public"]["Tables"]["replenishment_tasks"]["Row"]
       }
       register_replenishment_withdrawal: {
@@ -1946,6 +1985,10 @@ export type Database = {
       start_receiving_conference: {
         Args: { p_receiving_id: string }
         Returns: Database["public"]["Tables"]["receivings"]["Row"]
+      }
+      submit_replenishment_count: {
+        Args: { p_counted_quantity: number; p_task_id: string }
+        Returns: Json
       }
       update_gondola_position_limits: {
         Args: {

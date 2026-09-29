@@ -259,7 +259,9 @@ A "matriz de permissões (seção 2.2)" da Documentação Funcional Completa ori
 
 | ID | Pergunta | Sugestão | Decisão |
 |---|---|---|---|
-| PA-14 | O que acontece após a terceira contagem divergente? | bloquear conclusão automática e exigir decisão do gerente. | _pendente_ |
+| DEC-B5-07 | A contagem cega da gôndola (RF-REP-07) entra como o passo final da tarefa de reposição (B5.2) ou é um fluxo independente, tipo o inventário do B3.6? | Passo final da tarefa: em vez de só digitar "quantidade reposta", o repositor conta cegamente o total da prateleira, sem ver o saldo teórico. | **Aceita a sugestão** (29/09/2026, proprietário) |
+| DEC-B5-08 | Com que valor o sistema compara a contagem cega para saber se bateu? | Saldo anterior (antes da reposição) + retirado − devolvido — substitui o campo "quantidade reposta" de texto livre do B5.2. | **Aceita a sugestão** (29/09/2026, proprietário) |
+| PA-14 | O que acontece após a terceira contagem divergente? | bloquear conclusão automática e exigir decisão do gerente. | **Aceita a sugestão** (29/09/2026, proprietário): reaproveita o mesmo status `com_inconsistencia`/`resolve_replenishment_inconsistency` já criado no B5.2 — nenhum mecanismo novo de decisão |
 
 ### B5.4 — Câmera e leitor de código de barras reais
 
