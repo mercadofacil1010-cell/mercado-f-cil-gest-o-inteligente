@@ -105,9 +105,10 @@ select public.register_replenishment_withdrawal(:'tarefa_1_id'::uuid, 15, :'ende
 select test.ok((select status from public.replenishment_tasks where id = :'tarefa_1_id'::uuid) = 'em_transito',
   'Retirada registrada — tarefa em trânsito (G-09)');
 
-select public.register_replenishment_completion(:'tarefa_1_id'::uuid, 15, 0);
+select public.register_replenishment_return(:'tarefa_1_id'::uuid, 0);
+select public.submit_replenishment_count(:'tarefa_1_id'::uuid, 20);
 select test.ok((select status from public.replenishment_tasks where id = :'tarefa_1_id'::uuid) = 'concluida',
-  'Reposto (15) + devolvido (0) fecha com o retirado (15) — tarefa concluída');
+  'Contagem cega bate com o esperado (5 + 15 - 0 = 20) — tarefa concluída');
 
 -- Saldos só são visíveis a dono/gerente (o repositor não lê stock_balances/gondola_positions).
 select test.as_user('f3000000-0000-0000-0000-00000000000a');
@@ -127,9 +128,10 @@ select id as tarefa_2_id from public.replenishment_tasks where gondola_position_
 select test.as_user('f3000000-0000-0000-0000-00000000000c');
 select public.accept_replenishment_task(:'tarefa_2_id'::uuid);
 select public.register_replenishment_withdrawal(:'tarefa_2_id'::uuid, 20, :'endereco_1_id'::uuid);
-select public.register_replenishment_completion(:'tarefa_2_id'::uuid, 15, 5, :'endereco_2_id'::uuid);
+select public.register_replenishment_return(:'tarefa_2_id'::uuid, 5, :'endereco_2_id'::uuid);
+select public.submit_replenishment_count(:'tarefa_2_id'::uuid, 20);
 select test.ok((select status from public.replenishment_tasks where id = :'tarefa_2_id'::uuid) = 'concluida',
-  '15 repostos + 5 devolvidos fecha com 20 retirados');
+  'Contagem bate (5 + 20 - 5 = 20) mesmo com parte devolvida a outro endereço');
 
 select test.as_user('f3000000-0000-0000-0000-00000000000a');
 select test.ok((select balance from public.stock_balances where warehouse_address_id = :'endereco_2_id'::uuid and product_id = :'suco_id'::uuid) = 5,
@@ -149,10 +151,28 @@ select public.register_replenishment_withdrawal(:'tarefa_3_id'::uuid, 15, :'ende
 select test.ok((select withdrawal_lot_id from public.replenishment_tasks where id = :'tarefa_3_id'::uuid) = :'lote_presunto_id'::uuid,
   'Retirada de produto com lote segue FEFO automaticamente');
 
--- Repositor tenta concluir com quantidades que não fecham (13, não 15).
-select public.register_replenishment_completion(:'tarefa_3_id'::uuid, 13, 0, null, 'Perdi 2 unidades, não sei onde');
+select public.register_replenishment_return(:'tarefa_3_id'::uuid, 0);
+
+-- Esperado é 5 + 15 - 0 = 20; repositor sempre conta 18 (2 unidades perdidas) — 3 tentativas (RN-REP-05).
+select public.submit_replenishment_count(:'tarefa_3_id'::uuid, 18);
+select test.ok((select status from public.replenishment_tasks where id = :'tarefa_3_id'::uuid) = 'em_transito',
+  'Primeira contagem divergente não conclui — permite recontagem');
+select test.ok((select count(*) from public.replenishment_task_counts where task_id = :'tarefa_3_id'::uuid) = 1,
+  'Primeira tentativa fica registrada, nunca apagada (RN-REP-04)');
+
+select public.submit_replenishment_count(:'tarefa_3_id'::uuid, 18);
+select test.ok((select status from public.replenishment_tasks where id = :'tarefa_3_id'::uuid) = 'em_transito',
+  'Segunda contagem também diverge — ainda permite a terceira');
+
+select public.submit_replenishment_count(:'tarefa_3_id'::uuid, 18);
 select test.ok((select status from public.replenishment_tasks where id = :'tarefa_3_id'::uuid) = 'com_inconsistencia',
-  '13 repostos não fecha com 15 retirados — vira inconsistência');
+  'Terceira contagem ainda diverge — vira inconsistência (RN-REP-06/PA-14)');
+select test.ok((select count(*) from public.replenishment_task_counts where task_id = :'tarefa_3_id'::uuid) = 3,
+  'As 3 tentativas ficam todas registradas');
+
+-- Uma quarta tentativa não é aceita.
+select test.throws(format($$select public.submit_replenishment_count('%s'::uuid, 18)$$, :'tarefa_3_id'),
+  'Quarta tentativa é recusada — limite de 3 já atingido');
 
 -- Repositor não pode resolver a própria inconsistência.
 select test.throws(format($$select public.resolve_replenishment_inconsistency('%s'::uuid, 'ok')$$, :'tarefa_3_id'),

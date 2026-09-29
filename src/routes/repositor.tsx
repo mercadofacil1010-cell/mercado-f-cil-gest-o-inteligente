@@ -19,10 +19,11 @@ import { listWarehouseAddresses, type WarehouseAddress } from "@/lib/locations-a
 import {
   acceptReplenishmentTask,
   listReplenishmentTasks,
-  registerReplenishmentCompletion,
   registerReplenishmentImpediment,
+  registerReplenishmentReturn,
   registerReplenishmentWithdrawal,
   replenishmentTaskStatusLabel,
+  submitReplenishmentCount,
   type ReplenishmentTask,
   type ReplenishmentTaskStatus,
 } from "@/lib/replenishment-api";
@@ -349,10 +350,12 @@ function TaskScreen({
   const [withdrawQuantity, setWithdrawQuantity] = useState(String(task.quantityNeeded));
   const [sourceAddressId, setSourceAddressId] = useState("");
 
-  const [placedQuantity, setPlacedQuantity] = useState("");
+  const [returnDone, setReturnDone] = useState(false);
   const [returnedQuantity, setReturnedQuantity] = useState("0");
   const [returnAddressId, setReturnAddressId] = useState("");
-  const [completionNote, setCompletionNote] = useState("");
+
+  const [countedQuantity, setCountedQuantity] = useState("");
+  const [countFeedback, setCountFeedback] = useState("");
 
   const [showImpediment, setShowImpediment] = useState(false);
   const [impedimentReason, setImpedimentReason] = useState("");
@@ -392,33 +395,54 @@ function TaskScreen({
       return;
     }
     setStatus("em_transito");
-    setPlacedQuantity(withdrawQuantity);
   };
 
-  const handleCompletion = async () => {
+  const handleReturn = async () => {
     setError("");
-    const placed = Number(placedQuantity);
     const returned = Number(returnedQuantity || "0");
-    if (!placedQuantity.trim() || placed < 0) {
-      setError("Informe a quantidade reposta na gôndola.");
-      return;
-    }
     if (returned > 0 && !returnAddressId) {
       setError("Escolha o endereço para devolver a sobra.");
       return;
     }
     setBusy(true);
-    const result = await registerReplenishmentCompletion(task.id, placed, {
-      quantityReturned: returned,
-      ...(returned > 0 ? { returnWarehouseAddressId: returnAddressId } : {}),
-      ...(completionNote ? { note: completionNote } : {}),
-    });
+    const result = await registerReplenishmentReturn(
+      task.id,
+      returned,
+      returned > 0 ? returnAddressId : undefined,
+    );
     setBusy(false);
     if (!result.ok) {
       setError(result.message);
       return;
     }
-    setStatus(result.status);
+    setReturnDone(true);
+  };
+
+  const handleCount = async () => {
+    setError("");
+    setCountFeedback("");
+    const counted = Number(countedQuantity);
+    if (!countedQuantity.trim() || counted < 0) {
+      setError("Informe a quantidade contada na prateleira.");
+      return;
+    }
+    setBusy(true);
+    const result = await submitReplenishmentCount(task.id, counted);
+    setBusy(false);
+    if (!result.ok) {
+      setError(result.message);
+      return;
+    }
+    if (result.status === "concluida") {
+      setStatus("concluida");
+      return;
+    }
+    if (result.status === "com_inconsistencia") {
+      setStatus("com_inconsistencia");
+      return;
+    }
+    setCountedQuantity("");
+    setCountFeedback(`Não bateu — tente contar de novo (tentativa ${result.attempt + 1} de 3).`);
   };
 
   const handleImpediment = async () => {
@@ -498,22 +522,13 @@ function TaskScreen({
         </section>
       )}
 
-      {status === "em_transito" && (
+      {status === "em_transito" && !returnDone && (
         <section className="space-y-3 rounded-lg border border-border bg-card p-4 shadow-card">
-          <h2 className="font-extrabold">Reposição e sobra</h2>
-          <label className="block">
-            <span className="mb-1 block text-xs text-muted-foreground">
-              Quantidade reposta na gôndola
-            </span>
-            <input
-              type="number"
-              min="0"
-              step="0.001"
-              value={placedQuantity}
-              onChange={(event) => setPlacedQuantity(event.target.value)}
-              className="h-10 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
-            />
-          </label>
+          <h2 className="font-extrabold">Sobra devolvida</h2>
+          <p className="text-sm text-muted-foreground">
+            Se sobrou alguma quantidade que você não repôs na gôndola, informe aqui. Se não sobrou
+            nada, deixe zero e continue.
+          </p>
           <label className="block">
             <span className="mb-1 block text-xs text-muted-foreground">
               Quantidade devolvida (sobra)
@@ -541,15 +556,31 @@ function TaskScreen({
               ))}
             </select>
           )}
-          <textarea
-            value={completionNote}
-            onChange={(event) => setCompletionNote(event.target.value)}
-            placeholder="Observação (opcional)"
-            rows={2}
-            className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+          <Button className="w-full" disabled={busy} onClick={() => void handleReturn()}>
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Continuar"}
+          </Button>
+        </section>
+      )}
+
+      {status === "em_transito" && returnDone && (
+        <section className="space-y-3 rounded-lg border border-border bg-card p-4 shadow-card">
+          <h2 className="font-extrabold">Contagem cega da gôndola</h2>
+          <div className="flex items-center gap-2 rounded-md border border-warning/40 bg-warning/10 p-3 text-sm font-semibold">
+            <EyeOff className="h-4 w-4 shrink-0" /> Conte fisicamente o total que está na prateleira
+            agora. O sistema não mostra o saldo esperado.
+          </div>
+          <input
+            type="number"
+            min="0"
+            step="0.001"
+            value={countedQuantity}
+            onChange={(event) => setCountedQuantity(event.target.value)}
+            placeholder="Quantidade contada na prateleira"
+            className="h-10 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
           />
-          <Button className="w-full" disabled={busy} onClick={() => void handleCompletion()}>
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Concluir reposição"}
+          {countFeedback && <p className="text-sm text-warning">{countFeedback}</p>}
+          <Button className="w-full" disabled={busy} onClick={() => void handleCount()}>
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Registrar contagem"}
           </Button>
         </section>
       )}

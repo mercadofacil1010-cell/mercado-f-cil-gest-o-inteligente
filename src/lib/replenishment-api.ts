@@ -1,13 +1,15 @@
-// Geração automática de tarefas de reposição (B5.1) e fluxo do repositor
-// gravado no banco (B5.2). Escopo decidido em DECISOES.md: sem PDV ainda, o
-// saldo da posição é registrado manualmente por dono/gerente (G-03); quando
-// cai ao mínimo ou menos, a tarefa nasce automaticamente, sempre mirando o
-// ideal (PA-10). O repositor aceita a tarefa da fila, ou o gerente/dono
-// atribui direto (PA-12); a retirada pode ter quantidade diferente da
-// sugerida (DEC-B5-03); quando reposto + devolvido não fecha com o
-// retirado, vira 'com_inconsistencia' e só o gerente/dono decide — sem
-// limite automático (DEC-B5-04); um impedimento devolve a tarefa para
-// pendente com o motivo registrado (DEC-B5-06).
+// Geração automática de tarefas de reposição (B5.1), fluxo do repositor
+// gravado no banco (B5.2) e contagem cega da gôndola ao concluir (B5.3).
+// Escopo decidido em DECISOES.md: sem PDV ainda, o saldo da posição é
+// registrado manualmente por dono/gerente (G-03); quando cai ao mínimo ou
+// menos, a tarefa nasce automaticamente, sempre mirando o ideal (PA-10). O
+// repositor aceita a tarefa da fila, ou o gerente/dono atribui direto
+// (PA-12); a retirada pode ter quantidade diferente da sugerida (DEC-B5-03).
+// Depois de devolver a sobra (mesmo que zero), o repositor conta cegamente
+// o total da prateleira (nunca vê o saldo teórico, DEC-B5-07/08) — até 3
+// tentativas; se não bater na terceira, vira 'com_inconsistencia' e só o
+// gerente/dono decide (PA-14/DEC-B5-04). Um impedimento devolve a tarefa
+// para pendente com o motivo registrado (DEC-B5-06).
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -121,32 +123,65 @@ export async function registerReplenishmentWithdrawal(
   return { ok: true };
 }
 
-/** Registra reposição na gôndola e sobra devolvida (RF-REP-06) — fecha a tarefa ou vira inconsistência (RN-REP-08). */
-export async function registerReplenishmentCompletion(
+/** Registra a sobra devolvida (RN-REP-07) — precisa acontecer antes da contagem cega, mesmo quando é zero. */
+export async function registerReplenishmentReturn(
   taskId: string,
-  quantityPlaced: number,
-  options?: { quantityReturned?: number; returnWarehouseAddressId?: string; note?: string },
-): Promise<
-  | { ok: true; status: "concluida" | "com_inconsistencia"; matches: boolean }
-  | { ok: false; message: string }
-> {
-  const { data, error } = await supabase.rpc("register_replenishment_completion", {
+  quantityReturned: number,
+  returnWarehouseAddressId?: string,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const { error } = await supabase.rpc("register_replenishment_return", {
     p_task_id: taskId,
-    p_quantity_placed: quantityPlaced,
-    p_quantity_returned: options?.quantityReturned ?? 0,
-    ...(options?.returnWarehouseAddressId
-      ? { p_return_warehouse_address_id: options.returnWarehouseAddressId }
+    p_quantity_returned: quantityReturned,
+    ...(returnWarehouseAddressId
+      ? { p_return_warehouse_address_id: returnWarehouseAddressId }
       : {}),
-    ...(options?.note ? { p_note: options.note } : {}),
+  });
+  if (error) return { ok: false, message: error.message };
+  return { ok: true };
+}
+
+export type ReplenishmentCountResult =
+  | { ok: true; status: "em_transito"; matches: false; attempt: number; attemptsLeft: number }
+  | { ok: true; status: "concluida" | "com_inconsistencia"; matches: boolean; attempt: number }
+  | { ok: false; message: string };
+
+/**
+ * Contagem cega do total da prateleira agora (RF-REP-07) — nunca revela o
+ * saldo esperado; só diz se bateu e, se não, quantas tentativas restam. Até
+ * 3 tentativas (RN-REP-05); na terceira divergência vira 'com_inconsistencia'.
+ */
+export async function submitReplenishmentCount(
+  taskId: string,
+  countedQuantity: number,
+): Promise<ReplenishmentCountResult> {
+  const { data, error } = await supabase.rpc("submit_replenishment_count", {
+    p_task_id: taskId,
+    p_counted_quantity: countedQuantity,
   });
   if (error || !data) {
-    return { ok: false, message: error?.message ?? "Não foi possível concluir a reposição agora." };
+    return { ok: false, message: error?.message ?? "Não foi possível registrar a contagem agora." };
   }
-  const result = data as { status?: string; matches?: boolean };
+  const result = data as {
+    status?: string;
+    matches?: boolean;
+    attempt?: number;
+    attempts_left?: number;
+  };
+  const attempt = result.attempt ?? 1;
+  if (result.status === "concluida" || result.status === "com_inconsistencia") {
+    return {
+      ok: true,
+      status: result.status,
+      matches: result.matches === true,
+      attempt,
+    };
+  }
   return {
     ok: true,
-    status: result.status === "com_inconsistencia" ? "com_inconsistencia" : "concluida",
-    matches: result.matches === true,
+    status: "em_transito",
+    matches: false,
+    attempt,
+    attemptsLeft: result.attempts_left ?? 0,
   };
 }
 
