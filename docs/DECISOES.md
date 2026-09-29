@@ -299,8 +299,10 @@ A "matriz de permissões (seção 2.2)" da Documentação Funcional Completa ori
 
 | ID | Pergunta | Sugestão | Decisão |
 |---|---|---|---|
-| PA-37 | Quais canais de notificação? | sistema e push para operação; e-mail para conta/cobrança; WhatsApp opcional com consentimento. | _pendente_ |
-| PA-38 | Quais alertas chegam ao dono? | permitir preferências, mantendo críticos obrigatórios. | _pendente_ |
+| RF-EST-06 | Alerta de mínimo, ponto de pedido, negativo e divergência tem bastante sobreposição com o que já existe (gôndola no mínimo já vira tarefa sozinha no B5.1; divergência já vira ocorrência no B6.1) — o que falta de verdade nesta etapa? | Um feed único (`alerts`) reunindo os sinais que já existem: inconsistências abertas (B6.1), saldo negativo em algum endereço, posição de gôndola no mínimo sem tarefa ativa. Ponto de pedido do depósito com sugestão de quantidade a comprar fica de fora — sem histórico de vendas (B7) não dá para calcular consumo de verdade. | **Aceita a sugestão** (29/09/2026, proprietário) |
+| PA-37 | Quais canais de notificação? | sistema e push para operação; e-mail para conta/cobrança; WhatsApp opcional com consentimento. | **Aceita a sugestão, com adaptação** (29/09/2026, proprietário): só sistema (dentro do app) por enquanto — nenhuma integração de e-mail/push/WhatsApp existe no projeto ainda, e escolher provedor é decisão de custo/negócio; e-mail, push e WhatsApp ficam adiados, mesmo padrão do leitor de código de barras físico dedicado (B5.4) |
+| PA-38 | Quais alertas chegam ao dono? | permitir preferências, mantendo críticos obrigatórios. | **Aceita a sugestão, com adaptação** (29/09/2026, proprietário): dono e gerente com acesso ao mercado, sem tela de preferências ainda — todo alerta é crítico por enquanto (nada é opcional) |
+| G-10 | Lacuna: perfil 'comprador' citado em alertas mas não definido | Fica de fora desta etapa — nenhuma tarefa do sistema até agora precisou desse papel; criar um papel novo sem uso real seria inventar escopo. | **Aceita a sugestão** (29/09/2026, proprietário) |
 
 
 ## Bloco B7

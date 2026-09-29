@@ -16,6 +16,93 @@ export type Database = {
   }
   public: {
     Tables: {
+      alerts: {
+        Row: {
+          alert_type: Database["public"]["Enums"]["alert_type"]
+          created_at: string
+          discard_note: string | null
+          discarded_at: string | null
+          discarded_by: string | null
+          description: string
+          gondola_position_id: string | null
+          id: string
+          market_id: string
+          product_id: string | null
+          reference_incident_id: string | null
+          resolved_at: string | null
+          status: Database["public"]["Enums"]["alert_status"]
+          warehouse_address_id: string | null
+        }
+        Insert: {
+          alert_type: Database["public"]["Enums"]["alert_type"]
+          created_at?: string
+          discard_note?: string | null
+          discarded_at?: string | null
+          discarded_by?: string | null
+          description: string
+          gondola_position_id?: string | null
+          id?: string
+          market_id: string
+          product_id?: string | null
+          reference_incident_id?: string | null
+          resolved_at?: string | null
+          status?: Database["public"]["Enums"]["alert_status"]
+          warehouse_address_id?: string | null
+        }
+        Update: {
+          alert_type?: Database["public"]["Enums"]["alert_type"]
+          created_at?: string
+          discard_note?: string | null
+          discarded_at?: string | null
+          discarded_by?: string | null
+          description?: string
+          gondola_position_id?: string | null
+          id?: string
+          market_id?: string
+          product_id?: string | null
+          reference_incident_id?: string | null
+          resolved_at?: string | null
+          status?: Database["public"]["Enums"]["alert_status"]
+          warehouse_address_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alerts_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "markets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alerts_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alerts_warehouse_address_id_fkey"
+            columns: ["warehouse_address_id"]
+            isOneToOne: false
+            referencedRelation: "warehouse_addresses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alerts_gondola_position_id_fkey"
+            columns: ["gondola_position_id"]
+            isOneToOne: false
+            referencedRelation: "gondola_positions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alerts_reference_incident_id_fkey"
+            columns: ["reference_incident_id"]
+            isOneToOne: false
+            referencedRelation: "incidents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_log: {
         Row: {
           action: Database["public"]["Enums"]["audit_action"]
@@ -2041,6 +2128,10 @@ export type Database = {
         }
         Returns: Database["public"]["Tables"]["receivings"]["Row"]
       }
+      discard_alert: {
+        Args: { p_id: string; p_note?: string }
+        Returns: Database["public"]["Tables"]["alerts"]["Row"]
+      }
       finalize_inventory_count: {
         Args: { p_inventory_count_id: string }
         Returns: Database["public"]["Tables"]["inventory_count_items"]["Row"][]
@@ -2084,6 +2175,22 @@ export type Database = {
       }
       is_valid_cnpj: { Args: { value: string }; Returns: boolean }
       is_valid_cpf: { Args: { value: string }; Returns: boolean }
+      list_alerts: {
+        Args: { p_market_id: string }
+        Returns: {
+          alert_type: Database["public"]["Enums"]["alert_type"]
+          created_at: string
+          description: string
+          discard_note: string | null
+          gondola_position_code: string | null
+          id: string
+          product_id: string | null
+          product_name: string | null
+          reference_incident_id: string | null
+          status: Database["public"]["Enums"]["alert_status"]
+          warehouse_address_code: string | null
+        }[]
+      }
       list_incidents: {
         Args: { p_market_id: string }
         Returns: {
@@ -2266,6 +2373,10 @@ export type Database = {
         Args: { p_counted_quantity: number; p_task_id: string }
         Returns: Json
       }
+      sync_alerts: {
+        Args: { p_market_id: string }
+        Returns: number
+      }
       sync_expiry_incidents: {
         Args: { p_market_id: string }
         Returns: number
@@ -2292,6 +2403,8 @@ export type Database = {
     }
     Enums: {
       account_status: "pending" | "active" | "blocked" | "cancelled"
+      alert_status: "aberto" | "resolvido" | "descartado"
+      alert_type: "incidente_aberto" | "saldo_negativo" | "gondola_no_minimo"
       audit_action: "insert" | "update" | "delete" | "event"
       incident_resolution: "corrigida" | "descartada"
       incident_severity: "baixa" | "media" | "alta"
@@ -2468,6 +2581,8 @@ export const Constants = {
   public: {
     Enums: {
       account_status: ["pending", "active", "blocked", "cancelled"],
+      alert_status: ["aberto", "resolvido", "descartado"],
+      alert_type: ["incidente_aberto", "saldo_negativo", "gondola_no_minimo"],
       audit_action: ["insert", "update", "delete", "event"],
       incident_resolution: ["corrigida", "descartada"],
       incident_severity: ["baixa", "media", "alta"],

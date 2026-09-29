@@ -67,6 +67,7 @@ import { LocationsCatalogModule } from "@/components/locations-catalog-module";
 import { ReceivingsCatalogModule } from "@/components/receivings-catalog-module";
 import { ReplenishmentOverview } from "@/components/replenishment-overview";
 import { IncidentsModule } from "@/components/incidents-module";
+import { AlertsModule } from "@/components/alerts-module";
 import { OwnerSection } from "@/components/owner-sections";
 import { initialProducts, type Product } from "@/data/products";
 import { money, type Market } from "@/data/markets";
@@ -642,6 +643,8 @@ export function OwnerDashboard({
                   marketId={market.id}
                   notify={setToast}
                 />
+              ) : tab === "Alertas" ? (
+                <AlertsModule key={market.id} marketId={market.id} notify={setToast} />
               ) : null
             }
           />
