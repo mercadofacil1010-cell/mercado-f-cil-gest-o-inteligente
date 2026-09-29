@@ -799,6 +799,53 @@ export type Database = {
           },
         ]
       }
+      offline_sync_conflicts: {
+        Row: {
+          action_type: string
+          created_at: string
+          error_message: string
+          id: string
+          market_id: string
+          payload: Json
+          resolution_note: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          submitted_by: string
+        }
+        Insert: {
+          action_type: string
+          created_at?: string
+          error_message: string
+          id?: string
+          market_id: string
+          payload: Json
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          submitted_by: string
+        }
+        Update: {
+          action_type?: string
+          created_at?: string
+          error_message?: string
+          id?: string
+          market_id?: string
+          payload?: Json
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          submitted_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offline_sync_conflicts_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "markets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pending_stock_adjustments: {
         Row: {
           created_at: string
@@ -1918,6 +1965,15 @@ export type Database = {
         Args: { p_balance: number; p_position_id: string }
         Returns: Json
       }
+      record_sync_conflict: {
+        Args: {
+          p_action_type: string
+          p_error_message: string
+          p_market_id: string
+          p_payload: Json
+        }
+        Returns: Database["public"]["Tables"]["offline_sync_conflicts"]["Row"]
+      }
       register_login_attempt: {
         Args: { p_email: string; p_success: boolean }
         Returns: undefined
@@ -1986,6 +2042,10 @@ export type Database = {
       resolve_replenishment_inconsistency: {
         Args: { p_note: string; p_task_id: string }
         Returns: Database["public"]["Tables"]["replenishment_tasks"]["Row"]
+      }
+      resolve_sync_conflict: {
+        Args: { p_id: string; p_note: string }
+        Returns: Database["public"]["Tables"]["offline_sync_conflicts"]["Row"]
       }
       reverse_stock_movement: {
         Args: { p_movement_id: string; p_reason: string }

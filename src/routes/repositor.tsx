@@ -15,9 +15,13 @@ import { Button } from "@/components/ui/button";
 import { AlertPill, type Tone } from "@/components/dashboard-ui";
 import { PhotoCapture } from "@/components/photo-capture";
 import { BarcodeScannerButton } from "@/components/barcode-scanner";
+import { OfflineStatusBadge } from "@/components/offline-status-badge";
 import { useAuth } from "@/lib/auth-context";
 import { getRepositorContext, type RepositorContext } from "@/lib/repositor-api";
 import { listWarehouseAddresses, type WarehouseAddress } from "@/lib/locations-api";
+import { registerAppShellServiceWorker } from "@/lib/pwa-register";
+import { cacheGet, cacheSet } from "@/lib/offline-db";
+import { runOrQueue, useOnlineStatus } from "@/lib/offline-sync";
 import {
   acceptReplenishmentTask,
   listReplenishmentTasks,
@@ -30,9 +34,19 @@ import {
   type ReplenishmentTaskStatus,
 } from "@/lib/replenishment-api";
 
+// App instalável (B5.5, DEC-B5-13): manifest próprio (start_url/scope
+// /repositor) — instalar aqui não instala o /conferente nem o resto do app.
 export const Route = createFileRoute("/repositor")({
   head: () => ({
-    meta: [{ title: "App do Repositor | Mercado Fácil" }, { name: "robots", content: "noindex" }],
+    meta: [
+      { title: "App do Repositor | Mercado Fácil" },
+      { name: "robots", content: "noindex" },
+      { name: "theme-color", content: "#131c2e" },
+    ],
+    links: [
+      { rel: "manifest", href: "/manifest-repositor.webmanifest" },
+      { rel: "apple-touch-icon", href: "/icons/app-icon-192.png" },
+    ],
   }),
   component: RepositorRoute,
 });
@@ -52,6 +66,10 @@ function RepositorRoute() {
   const { session, loading, signIn, signOut } = useAuth();
   const [checking, setChecking] = useState(true);
   const [context, setContext] = useState<RepositorContext>(null);
+
+  useEffect(() => {
+    registerAppShellServiceWorker();
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -231,6 +249,8 @@ function RepositorHome({
   const [loading, setLoading] = useState(true);
   const [openTask, setOpenTask] = useState<ReplenishmentTask | null>(null);
 
+  const online = useOnlineStatus();
+
   const reload = () => {
     if (!selectedMarket) {
       setTasks([]);
@@ -238,9 +258,18 @@ function RepositorHome({
       return;
     }
     setLoading(true);
+    const cacheKey = `repositor:tasks:${selectedMarket}`;
+    if (!navigator.onLine) {
+      void cacheGet<ReplenishmentTask[]>(cacheKey).then((cached) => {
+        setTasks(cached ?? []);
+        setLoading(false);
+      });
+      return;
+    }
     void listReplenishmentTasks(selectedMarket).then((list) => {
       setTasks(list);
       setLoading(false);
+      void cacheSet(cacheKey, list);
     });
   };
 
@@ -268,6 +297,7 @@ function RepositorHome({
           Sair
         </Button>
       </div>
+      <OfflineStatusBadge />
       <h1 className="text-xl font-extrabold">Reposições</h1>
 
       {markets.length === 0 ? (
@@ -308,34 +338,51 @@ function RepositorHome({
             </div>
           ) : (
             <ul className="space-y-2">
-              {tasks.map((task) => (
-                <li
-                  key={task.id}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => setOpenTask(task)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter" || event.key === " ") setOpenTask(task);
-                  }}
-                  className="cursor-pointer rounded-lg border border-border bg-card p-4 shadow-card outline-none transition hover:border-primary/50 focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <strong className="block truncate">{task.productName}</strong>
-                      <span className="block text-sm text-muted-foreground">
-                        {task.gondolaPositionCode} · sugerido {task.quantityNeeded}
-                      </span>
+              {tasks.map((task) => {
+                const opensOfflineBlocked = !online && task.status === "pendente";
+                return (
+                  <li
+                    key={task.id}
+                    role="button"
+                    tabIndex={0}
+                    aria-disabled={opensOfflineBlocked}
+                    onClick={() => {
+                      if (opensOfflineBlocked) return;
+                      setOpenTask(task);
+                    }}
+                    onKeyDown={(event) => {
+                      if (opensOfflineBlocked) return;
+                      if (event.key === "Enter" || event.key === " ") setOpenTask(task);
+                    }}
+                    className={`rounded-lg border border-border bg-card p-4 shadow-card outline-none transition focus-visible:ring-2 focus-visible:ring-ring ${
+                      opensOfflineBlocked
+                        ? "cursor-not-allowed opacity-60"
+                        : "cursor-pointer hover:border-primary/50"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <strong className="block truncate">{task.productName}</strong>
+                        <span className="block text-sm text-muted-foreground">
+                          {task.gondolaPositionCode} · sugerido {task.quantityNeeded}
+                        </span>
+                        {opensOfflineBlocked && (
+                          <span className="mt-1 block text-xs text-muted-foreground">
+                            Precisa de internet para aceitar esta tarefa.
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex shrink-0 flex-col items-end gap-1">
+                        <AlertPill
+                          label={replenishmentTaskStatusLabel[task.status]}
+                          tone={statusTone[task.status]}
+                        />
+                        {task.isRuptura && <AlertPill label="Ruptura" tone="critical" />}
+                      </div>
                     </div>
-                    <div className="flex shrink-0 flex-col items-end gap-1">
-                      <AlertPill
-                        label={replenishmentTaskStatusLabel[task.status]}
-                        tone={statusTone[task.status]}
-                      />
-                      {task.isRuptura && <AlertPill label="Ruptura" tone="critical" />}
-                    </div>
-                  </div>
-                </li>
-              ))}
+                  </li>
+                );
+              })}
             </ul>
           )}
         </>
@@ -378,8 +425,18 @@ function TaskScreen({
   const [impedimentReason, setImpedimentReason] = useState("");
   const [impedimentPhotoPath, setImpedimentPhotoPath] = useState<string | null>(null);
 
+  const online = useOnlineStatus();
+
   useEffect(() => {
-    void listWarehouseAddresses(marketId).then(setAddresses);
+    const cacheKey = `repositor:addresses:${marketId}`;
+    if (!navigator.onLine) {
+      void cacheGet<WarehouseAddress[]>(cacheKey).then((cached) => setAddresses(cached ?? []));
+      return;
+    }
+    void listWarehouseAddresses(marketId).then((list) => {
+      setAddresses(list);
+      void cacheSet(cacheKey, list);
+    });
   }, [marketId]);
 
   const handleAccept = async () => {
@@ -434,13 +491,22 @@ function TaskScreen({
       return;
     }
     setBusy(true);
-    const result = await registerReplenishmentWithdrawal(task.id, quantity, sourceAddressId);
+    const result = await runOrQueue(
+      "repositor",
+      marketId,
+      {
+        actionType: "replenishment_withdrawal",
+        payload: { taskId: task.id, quantity, sourceWarehouseAddressId: sourceAddressId },
+      },
+      () => registerReplenishmentWithdrawal(task.id, quantity, sourceAddressId),
+    );
     setBusy(false);
     if (!result.ok) {
       setError(result.message);
       return;
     }
     setStatus("em_transito");
+    if (result.queued) setError("Sem internet — retirada guardada, vai sincronizar depois.");
   };
 
   const handleReturn = async () => {
@@ -455,10 +521,19 @@ function TaskScreen({
       return;
     }
     setBusy(true);
-    const result = await registerReplenishmentReturn(
-      task.id,
-      returned,
-      returned > 0 ? returnAddressId : undefined,
+    const result = await runOrQueue(
+      "repositor",
+      marketId,
+      {
+        actionType: "replenishment_return",
+        payload: {
+          taskId: task.id,
+          quantityReturned: returned,
+          ...(returned > 0 ? { returnWarehouseAddressId: returnAddressId } : {}),
+        },
+      },
+      () =>
+        registerReplenishmentReturn(task.id, returned, returned > 0 ? returnAddressId : undefined),
     );
     setBusy(false);
     if (!result.ok) {
@@ -466,6 +541,7 @@ function TaskScreen({
       return;
     }
     setReturnDone(true);
+    if (result.queued) setError("Sem internet — devolução guardada, vai sincronizar depois.");
   };
 
   const handleCount = async () => {
@@ -474,6 +550,12 @@ function TaskScreen({
     const counted = Number(countedQuantity);
     if (!countedQuantity.trim() || counted < 0) {
       setError("Informe a quantidade contada na prateleira.");
+      return;
+    }
+    if (!online) {
+      setError(
+        "A contagem cega precisa de internet — o sistema compara com o saldo na hora e não dá para fazer isso offline.",
+      );
       return;
     }
     setBusy(true);
@@ -502,10 +584,14 @@ function TaskScreen({
       return;
     }
     setBusy(true);
-    const result = await registerReplenishmentImpediment(
-      task.id,
-      impedimentReason,
-      impedimentPhotoPath,
+    const result = await runOrQueue(
+      "repositor",
+      marketId,
+      {
+        actionType: "replenishment_impediment",
+        payload: { taskId: task.id, reason: impedimentReason, photoPath: impedimentPhotoPath },
+      },
+      () => registerReplenishmentImpediment(task.id, impedimentReason, impedimentPhotoPath),
     );
     setBusy(false);
     if (!result.ok) {
@@ -528,6 +614,7 @@ function TaskScreen({
           </span>
         </div>
       </div>
+      <OfflineStatusBadge />
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 

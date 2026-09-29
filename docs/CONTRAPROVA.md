@@ -6,7 +6,7 @@ Cada linha aponta a etapa do plano (`docs/PLANO_FECHAMENTO.md`) em que o item é
 **Status:** `Pendente` → `Em andamento` → `Feito` (com evidência). `Parcial` = começou, falta completar. `Adiado` = decisão formal de tirar da versão.  
 **Decisão?** `Sim` = o item tem [A DEFINIR]; a decisão precisa estar registrada em `docs/DECISOES.md` antes de codificar.
 
-Total de itens rastreados: **427** · Feito: **176** · Parcial: **30**
+Total de itens rastreados: **427** · Feito: **181** · Parcial: **30**
 
 | Bloco                          | Itens |
 | ------------------------------ | ----- |
@@ -418,11 +418,11 @@ Correção 1 exige que o Conferente tenha experiência própria, não uma aba do
 
 | ID         | Item                                                                                                                                                     | Decisão? | Status   | Evidência |
 | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | -------- | --------- |
-| RNF-OFF-01 | Aplicativo deve lidar com perda de conexão sem perder contagens e tarefas em andamento.                                                                  |          | Pendente |           |
-| RNF-OFF-02 | Funções permitidas offline e resolução de conflitos estão [A DEFINIR].                                                                                   | Sim      | Pendente |           |
-| RNF-OFF-03 | Exibir claramente quando dado é local, pendente ou sincronizado.                                                                                         |          | Pendente |           |
-| PA-39      | Funcionamento offline no celular? — Sugestão do documento: permitir tarefas já baixadas e contagens; bloquear decisões que dependem de saldo atualizado. | Sim      | Pendente |           |
-| PA-40      | Como resolver conflito offline? — Sugestão do documento: nunca sobrescrever silenciosamente; criar pendência para conciliação.                           | Sim      | Pendente |           |
+| RNF-OFF-01 | Aplicativo deve lidar com perda de conexão sem perder contagens e tarefas em andamento.                                                                  |          | Feito    | PR B5.5 · `/repositor` (retirada, devolução, impedimento) e `/conferente` (contagem de item) guardam a ação numa fila local (IndexedDB, `src/lib/offline-db.ts`) quando a chamada falha por falta de rede, e reaplicam sozinhas quando a conexão volta (`src/lib/offline-sync.ts`) — nada se perde |
+| RNF-OFF-02 | Funções permitidas offline e resolução de conflitos estão [A DEFINIR].                                                                                   | Sim      | Feito    | PR B5.5 · decisão em DECISOES.md (PA-39/PA-40): escopo offline limitado ao que já estava baixado (não inclui aceitar tarefa, iniciar conferência nem a contagem cega, que dependem de resposta imediata do servidor); conflito na sincronização nunca sobrescreve — vira pendência em `offline_sync_conflicts`, visível e resolvível só por dono/gerente (`resolve_sync_conflict`) |
+| RNF-OFF-03 | Exibir claramente quando dado é local, pendente ou sincronizado.                                                                                         |          | Feito    | PR B5.5 · `OfflineStatusBadge` mostra "offline" com quantas ações estão guardadas, e "sincronizando" enquanto a fila é reaplicada, em `/repositor` e `/conferente` |
+| PA-39      | Funcionamento offline no celular? — Sugestão do documento: permitir tarefas já baixadas e contagens; bloquear decisões que dependem de saldo atualizado. | Sim      | Feito    | PR B5.5 · aceita a sugestão (ver DECISOES.md) |
+| PA-40      | Como resolver conflito offline? — Sugestão do documento: nunca sobrescrever silenciosamente; criar pendência para conciliação.                           | Sim      | Feito    | PR B5.5 · aceita a sugestão — mesmo padrão de fila de `pending_stock_adjustments` (B3.4) |
 
 ## B6.1 — Central de inconsistências
 
