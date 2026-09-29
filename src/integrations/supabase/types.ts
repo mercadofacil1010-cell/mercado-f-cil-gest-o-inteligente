@@ -364,6 +364,156 @@ export type Database = {
           },
         ]
       }
+      incidents: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          assigned_to: string | null
+          correction_movement_id: string | null
+          counted_quantity: number | null
+          created_at: string
+          description: string
+          difference: number | null
+          due_date: string | null
+          expected_quantity: number | null
+          id: string
+          investigation_started_at: string | null
+          is_recurring: boolean
+          market_id: string
+          product_id: string | null
+          reference_inventory_count_id: string | null
+          reference_lot_id: string | null
+          reference_receiving_id: string | null
+          reference_task_id: string | null
+          reopened_count: number
+          resolution: Database["public"]["Enums"]["incident_resolution"] | null
+          resolution_note: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: Database["public"]["Enums"]["incident_severity"]
+          source: Database["public"]["Enums"]["incident_source"]
+          status: Database["public"]["Enums"]["incident_status"]
+          warehouse_address_id: string | null
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          assigned_to?: string | null
+          correction_movement_id?: string | null
+          counted_quantity?: number | null
+          created_at?: string
+          description: string
+          difference?: number | null
+          due_date?: string | null
+          expected_quantity?: number | null
+          id?: string
+          investigation_started_at?: string | null
+          is_recurring?: boolean
+          market_id: string
+          product_id?: string | null
+          reference_inventory_count_id?: string | null
+          reference_lot_id?: string | null
+          reference_receiving_id?: string | null
+          reference_task_id?: string | null
+          reopened_count?: number
+          resolution?: Database["public"]["Enums"]["incident_resolution"] | null
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity: Database["public"]["Enums"]["incident_severity"]
+          source: Database["public"]["Enums"]["incident_source"]
+          status?: Database["public"]["Enums"]["incident_status"]
+          warehouse_address_id?: string | null
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          assigned_to?: string | null
+          correction_movement_id?: string | null
+          counted_quantity?: number | null
+          created_at?: string
+          description?: string
+          difference?: number | null
+          due_date?: string | null
+          expected_quantity?: number | null
+          id?: string
+          investigation_started_at?: string | null
+          is_recurring?: boolean
+          market_id?: string
+          product_id?: string | null
+          reference_inventory_count_id?: string | null
+          reference_lot_id?: string | null
+          reference_receiving_id?: string | null
+          reference_task_id?: string | null
+          reopened_count?: number
+          resolution?: Database["public"]["Enums"]["incident_resolution"] | null
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: Database["public"]["Enums"]["incident_severity"]
+          source?: Database["public"]["Enums"]["incident_source"]
+          status?: Database["public"]["Enums"]["incident_status"]
+          warehouse_address_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incidents_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "markets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incidents_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incidents_warehouse_address_id_fkey"
+            columns: ["warehouse_address_id"]
+            isOneToOne: false
+            referencedRelation: "warehouse_addresses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incidents_reference_receiving_id_fkey"
+            columns: ["reference_receiving_id"]
+            isOneToOne: false
+            referencedRelation: "receivings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incidents_reference_task_id_fkey"
+            columns: ["reference_task_id"]
+            isOneToOne: false
+            referencedRelation: "replenishment_tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incidents_reference_inventory_count_id_fkey"
+            columns: ["reference_inventory_count_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_counts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incidents_reference_lot_id_fkey"
+            columns: ["reference_lot_id"]
+            isOneToOne: false
+            referencedRelation: "lots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incidents_correction_movement_id_fkey"
+            columns: ["correction_movement_id"]
+            isOneToOne: false
+            referencedRelation: "stock_movements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inventory_count_items: {
         Row: {
           counted_quantity: number
@@ -1813,6 +1963,10 @@ export type Database = {
         Args: { p_task_id: string }
         Returns: Database["public"]["Tables"]["replenishment_tasks"]["Row"]
       }
+      acknowledge_incident: {
+        Args: { p_id: string }
+        Returns: Database["public"]["Tables"]["incidents"]["Row"]
+      }
       add_receiving_count: {
         Args: {
           p_batch_number?: string
@@ -1835,6 +1989,10 @@ export type Database = {
       approve_pending_stock_adjustment: {
         Args: { p_id: string; p_note?: string }
         Returns: Database["public"]["Tables"]["stock_movements"]["Row"]
+      }
+      assign_incident: {
+        Args: { p_assignee_user_id: string; p_due_date?: string; p_id: string }
+        Returns: Database["public"]["Tables"]["incidents"]["Row"]
       }
       assign_replenishment_task: {
         Args: { p_stocker_user_id: string; p_task_id: string }
@@ -1926,6 +2084,29 @@ export type Database = {
       }
       is_valid_cnpj: { Args: { value: string }; Returns: boolean }
       is_valid_cpf: { Args: { value: string }; Returns: boolean }
+      list_incidents: {
+        Args: { p_market_id: string }
+        Returns: {
+          assigned_to: string | null
+          counted_quantity: number | null
+          created_at: string
+          description: string
+          difference: number | null
+          due_date: string | null
+          expected_quantity: number | null
+          id: string
+          is_recurring: boolean
+          product_id: string | null
+          product_name: string | null
+          reopened_count: number
+          resolution: Database["public"]["Enums"]["incident_resolution"] | null
+          resolution_note: string | null
+          severity: Database["public"]["Enums"]["incident_severity"]
+          source: Database["public"]["Enums"]["incident_source"]
+          status: Database["public"]["Enums"]["incident_status"]
+          warehouse_address_code: string | null
+        }[]
+      }
       list_replenishment_tasks: {
         Args: { p_market_id: string }
         Returns: {
@@ -2034,11 +2215,24 @@ export type Database = {
       }
       remove_receiving_count: { Args: { p_id: string }; Returns: undefined }
       remove_receiving_item: { Args: { p_id: string }; Returns: undefined }
+      reopen_incident: {
+        Args: { p_id: string; p_note: string }
+        Returns: Database["public"]["Tables"]["incidents"]["Row"]
+      }
       request_receiving_recount: {
         Args: { p_product_ids: string[]; p_reason: string; p_receiving_id: string }
         Returns: Database["public"]["Tables"]["receivings"]["Row"]
       }
       resend_invite: { Args: { p_invite_id: string }; Returns: undefined }
+      resolve_incident: {
+        Args: {
+          p_correction_movement_id?: string
+          p_id: string
+          p_note: string
+          p_resolution: Database["public"]["Enums"]["incident_resolution"]
+        }
+        Returns: Database["public"]["Tables"]["incidents"]["Row"]
+      }
       resolve_replenishment_inconsistency: {
         Args: { p_note: string; p_task_id: string }
         Returns: Database["public"]["Tables"]["replenishment_tasks"]["Row"]
@@ -2056,6 +2250,10 @@ export type Database = {
         Args: { p_inventory_count_id: string; p_product_id: string; p_quantity: number }
         Returns: Database["public"]["Tables"]["inventory_count_items"]["Row"]
       }
+      start_incident_investigation: {
+        Args: { p_id: string }
+        Returns: Database["public"]["Tables"]["incidents"]["Row"]
+      }
       start_inventory_count: {
         Args: { p_warehouse_address_id: string }
         Returns: Database["public"]["Tables"]["inventory_counts"]["Row"]
@@ -2067,6 +2265,10 @@ export type Database = {
       submit_replenishment_count: {
         Args: { p_counted_quantity: number; p_task_id: string }
         Returns: Json
+      }
+      sync_expiry_incidents: {
+        Args: { p_market_id: string }
+        Returns: number
       }
       update_gondola_position_limits: {
         Args: {
@@ -2091,6 +2293,10 @@ export type Database = {
     Enums: {
       account_status: "pending" | "active" | "blocked" | "cancelled"
       audit_action: "insert" | "update" | "delete" | "event"
+      incident_resolution: "corrigida" | "descartada"
+      incident_severity: "baixa" | "media" | "alta"
+      incident_source: "recebimento" | "reposicao" | "inventario" | "validade"
+      incident_status: "aberta" | "reconhecida" | "em_investigacao" | "encerrada"
       inventory_count_status: "aberta" | "finalizada"
       invite_status: "pending" | "accepted" | "revoked"
       lot_status: "available" | "blocked"
@@ -2263,6 +2469,10 @@ export const Constants = {
     Enums: {
       account_status: ["pending", "active", "blocked", "cancelled"],
       audit_action: ["insert", "update", "delete", "event"],
+      incident_resolution: ["corrigida", "descartada"],
+      incident_severity: ["baixa", "media", "alta"],
+      incident_source: ["recebimento", "reposicao", "inventario", "validade"],
+      incident_status: ["aberta", "reconhecida", "em_investigacao", "encerrada"],
       inventory_count_status: ["aberta", "finalizada"],
       invite_status: ["pending", "accepted", "revoked"],
       lot_status: ["available", "blocked"],

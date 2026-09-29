@@ -6,7 +6,7 @@ Cada linha aponta a etapa do plano (`docs/PLANO_FECHAMENTO.md`) em que o item é
 **Status:** `Pendente` → `Em andamento` → `Feito` (com evidência). `Parcial` = começou, falta completar. `Adiado` = decisão formal de tirar da versão.  
 **Decisão?** `Sim` = o item tem [A DEFINIR]; a decisão precisa estar registrada em `docs/DECISOES.md` antes de codificar.
 
-Total de itens rastreados: **427** · Feito: **181** · Parcial: **30**
+Total de itens rastreados: **427** · Feito: **192** · Parcial: **30**
 
 | Bloco                          | Itens |
 | ------------------------------ | ----- |
@@ -428,18 +428,18 @@ Correção 1 exige que o Conferente tenha experiência própria, não uma aba do
 
 | ID        | Item                                                                                                                      | Decisão? | Status   | Evidência |
 | --------- | ------------------------------------------------------------------------------------------------------------------------- | -------- | -------- | --------- |
-| RF-INC-01 | Criar ocorrência por recebimento, reposição, inventário, transferência, venda ou validade.                                |          | Pendente |           |
-| RF-INC-02 | Classificar gravidade e prioridade.                                                                                       |          | Pendente |           |
-| RF-INC-03 | Atribuir responsável e prazo.                                                                                             |          | Pendente |           |
-| RF-INC-04 | Exibir esperado, contado, diferença, histórico e evidências.                                                              |          | Pendente |           |
-| RF-INC-05 | Permitir reconhecer, investigar, corrigir, justificar e encerrar.                                                         |          | Pendente |           |
-| RF-INC-07 | Manter vínculo com movimentos corretivos.                                                                                 |          | Pendente |           |
-| RF-INC-08 | Impedir encerramento sem justificativa.                                                                                   |          | Pendente |           |
-| RN-INC-01 | Inconsistência automática não pode ser apagada; pode ser resolvida, descartada com justificativa ou vinculada a correção. |          | Pendente |           |
-| RN-INC-02 | Encerrar não altera estoque sozinho; qualquer correção exige movimento de ajuste.                                         |          | Pendente |           |
-| RN-INC-03 | Gravidade por valor, quantidade, recorrência e produto crítico está [A DEFINIR].                                          | Sim      | Pendente |           |
-| RN-INC-04 | Ocorrências repetidas por produto, endereço ou usuário devem ser agrupadas ou sinalizadas [A DEFINIR].                    | Sim      | Pendente |           |
-| RN-INC-05 | Apenas dono/gerente encerra ocorrência; limites [A DEFINIR].                                                              | Sim      | Pendente |           |
+| RF-INC-01 | Criar ocorrência por recebimento, reposição, inventário, transferência, venda ou validade.                                |          | Feito    | PR B6.1 · decisão em DECISOES.md: recebimento (`finalize_receiving`), reposição (gatilho em `replenishment_tasks`), inventário (`finalize_inventory_count`) e validade (`sync_expiry_incidents`) geram ocorrência sozinhos; venda fica de fora (não existe até o B7) e transferência fica de fora (instantânea, sem divergência hoje) — decisão registrada, não esquecimento |
+| RF-INC-02 | Classificar gravidade e prioridade.                                                                                       |          | Feito    | PR B6.1 · decisão em DECISOES.md (RN-INC-03): `private.calc_incident_severity` calcula baixa/média/alta por % de diferença + recorrência; lista já ordena por não encerrada primeiro, depois gravidade, testado |
+| RF-INC-03 | Atribuir responsável e prazo.                                                                                             |          | Feito    | PR B6.1 · `assign_incident` grava responsável (qualquer membro ativo da empresa) e prazo opcional, testado |
+| RF-INC-04 | Exibir esperado, contado, diferença, histórico e evidências.                                                              |          | Feito    | PR B6.1 · `list_incidents` traz esperado/contado/diferença; histórico via auditoria genérica (B0.2) estendida para a tabela nova; evidência é o próprio contexto (produto, endereço, referência à origem) |
+| RF-INC-05 | Permitir reconhecer, investigar, corrigir, justificar e encerrar.                                                         |          | Feito    | PR B6.1 · `acknowledge_incident` → `start_incident_investigation` → `resolve_incident` (corrigida/descartada, sempre com justificativa) → `reopen_incident`, ciclo completo testado |
+| RF-INC-07 | Manter vínculo com movimentos corretivos.                                                                                 |          | Feito    | PR B6.1 · `correction_movement_id` vinculado automaticamente quando o ajuste de inventário já foi lançado, ou manualmente ao encerrar como "corrigida" (`resolve_incident`), validado contra o mesmo mercado, testado |
+| RF-INC-08 | Impedir encerramento sem justificativa.                                                                                   |          | Feito    | PR B6.1 · `resolve_incident` e `reopen_incident` exigem nota não vazia, testado |
+| RN-INC-01 | Inconsistência automática não pode ser apagada; pode ser resolvida, descartada com justificativa ou vinculada a correção. |          | Feito    | PR B6.1 · nenhuma função de delete existe para `incidents` (revoke insert/update/delete de authenticated/anon); só `resolve_incident`/`reopen_incident` mudam o estado, sempre auditado |
+| RN-INC-02 | Encerrar não altera estoque sozinho; qualquer correção exige movimento de ajuste.                                         |          | Feito    | PR B6.1 · `resolve_incident` nunca insere em `stock_movements` — só aceita vincular um movimento que já existe no mesmo mercado, testado |
+| RN-INC-03 | Gravidade por valor, quantidade, recorrência e produto crítico está [A DEFINIR].                                          | Sim      | Feito    | PR B6.1 · decisão em DECISOES.md: sem preço no catálogo ainda (B3.4), gravidade = % de diferença + recorrência (produto crítico fica para quando houver essa marcação no catálogo) |
+| RN-INC-04 | Ocorrências repetidas por produto, endereço ou usuário devem ser agrupadas ou sinalizadas [A DEFINIR].                    | Sim      | Feito    | PR B6.1 · decisão em DECISOES.md: sinalizadas (`is_recurring`), nunca agrupadas/escondidas — mesmo produto com outra ocorrência nos últimos 30 dias no mercado, testado |
+| RN-INC-05 | Apenas dono/gerente encerra ocorrência; limites [A DEFINIR].                                                              | Sim      | Feito    | PR B6.1 · decisão em DECISOES.md: mesmo padrão de acesso de todo o sistema, sem limite extra por valor (catálogo ainda sem preço), testado |
 
 ## B6.2 — Motor de alertas e notificações
 
