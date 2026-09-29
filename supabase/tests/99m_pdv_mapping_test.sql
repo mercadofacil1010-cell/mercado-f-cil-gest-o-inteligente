@@ -89,8 +89,8 @@ select test.ok((select base_quantity from public.sale_event_items where sale_eve
 select test.as_user('fa000000-0000-0000-0000-00000000000b');
 select public.create_pdv_product_mapping(:'loja_id'::uuid, 'PDV-AGUA', :'agua_id'::uuid, :'embalagem_agua_id'::uuid);
 reset role;
-select test.ok((select status from public.sale_events where id = :'evento_id'::uuid) = 'recebido',
-  'Evento sai de pendente sozinho assim que o último vínculo é cadastrado');
+select test.ok((select status from public.sale_events where id = :'evento_id'::uuid) = 'pendente_posicao',
+  'Evento sai do mapeamento sozinho assim que o último vínculo é cadastrado — fica pendente de posição de gôndola (B7.3, este teste não cadastra nenhuma)');
 select test.ok((select count(*) from public.sale_event_items where sale_event_id = :'evento_id'::uuid) = 2,
   'Reprocessar não duplica os itens');
 select test.ok((select base_quantity from public.sale_event_items where sale_event_id = :'evento_id'::uuid and external_product_code = 'PDV-AGUA') = 3,
@@ -109,8 +109,8 @@ select test.ok((select count(*) from public.pdv_product_mappings where market_id
 select test.as_user('fa000000-0000-0000-0000-00000000000b');
 select public.reprocess_sale_event(:'evento_id'::uuid);
 reset role;
-select test.ok((select status from public.sale_events where id = :'evento_id'::uuid) = 'recebido',
-  'Reprocessar manualmente um evento já mapeado não quebra nada');
+select test.ok((select status from public.sale_events where id = :'evento_id'::uuid) = 'pendente_posicao',
+  'Reprocessar manualmente um evento já mapeado não quebra nada — continua pendente de posição (B7.3, nenhuma configurada neste teste)');
 
 ------------------------------------------------------------
 -- Caso 5: acesso — repositor não cadastra vínculo nem lista; outra

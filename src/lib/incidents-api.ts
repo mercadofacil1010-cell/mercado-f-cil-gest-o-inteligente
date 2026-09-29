@@ -1,9 +1,9 @@
 // Central de inconsistências (B6.1, RF-INC-*/RN-INC-*). Ocorrência nasce
 // automaticamente a partir de recebimento com divergência (B4.3), reposição
-// com inconsistência (B5.3), inventário com diferença (B3.6) e lote vencido
-// ainda com saldo (B3.3, sincronizado sob demanda). Venda e transferência
-// ficam de fora (decisão em DECISOES.md): venda ainda não existe (B7) e
-// transferência é instantânea, sem divergência hoje.
+// com inconsistência (B5.3), inventário com diferença (B3.6), lote vencido
+// ainda com saldo (B3.3, sincronizado sob demanda) e venda do PDV maior que
+// o saldo da gôndola (B7.3). Transferência fica de fora (decisão em
+// DECISOES.md): é instantânea, sem divergência hoje.
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -17,6 +17,7 @@ export const incidentSourceLabel: Record<IncidentSource, string> = {
   reposicao: "Reposição",
   inventario: "Inventário",
   validade: "Validade",
+  venda: "Venda",
 };
 
 export const incidentSeverityLabel: Record<IncidentSeverity, string> = {

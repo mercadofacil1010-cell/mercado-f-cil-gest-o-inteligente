@@ -2,8 +2,10 @@
 // Escopo decidido em DECISOES.md (autorização direta do proprietário, sem
 // PDV real ainda): `receiveSaleEvent` é o ponto de entrada único — dono/
 // gerente simula/injeta eventos por enquanto, já que nenhum PDV está
-// conectado. Mapeamento de produto (B7.2) já converte itens para unidade
-// base via embalagem — baixa de estoque (B7.3) ainda não existe.
+// conectado. Mapeamento de produto (B7.2) converte itens para unidade base
+// via embalagem; a baixa de estoque (B7.3) acontece automaticamente em
+// seguida, sempre da posição de gôndola de maior saldo — item de produto
+// sem nenhuma posição configurada fica "Pendente de posição".
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -19,6 +21,7 @@ export const saleEventTypeLabel: Record<SaleEventType, string> = {
 export const saleEventStatusLabel: Record<SaleEventStatus, string> = {
   recebido: "Recebido",
   pendente_mapeamento: "Pendente de mapeamento",
+  pendente_posicao: "Pendente de posição",
   processado: "Processado",
   erro: "Erro",
 };
@@ -35,6 +38,7 @@ export type SaleEvent = {
   errorMessage: string;
   itemCount: number;
   unmappedCodes: string[];
+  unpositionedCodes: string[];
 };
 
 export type PdvProductMapping = {
@@ -99,6 +103,7 @@ export async function listSaleEvents(
     errorMessage: row.error_message ?? "",
     itemCount: row.item_count,
     unmappedCodes: row.unmapped_codes ?? [],
+    unpositionedCodes: row.unpositioned_codes ?? [],
   }));
 }
 
