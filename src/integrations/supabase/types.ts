@@ -471,6 +471,7 @@ export type Database = {
           reference_inventory_count_id: string | null
           reference_lot_id: string | null
           reference_receiving_id: string | null
+          reference_sale_event_id: string | null
           reference_task_id: string | null
           reopened_count: number
           resolution: Database["public"]["Enums"]["incident_resolution"] | null
@@ -501,6 +502,7 @@ export type Database = {
           reference_inventory_count_id?: string | null
           reference_lot_id?: string | null
           reference_receiving_id?: string | null
+          reference_sale_event_id?: string | null
           reference_task_id?: string | null
           reopened_count?: number
           resolution?: Database["public"]["Enums"]["incident_resolution"] | null
@@ -531,6 +533,7 @@ export type Database = {
           reference_inventory_count_id?: string | null
           reference_lot_id?: string | null
           reference_receiving_id?: string | null
+          reference_sale_event_id?: string | null
           reference_task_id?: string | null
           reopened_count?: number
           resolution?: Database["public"]["Enums"]["incident_resolution"] | null
@@ -569,6 +572,13 @@ export type Database = {
             columns: ["reference_receiving_id"]
             isOneToOne: false
             referencedRelation: "receivings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incidents_reference_sale_event_id_fkey"
+            columns: ["reference_sale_event_id"]
+            isOneToOne: false
+            referencedRelation: "sale_events"
             referencedColumns: ["id"]
           },
           {
@@ -1804,6 +1814,7 @@ export type Database = {
         Row: {
           base_quantity: number | null
           external_product_code: string
+          gondola_position_id: string | null
           id: string
           packaging_id: string | null
           product_id: string | null
@@ -1813,6 +1824,7 @@ export type Database = {
         Insert: {
           base_quantity?: number | null
           external_product_code: string
+          gondola_position_id?: string | null
           id?: string
           packaging_id?: string | null
           product_id?: string | null
@@ -1822,6 +1834,7 @@ export type Database = {
         Update: {
           base_quantity?: number | null
           external_product_code?: string
+          gondola_position_id?: string | null
           id?: string
           packaging_id?: string | null
           product_id?: string | null
@@ -1848,6 +1861,13 @@ export type Database = {
             columns: ["packaging_id"]
             isOneToOne: false
             referencedRelation: "product_packagings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sale_event_items_gondola_position_id_fkey"
+            columns: ["gondola_position_id"]
+            isOneToOne: false
+            referencedRelation: "gondola_positions"
             referencedColumns: ["id"]
           },
         ]
@@ -2439,6 +2459,7 @@ export type Database = {
           register_code: string
           status: Database["public"]["Enums"]["sale_event_status"]
           unmapped_codes: string[] | null
+          unpositioned_codes: string[] | null
         }[]
       }
       log_audit_event: {
@@ -2630,7 +2651,7 @@ export type Database = {
       audit_action: "insert" | "update" | "delete" | "event"
       incident_resolution: "corrigida" | "descartada"
       incident_severity: "baixa" | "media" | "alta"
-      incident_source: "recebimento" | "reposicao" | "inventario" | "validade"
+      incident_source: "recebimento" | "reposicao" | "inventario" | "validade" | "venda"
       incident_status: "aberta" | "reconhecida" | "em_investigacao" | "encerrada"
       inventory_count_status: "aberta" | "finalizada"
       invite_status: "pending" | "accepted" | "revoked"
@@ -2660,7 +2681,12 @@ export type Database = {
         | "em_transito"
         | "com_inconsistencia"
         | "concluida"
-      sale_event_status: "recebido" | "pendente_mapeamento" | "processado" | "erro"
+      sale_event_status:
+        | "recebido"
+        | "pendente_mapeamento"
+        | "processado"
+        | "erro"
+        | "pendente_posicao"
       sale_event_type: "venda" | "cancelamento" | "devolucao"
       stock_movement_type:
         | "entrada"
@@ -2810,7 +2836,7 @@ export const Constants = {
       audit_action: ["insert", "update", "delete", "event"],
       incident_resolution: ["corrigida", "descartada"],
       incident_severity: ["baixa", "media", "alta"],
-      incident_source: ["recebimento", "reposicao", "inventario", "validade"],
+      incident_source: ["recebimento", "reposicao", "inventario", "validade", "venda"],
       incident_status: ["aberta", "reconhecida", "em_investigacao", "encerrada"],
       inventory_count_status: ["aberta", "finalizada"],
       invite_status: ["pending", "accepted", "revoked"],
@@ -2843,7 +2869,13 @@ export const Constants = {
         "com_inconsistencia",
         "concluida",
       ],
-      sale_event_status: ["recebido", "pendente_mapeamento", "processado", "erro"],
+      sale_event_status: [
+        "recebido",
+        "pendente_mapeamento",
+        "processado",
+        "erro",
+        "pendente_posicao",
+      ],
       sale_event_type: ["venda", "cancelamento", "devolucao"],
       stock_movement_type: [
         "entrada",

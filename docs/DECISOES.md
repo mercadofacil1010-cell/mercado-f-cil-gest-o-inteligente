@@ -319,11 +319,14 @@ Bloco B7 todo decidido pelo agente com autorização direta do proprietário ("f
 
 ### B7.3 — Baixa de estoque, cancelamento e devolução
 
+Decidido pelo agente sob a mesma autorização do B7 ("faça o que você achar melhor", 29/09/2026).
+
 | ID | Pergunta | Sugestão | Decisão |
 |---|---|---|---|
-| PA-16 | Qual endereço sofre a baixa da venda? | gôndola principal configurada para o produto; falta de mapeamento vira pendência. | _pendente_ |
-| PA-17 | Como tratar várias posições do mesmo produto? | regra explícita de prioridade ou distribuição proporcional, nunca escolha silenciosa. | _pendente_ |
-| PA-26 | Como tratar devolução e cancelamento de venda? | evento reverso vinculado à venda original; produto devolvido vai para endereço de inspeção. | _pendente_ |
+| PA-16 | Qual endereço sofre a baixa da venda? | gôndola principal configurada para o produto; falta de mapeamento vira pendência. | **Aceita a sugestão**: a baixa sai da posição de gôndola do produto — sempre a de maior saldo no momento da venda (resolve também o PA-17, ver abaixo). Produto sem nenhuma posição configurada no mercado fica pendente ("Pendente de posição") até alguém cadastrar uma — nunca inventa posição nem baixa produto errado |
+| PA-17 | Como tratar várias posições do mesmo produto? | regra explícita de prioridade ou distribuição proporcional, nunca escolha silenciosa. | **Aceita a sugestão, com prioridade (não proporcional)**: venda sempre baixa da posição de maior saldo (mantém as prateleiras mais cheias por mais tempo); devolução sem a venda original para se basear cai na posição de menor saldo (mais carente). Distribuição proporcional entre posições foi descartada por adicionar complexidade sem necessidade comprovada — pode ser revisitada se um piloto real (B7.4) mostrar que uma única posição nunca é suficiente |
+| RN-PDV-04 | Venda maior que o saldo segue qual política de estoque negativo? | — | O saldo nunca fica negativo (zera) — venda maior que o saldo abre uma ocorrência na Central de Inconsistências (fonte nova "venda", reaproveitando a régua de gravidade já existente do B6.1) para o dono investigar/recontar, em vez de bloquear a venda (ela já aconteceu de verdade no caixa) |
+| PA-26 | Como tratar devolução e cancelamento de venda? | evento reverso vinculado à venda original; produto devolvido vai para endereço de inspeção. | **Aceita a sugestão do vínculo, adaptada no destino**: cancelamento/devolução já se vincula à venda original desde o B7.1 (`reference_external_event_id`); a quantidade devolvida volta para a MESMA posição de gôndola de onde a venda tirou (rastreado item a item), não para um endereço de inspeção separado — esse conceito não existe no sistema hoje e criaria uma abstração nova sem uso comprovado ainda. Pode ser revisitado se um piloto real (B7.4) mostrar necessidade de inspecionar o produto devolvido antes de voltar à venda |
 
 ### B7.4 — Conector do PDV do mercado piloto
 

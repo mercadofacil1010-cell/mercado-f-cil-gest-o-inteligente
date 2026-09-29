@@ -1,12 +1,15 @@
-// Recepção de vendas do PDV (B7.1/B7.2) — substitui o gráfico de demonstração
-// da aba "Vendas" por uma fila real. Sem PDV conectado ainda (decisão em
-// DECISOES.md, autorização direta do proprietário): dono/gerente simula o
-// envio de um evento por aqui — o mesmo ponto de entrada (`receive_sale_event`)
-// que um conector real (B7.4) vai chamar depois. Eventos com código de
-// produto sem vínculo cadastrado ficam "Pendente de mapeamento" — o painel
-// de vínculos abaixo cadastra o código do PDV → produto/embalagem, o que
-// reprocessa sozinho os eventos pendentes (RF-PDV-07). Baixa de estoque
-// (B7.3) ainda não existe.
+// Recepção de vendas do PDV (B7.1/B7.2/B7.3) — substitui o gráfico de
+// demonstração da aba "Vendas" por uma fila real. Sem PDV conectado ainda
+// (decisão em DECISOES.md, autorização direta do proprietário): dono/gerente
+// simula o envio de um evento por aqui — o mesmo ponto de entrada
+// (`receive_sale_event`) que um conector real (B7.4) vai chamar depois.
+// Eventos com código de produto sem vínculo cadastrado ficam "Pendente de
+// mapeamento" — o painel de vínculos abaixo cadastra o código do PDV →
+// produto/embalagem, o que reprocessa sozinho os eventos pendentes
+// (RF-PDV-07). Depois de mapeado, a baixa de estoque (B7.3) já acontece
+// sozinha da posição de gôndola de maior saldo; produto mapeado mas sem
+// nenhuma posição configurada fica "Pendente de posição" até alguém
+// cadastrar uma (reprocessa sozinho de novo, mesma regra).
 import { useEffect, useState } from "react";
 import { Plus, RefreshCw, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -36,9 +39,12 @@ import { listPackagings, listProducts, type Packaging, type Product } from "@/li
 const statusTone: Record<SaleEvent["status"], Tone> = {
   recebido: "neutral",
   pendente_mapeamento: "warning",
+  pendente_posicao: "warning",
   processado: "positive",
   erro: "critical",
 };
+
+const pendingStatuses: SaleEvent["status"][] = ["pendente_mapeamento", "pendente_posicao"];
 
 const emptyItem: SaleEventItemInput = { externalProductCode: "", quantity: 1 };
 
@@ -376,13 +382,18 @@ export function SalesModule({
                       Sem vínculo: {event.unmappedCodes.join(", ")}
                     </div>
                   )}
+                  {event.unpositionedCodes.length > 0 && (
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      Sem posição de gôndola: {event.unpositionedCodes.join(", ")}
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-center gap-2">
                   <AlertPill
                     label={saleEventStatusLabel[event.status]}
                     tone={statusTone[event.status]}
                   />
-                  {event.status === "pendente_mapeamento" && (
+                  {pendingStatuses.includes(event.status) && (
                     <Button
                       size="sm"
                       variant="outline"
