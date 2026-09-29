@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { AlertPill } from "@/components/dashboard-ui";
+import { PhotoCapture } from "@/components/photo-capture";
 import { listProducts, type Product } from "@/lib/products-api";
 import {
   createGondolaPosition,
@@ -388,8 +389,10 @@ export function LocationsCatalogModule({
           }}
         />
       )}
-      {viewingMovementsOf && (
+      {viewingMovementsOf && companyId && (
         <MovementsDialog
+          companyId={companyId}
+          marketId={marketId}
           address={viewingMovementsOf}
           addresses={addresses}
           products={products}
@@ -1072,12 +1075,16 @@ const emptyMovementForm = {
 };
 
 function MovementsDialog({
+  companyId,
+  marketId,
   address,
   addresses,
   products,
   onClose,
   notify,
 }: {
+  companyId: string;
+  marketId: string;
   address: WarehouseAddress;
   addresses: WarehouseAddress[];
   products: Product[];
@@ -1103,6 +1110,7 @@ function MovementsDialog({
   const [resolvingId, setResolvingId] = useState<string | null>(null);
   const [resolveNote, setResolveNote] = useState("");
   const [resolving, setResolving] = useState(false);
+  const [photoPath, setPhotoPath] = useState<string | null>(null);
 
   const selectedProduct = products.find((product) => product.id === form.productId) ?? null;
 
@@ -1211,6 +1219,7 @@ function MovementsDialog({
             form.reference,
             form.reason,
             lotId,
+            photoPath,
           );
     setSubmitting(false);
     if (!result.ok) {
@@ -1221,6 +1230,7 @@ function MovementsDialog({
     setForm(emptyMovementForm);
     setNeedsReason(false);
     setCreatingLot(false);
+    setPhotoPath(null);
     notify(
       "pending" in result && result.pending
         ? "Acima do limite da empresa — enviado para aprovação. O estoque só muda quando for aprovado."
@@ -1463,6 +1473,16 @@ function MovementsDialog({
                   onChange={(event) => update({ reason: event.target.value })}
                   placeholder="Justificativa (saldo ficaria negativo)"
                   className="h-10 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+                />
+              )}
+              {(form.type === "perda" || form.type === "ajuste") && (
+                <PhotoCapture
+                  companyId={companyId}
+                  marketId={marketId}
+                  photoPath={photoPath}
+                  onChange={setPhotoPath}
+                  notify={notify}
+                  label="Adicionar foto da evidência (opcional)"
                 />
               )}
               {error && (

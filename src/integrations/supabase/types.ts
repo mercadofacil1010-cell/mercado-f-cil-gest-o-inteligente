@@ -804,6 +804,7 @@ export type Database = {
           created_at: string
           id: string
           lot_id: string | null
+          photo_path: string | null
           product_id: string
           quantity: number
           reason: string
@@ -821,6 +822,7 @@ export type Database = {
           created_at?: string
           id?: string
           lot_id?: string | null
+          photo_path?: string | null
           product_id: string
           quantity: number
           reason: string
@@ -838,6 +840,7 @@ export type Database = {
           created_at?: string
           id?: string
           lot_id?: string | null
+          photo_path?: string | null
           product_id?: string
           quantity?: number
           reason?: string
@@ -1061,11 +1064,13 @@ export type Database = {
           manufactured_at: string | null
           note: string | null
           packaging_id: string
+          photo_path: string | null
           product_id: string
           receiving_id: string
           rejected: boolean
           rejected_at: string | null
           rejected_by: string | null
+          rejection_photo_path: string | null
           rejection_reason: string | null
         }
         Insert: {
@@ -1081,11 +1086,13 @@ export type Database = {
           manufactured_at?: string | null
           note?: string | null
           packaging_id: string
+          photo_path?: string | null
           product_id: string
           receiving_id: string
           rejected?: boolean
           rejected_at?: string | null
           rejected_by?: string | null
+          rejection_photo_path?: string | null
           rejection_reason?: string | null
         }
         Update: {
@@ -1101,11 +1108,13 @@ export type Database = {
           manufactured_at?: string | null
           note?: string | null
           packaging_id?: string
+          photo_path?: string | null
           product_id?: string
           receiving_id?: string
           rejected?: boolean
           rejected_at?: string | null
           rejected_by?: string | null
+          rejection_photo_path?: string | null
           rejection_reason?: string | null
         }
         Relationships: [
@@ -1191,6 +1200,7 @@ export type Database = {
           recount_count: number
           rejected_at: string | null
           rejected_by: string | null
+          rejection_photo_path: string | null
           rejection_reason: string | null
           status: Database["public"]["Enums"]["receiving_status"]
           supplier_id: string | null
@@ -1211,6 +1221,7 @@ export type Database = {
           recount_count?: number
           rejected_at?: string | null
           rejected_by?: string | null
+          rejection_photo_path?: string | null
           rejection_reason?: string | null
           status?: Database["public"]["Enums"]["receiving_status"]
           supplier_id?: string | null
@@ -1231,6 +1242,7 @@ export type Database = {
           recount_count?: number
           rejected_at?: string | null
           rejected_by?: string | null
+          rejection_photo_path?: string | null
           rejection_reason?: string | null
           status?: Database["public"]["Enums"]["receiving_status"]
           supplier_id?: string | null
@@ -1342,6 +1354,7 @@ export type Database = {
           is_near_expiry: boolean
           is_ruptura: boolean
           last_impediment_at: string | null
+          last_impediment_photo_path: string | null
           last_impediment_reason: string | null
           market_id: string
           product_id: string
@@ -1372,6 +1385,7 @@ export type Database = {
           is_near_expiry?: boolean
           is_ruptura?: boolean
           last_impediment_at?: string | null
+          last_impediment_photo_path?: string | null
           last_impediment_reason?: string | null
           market_id: string
           product_id: string
@@ -1402,6 +1416,7 @@ export type Database = {
           is_near_expiry?: boolean
           is_ruptura?: boolean
           last_impediment_at?: string | null
+          last_impediment_photo_path?: string | null
           last_impediment_reason?: string | null
           market_id?: string
           product_id?: string
@@ -1759,6 +1774,7 @@ export type Database = {
           p_manufactured_at?: string
           p_note?: string
           p_packaging_id: string
+          p_photo_path?: string
           p_product_id: string
           p_quantity: number
           p_receiving_id: string
@@ -1875,6 +1891,7 @@ export type Database = {
           is_ruptura: boolean
           last_impediment_reason: string | null
           priority_score: number
+          product_barcode: string | null
           product_id: string
           product_name: string
           quantity_needed: number
@@ -1906,7 +1923,7 @@ export type Database = {
         Returns: undefined
       }
       register_replenishment_impediment: {
-        Args: { p_reason: string; p_task_id: string }
+        Args: { p_photo_path?: string; p_reason: string; p_task_id: string }
         Returns: Database["public"]["Tables"]["replenishment_tasks"]["Row"]
       }
       register_replenishment_return: {
@@ -1924,6 +1941,7 @@ export type Database = {
       register_stock_movement: {
         Args: {
           p_lot_id?: string
+          p_photo_path?: string
           p_product_id: string
           p_quantity: number
           p_reason?: string
@@ -1951,11 +1969,11 @@ export type Database = {
         Returns: Database["public"]["Tables"]["pending_stock_adjustments"]["Row"]
       }
       reject_receiving: {
-        Args: { p_reason: string; p_receiving_id: string }
+        Args: { p_photo_path?: string; p_reason: string; p_receiving_id: string }
         Returns: Database["public"]["Tables"]["receivings"]["Row"]
       }
       reject_receiving_count: {
-        Args: { p_id: string; p_reason: string }
+        Args: { p_id: string; p_photo_path?: string; p_reason: string }
         Returns: Database["public"]["Tables"]["receiving_counted_items"]["Row"]
       }
       remove_receiving_count: { Args: { p_id: string }; Returns: undefined }

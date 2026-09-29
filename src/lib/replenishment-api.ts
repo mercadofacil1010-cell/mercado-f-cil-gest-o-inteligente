@@ -29,6 +29,7 @@ export type ReplenishmentTask = {
   gondolaPositionCode: string;
   productId: string;
   productName: string;
+  productBarcode: string;
   quantityNeeded: number;
   isRuptura: boolean;
   isNearExpiry: boolean;
@@ -73,6 +74,7 @@ export async function listReplenishmentTasks(marketId: string): Promise<Replenis
     gondolaPositionCode: row.gondola_position_code,
     productId: row.product_id,
     productName: row.product_name,
+    productBarcode: row.product_barcode ?? "",
     quantityNeeded: row.quantity_needed,
     isRuptura: row.is_ruptura,
     isNearExpiry: row.is_near_expiry,
@@ -189,10 +191,12 @@ export async function submitReplenishmentCount(
 export async function registerReplenishmentImpediment(
   taskId: string,
   reason: string,
+  photoPath?: string | null,
 ): Promise<{ ok: true } | { ok: false; message: string }> {
   const { error } = await supabase.rpc("register_replenishment_impediment", {
     p_task_id: taskId,
     p_reason: reason,
+    ...(photoPath ? { p_photo_path: photoPath } : {}),
   });
   if (error) return { ok: false, message: error.message };
   return { ok: true };

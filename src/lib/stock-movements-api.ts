@@ -106,6 +106,7 @@ export async function registerStockMovement(
   reference: string,
   reason?: string,
   lotId?: string,
+  photoPath?: string | null,
 ): Promise<
   { ok: true; pending?: boolean } | { ok: false; message: string; needsReason?: boolean }
 > {
@@ -117,6 +118,7 @@ export async function registerStockMovement(
     ...(reference ? { p_reference: reference } : {}),
     ...(reason ? { p_reason: reason } : {}),
     ...(lotId ? { p_lot_id: lotId } : {}),
+    ...(photoPath ? { p_photo_path: photoPath } : {}),
   });
   if (error) {
     const needsReason =
