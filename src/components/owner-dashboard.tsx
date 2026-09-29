@@ -66,6 +66,7 @@ import { ProductCatalogModule } from "@/components/product-catalog-module";
 import { LocationsCatalogModule } from "@/components/locations-catalog-module";
 import { ReceivingsCatalogModule } from "@/components/receivings-catalog-module";
 import { ReplenishmentOverview } from "@/components/replenishment-overview";
+import { IncidentsModule } from "@/components/incidents-module";
 import { OwnerSection } from "@/components/owner-sections";
 import { initialProducts, type Product } from "@/data/products";
 import { money, type Market } from "@/data/markets";
@@ -632,6 +633,13 @@ export function OwnerDashboard({
                   companyId={companyId}
                   market={market}
                   onOpenStocker={onOpenStocker}
+                  notify={setToast}
+                />
+              ) : tab === "Inconsistências" ? (
+                <IncidentsModule
+                  key={market.id}
+                  companyId={companyId}
+                  marketId={market.id}
                   notify={setToast}
                 />
               ) : null

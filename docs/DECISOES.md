@@ -286,6 +286,15 @@ A "matriz de permissões (seção 2.2)" da Documentação Funcional Completa ori
 
 ## Bloco B6
 
+### B6.1 — Central de inconsistências
+
+| ID | Pergunta | Sugestão | Decisão |
+|---|---|---|---|
+| RF-INC-01 | De quais origens a Central de Inconsistências deve criar ocorrência automaticamente nesta etapa? | Recebimento, reposição, inventário e validade — as 4 origens que já existem e já detectam divergência hoje. Venda fica de fora (não existe até o B7); transferência fica de fora (é instantânea, não gera divergência hoje). | **Aceita a sugestão** (29/09/2026, proprietário) |
+| RN-INC-03 | Como calcular a gravidade da ocorrência, já que o catálogo ainda não tem preço/custo (decisão do B3.4)? | Tamanho percentual da diferença + recorrência — sem valor monetário disponível. | **Aceita a sugestão** (29/09/2026, proprietário): >50% de diferença ou recorrente vira alta; >10% vira média; senão baixa (recorrência sempre sobe pelo menos um nível) |
+| RN-INC-04 | Ocorrências repetidas do mesmo produto/endereço/usuário devem ser agrupadas ou só sinalizadas? | Sinalizar como recorrente, sem esconder. | **Aceita a sugestão** (29/09/2026, proprietário): `is_recurring` marca, mas cada ocorrência continua aparecendo separada na lista — mesmo produto com outra ocorrência nos últimos 30 dias |
+| RN-INC-05 | Quem pode encerrar uma ocorrência, e há algum limite adicional? | Dono ou gerente com acesso ao mercado, sem limite extra. | **Aceita a sugestão** (29/09/2026, proprietário): mesmo padrão de acesso já usado em todo o sistema |
+
 ### B6.2 — Motor de alertas e notificações
 
 | ID | Pergunta | Sugestão | Decisão |
