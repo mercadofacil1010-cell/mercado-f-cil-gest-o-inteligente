@@ -6,7 +6,7 @@ Cada linha aponta a etapa do plano (`docs/PLANO_FECHAMENTO.md`) em que o item é
 **Status:** `Pendente` → `Em andamento` → `Feito` (com evidência). `Parcial` = começou, falta completar. `Adiado` = decisão formal de tirar da versão.  
 **Decisão?** `Sim` = o item tem [A DEFINIR]; a decisão precisa estar registrada em `docs/DECISOES.md` antes de codificar.
 
-Total de itens rastreados: **427** · Feito: **197** · Parcial: **30**
+Total de itens rastreados: **427** · Feito: **207** · Parcial: **31**
 
 | Bloco                          | Itens |
 | ------------------------------ | ----- |
@@ -458,17 +458,17 @@ Correção 1 exige que o Conferente tenha experiência própria, não uma aba do
 
 | ID        | Item                                                                                                                                 | Decisão? | Status   | Evidência |
 | --------- | ------------------------------------------------------------------------------------------------------------------------------------ | -------- | -------- | --------- |
-| RF-PDV-01 | Receber venda identificada por mercado, caixa, data, itens e quantidades.                                                            |          | Pendente |           |
-| RF-PDV-05 | Evitar duplicidade de eventos.                                                                                                       |          | Pendente |           |
-| RN-PDV-01 | O mesmo evento externo não pode gerar dois movimentos.                                                                               |          | Pendente |           |
-| RN-PDV-02 | Venda confirmada reduz saldo teórico uma única vez.                                                                                  |          | Pendente |           |
-| RN-PDV-06 | Falha de integração não deve perder eventos; recuperação e janela de retenção [A DEFINIR].                                           | Sim      | Pendente |           |
-| RN-INT-01 | Toda integração deve identificar origem, evento e horário para evitar duplicidade.                                                   |          | Pendente |           |
-| RN-INT-02 | Falha não pode apagar dados recebidos nem gerar movimentação parcial silenciosa.                                                     |          | Pendente |           |
-| RN-INT-03 | Eventos devem possuir estado de processamento e possibilidade de reprocessamento seguro.                                             |          | Pendente |           |
-| RN-INT-04 | Credenciais e responsáveis pela configuração estão [A DEFINIR].                                                                      | Sim      | Pendente |           |
-| RN-INT-06 | Integrações devem respeitar o escopo da empresa e do mercado.                                                                        |          | Pendente |           |
-| PA-25     | Como o PDV enviará dados e com que frequência? — Sugestão do documento: eventos próximos do tempo real, com reconciliação periódica. | Sim      | Pendente |           |
+| RF-PDV-01 | Receber venda identificada por mercado, caixa, data, itens e quantidades.                                                            |          | Feito    | PR B7.1 · `receive_sale_event` grava mercado, caixa (`register_code`), data (`occurred_at`) e itens/quantidades (`sale_event_items`), testado |
+| RF-PDV-05 | Evitar duplicidade de eventos.                                                                                                       |          | Feito    | PR B7.1 · índice único `(market_id, external_event_id)` — reenviar o mesmo evento nunca cria uma segunda linha, testado |
+| RN-PDV-01 | O mesmo evento externo não pode gerar dois movimentos.                                                                               |          | Feito    | PR B7.1 · mesma evidência de RF-PDV-05 (nenhum movimento ainda é gerado nesta etapa — a garantia já vale para quando B7.3 processar) |
+| RN-PDV-02 | Venda confirmada reduz saldo teórico uma única vez.                                                                                  |          | Parcial  | PR B7.1 · a garantia de "uma única vez" já existe (idempotência por evento); a baixa do saldo em si é o B7.3 |
+| RN-PDV-06 | Falha de integração não deve perder eventos; recuperação e janela de retenção [A DEFINIR].                                           | Sim      | Feito    | PR B7.1 · decisão em DECISOES.md: mesmo padrão de "sem exclusão física" já usado em todo ledger — nenhuma função de delete existe para `sale_events`/`sale_event_items` |
+| RN-INT-01 | Toda integração deve identificar origem, evento e horário para evitar duplicidade.                                                   |          | Feito    | PR B7.1 · origem (`market_id`/`register_code`), evento (`external_event_id`) e horário (`occurred_at`) sempre gravados |
+| RN-INT-02 | Falha não pode apagar dados recebidos nem gerar movimentação parcial silenciosa.                                                     |          | Feito    | PR B7.1 · sem função de delete; validação acontece toda antes do insert (evento e itens numa só transação), testado |
+| RN-INT-03 | Eventos devem possuir estado de processamento e possibilidade de reprocessamento seguro.                                             |          | Feito    | PR B7.1 · `sale_event_status` (recebido/pendente_mapeamento/processado/erro); reprocessar é seguro por ser idempotente por `external_event_id` |
+| RN-INT-04 | Credenciais e responsáveis pela configuração estão [A DEFINIR].                                                                      | Sim      | Feito    | PR B7.1 · decisão em DECISOES.md: só dono/gerente por enquanto — gestão de credencial de API fica para o conector real (B7.4) |
+| RN-INT-06 | Integrações devem respeitar o escopo da empresa e do mercado.                                                                        |          | Feito    | PR B7.1 · RLS e checagem de permissão em `receive_sale_event`/`list_sale_events`, mesmo padrão de todo o sistema, testado |
+| PA-25     | Como o PDV enviará dados e com que frequência? — Sugestão do documento: eventos próximos do tempo real, com reconciliação periódica. | Sim      | Feito    | PR B7.1 · decisão em DECISOES.md: sem PDV real ainda, dono/gerente simula eventos pela aba "Vendas"; reconciliação periódica fica para o B7.4 |
 
 ## B7.2 — Mapeamento de produtos e pendências
 

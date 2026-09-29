@@ -309,9 +309,13 @@ A "matriz de permissões (seção 2.2)" da Documentação Funcional Completa ori
 
 ### B7.1 — Recepção de vendas do PDV (idempotente)
 
+Bloco B7 todo decidido pelo agente com autorização direta do proprietário ("faça o que você achar melhor", 29/09/2026) — sem PDV real definido ainda (nenhum mercado piloto com marca de caixa escolhida), as decisões seguem o mesmo padrão já usado neste projeto para dependências externas sem piloto (leitor de código de barras físico do B5.4, XML de NF-e do B4.1): construir o mecanismo genérico agora, adiar o conector de uma marca específica para quando existir um piloto de verdade (B7.4).
+
 | ID | Pergunta | Sugestão | Decisão |
 |---|---|---|---|
-| PA-25 | Como o PDV enviará dados e com que frequência? | eventos próximos do tempo real, com reconciliação periódica. | _pendente_ |
+| PA-25 | Como o PDV enviará dados e com que frequência? | eventos próximos do tempo real, com reconciliação periódica. | **Aceita a sugestão, com adaptação**: sem PDV real ainda, `receive_sale_event` é o ponto de entrada único (dono/gerente simula/injeta eventos por enquanto); reconciliação periódica fica para quando existir conexão real com um PDV (B7.4) |
+| RN-PDV-06 | Falha de integração não deve perder eventos; recuperação e janela de retenção [A DEFINIR]. | — | Mesmo padrão de "sem exclusão física" (RN-ACL-06) já usado em toda tabela de evento/ledger deste projeto: retenção indefinida, nenhuma função de delete existe para `sale_events`/`sale_event_items` |
+| RN-INT-04 | Credenciais e responsáveis pela configuração estão [A DEFINIR]. | — | Só dono/gerente com acesso ao mercado podem registrar eventos por enquanto (mesmo padrão de acesso de todo o sistema) — gestão de credencial de API fica para quando existir o conector real de um PDV (B7.4), que é quem vai efetivamente autenticar como um sistema externo |
 
 ### B7.3 — Baixa de estoque, cancelamento e devolução
 

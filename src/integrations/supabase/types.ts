@@ -1742,6 +1742,91 @@ export type Database = {
           },
         ]
       }
+      sale_event_items: {
+        Row: {
+          external_product_code: string
+          id: string
+          quantity: number
+          sale_event_id: string
+        }
+        Insert: {
+          external_product_code: string
+          id?: string
+          quantity: number
+          sale_event_id: string
+        }
+        Update: {
+          external_product_code?: string
+          id?: string
+          quantity?: number
+          sale_event_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sale_event_items_sale_event_id_fkey"
+            columns: ["sale_event_id"]
+            isOneToOne: false
+            referencedRelation: "sale_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sale_events: {
+        Row: {
+          error_message: string | null
+          event_type: Database["public"]["Enums"]["sale_event_type"]
+          external_event_id: string
+          id: string
+          market_id: string
+          occurred_at: string
+          processed_at: string | null
+          raw_payload: Json
+          received_at: string
+          received_by: string
+          reference_external_event_id: string | null
+          register_code: string
+          status: Database["public"]["Enums"]["sale_event_status"]
+        }
+        Insert: {
+          error_message?: string | null
+          event_type: Database["public"]["Enums"]["sale_event_type"]
+          external_event_id: string
+          id?: string
+          market_id: string
+          occurred_at: string
+          processed_at?: string | null
+          raw_payload: Json
+          received_at?: string
+          received_by: string
+          reference_external_event_id?: string | null
+          register_code: string
+          status?: Database["public"]["Enums"]["sale_event_status"]
+        }
+        Update: {
+          error_message?: string | null
+          event_type?: Database["public"]["Enums"]["sale_event_type"]
+          external_event_id?: string
+          id?: string
+          market_id?: string
+          occurred_at?: string
+          processed_at?: string | null
+          raw_payload?: Json
+          received_at?: string
+          received_by?: string
+          reference_external_event_id?: string | null
+          register_code?: string
+          status?: Database["public"]["Enums"]["sale_event_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sale_events_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "markets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stock_movements: {
         Row: {
           created_at: string
@@ -2235,6 +2320,24 @@ export type Database = {
           waiting_hours: number
         }[]
       }
+      list_sale_events: {
+        Args: {
+          p_market_id: string
+          p_status?: Database["public"]["Enums"]["sale_event_status"]
+        }
+        Returns: {
+          error_message: string | null
+          event_type: Database["public"]["Enums"]["sale_event_type"]
+          external_event_id: string
+          id: string
+          item_count: number
+          occurred_at: string
+          received_at: string
+          reference_external_event_id: string | null
+          register_code: string
+          status: Database["public"]["Enums"]["sale_event_status"]
+        }[]
+      }
       log_audit_event: {
         Args: {
           p_company_id?: string
@@ -2248,6 +2351,18 @@ export type Database = {
       log_security_event: {
         Args: { p_details?: Json; p_entity: string }
         Returns: number
+      }
+      receive_sale_event: {
+        Args: {
+          p_event_type: Database["public"]["Enums"]["sale_event_type"]
+          p_external_event_id: string
+          p_items: Json
+          p_market_id: string
+          p_occurred_at: string
+          p_reference_external_event_id?: string
+          p_register_code: string
+        }
+        Returns: Json
       }
       record_gondola_balance: {
         Args: { p_balance: number; p_position_id: string }
@@ -2438,6 +2553,8 @@ export type Database = {
         | "em_transito"
         | "com_inconsistencia"
         | "concluida"
+      sale_event_status: "recebido" | "pendente_mapeamento" | "processado" | "erro"
+      sale_event_type: "venda" | "cancelamento" | "devolucao"
       stock_movement_type:
         | "entrada"
         | "saida"
@@ -2619,6 +2736,8 @@ export const Constants = {
         "com_inconsistencia",
         "concluida",
       ],
+      sale_event_status: ["recebido", "pendente_mapeamento", "processado", "erro"],
+      sale_event_type: ["venda", "cancelamento", "devolucao"],
       stock_movement_type: [
         "entrada",
         "saida",
