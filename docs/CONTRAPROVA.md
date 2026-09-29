@@ -6,7 +6,7 @@ Cada linha aponta a etapa do plano (`docs/PLANO_FECHAMENTO.md`) em que o item é
 **Status:** `Pendente` → `Em andamento` → `Feito` (com evidência). `Parcial` = começou, falta completar. `Adiado` = decisão formal de tirar da versão.  
 **Decisão?** `Sim` = o item tem [A DEFINIR]; a decisão precisa estar registrada em `docs/DECISOES.md` antes de codificar.
 
-Total de itens rastreados: **427** · Feito: **192** · Parcial: **30**
+Total de itens rastreados: **427** · Feito: **197** · Parcial: **30**
 
 | Bloco                          | Itens |
 | ------------------------------ | ----- |
@@ -445,14 +445,14 @@ Correção 1 exige que o Conferente tenha experiência própria, não uma aba do
 
 | ID            | Item                                                                                                                                                 | Decisão? | Status   | Evidência |
 | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | -------- | --------- |
-| RN-DSH-05     | Um alerta não desaparece apenas porque o usuário abriu o painel; exige resolução ou descarte autorizado.                                             |          | Pendente |           |
-| RF-EST-06     | Gerar alertas de mínimo, ponto de pedido, negativo e divergência.                                                                                    |          | Pendente |           |
-| RF-INC-06     | Notificar dono e gerente conforme tipo e limite.                                                                                                     |          | Pendente |           |
-| RN-CRT-EST-06 | Ponto de pedido do depósito gera alerta ou sugestão de compra; fórmula por consumo e prazo do fornecedor está [A DEFINIR].                           | Sim      | Pendente |           |
-| PA-37         | Quais canais de notificação? — Sugestão do documento: sistema e push para operação; e-mail para conta/cobrança; WhatsApp opcional com consentimento. | Sim      | Pendente |           |
-| PA-38         | Quais alertas chegam ao dono? — Sugestão do documento: permitir preferências, mantendo críticos obrigatórios.                                        | Sim      | Pendente |           |
-| G-10          | Lacuna: perfil 'comprador' citado em alertas mas não definido                                                                                        |          | Pendente |           |
-| INT-WPP       | Integração WhatsApp (opcional)                                                                                                                       |          | Pendente |           |
+| RN-DSH-05     | Um alerta não desaparece apenas porque o usuário abriu o painel; exige resolução ou descarte autorizado.                                             |          | Feito    | PR B6.2 · `list_alerts` nunca muda estado — só `sync_alerts` (resolve sozinho quando a condição deixou de existir) ou `discard_alert` (dono/gerente) mudam o status, testado |
+| RF-EST-06     | Gerar alertas de mínimo, ponto de pedido, negativo e divergência.                                                                                    |          | Feito    | PR B6.2 · decisão em DECISOES.md: feed único (`alerts`) reunindo inconsistência aberta (B6.1), saldo negativo e gôndola no mínimo sem tarefa ativa (o caso que o B5.1 sozinho não cobre); ponto de pedido com sugestão de compra adiado (ver RN-CRT-EST-06) |
+| RF-INC-06     | Notificar dono e gerente conforme tipo e limite.                                                                                                     |          | Feito    | PR B6.2 · RLS de `alerts`/`incidents` já restringe a dono/gerente com acesso ao mercado; canal é só sistema por decisão (PA-37) — aparece na aba "Alertas" do painel |
+| RN-CRT-EST-06 | Ponto de pedido do depósito gera alerta ou sugestão de compra; fórmula por consumo e prazo do fornecedor está [A DEFINIR].                           | Sim      | Adiado   | PR B6.2 · decisão em DECISOES.md: sem histórico de vendas (B7) não dá para calcular consumo de verdade — fica para quando existir esse histórico |
+| PA-37         | Quais canais de notificação? — Sugestão do documento: sistema e push para operação; e-mail para conta/cobrança; WhatsApp opcional com consentimento. | Sim      | Feito    | PR B6.2 · decisão em DECISOES.md: só sistema por enquanto — nenhuma integração de e-mail/push/WhatsApp existe no projeto ainda |
+| PA-38         | Quais alertas chegam ao dono? — Sugestão do documento: permitir preferências, mantendo críticos obrigatórios.                                        | Sim      | Feito    | PR B6.2 · decisão em DECISOES.md: dono e gerente com acesso ao mercado, sem tela de preferências ainda — todo alerta é crítico |
+| G-10          | Lacuna: perfil 'comprador' citado em alertas mas não definido                                                                                        |          | Adiado   | PR B6.2 · decisão em DECISOES.md: fica de fora — nenhuma tarefa do sistema até agora precisou desse papel |
+| INT-WPP       | Integração WhatsApp (opcional)                                                                                                                       |          | Adiado   | Decisão em DECISOES.md (PA-37): fora do escopo desta etapa, sem provedor definido |
 
 ## B7.1 — Recepção de vendas do PDV (idempotente)
 

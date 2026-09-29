@@ -42,6 +42,7 @@ const marketTabs = [
   "Reposições",
   "Validades",
   "Inconsistências",
+  "Alertas",
   "Vendas",
   "Equipe",
   "Configurações",
