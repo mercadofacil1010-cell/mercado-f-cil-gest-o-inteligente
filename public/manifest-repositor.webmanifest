@@ -1,0 +1,18 @@
+{
+  "name": "Mercado Fácil — Repositor",
+  "short_name": "Repositor",
+  "description": "App do repositor: tarefas de reposição, retirada, devolução e contagem cega da gôndola.",
+  "start_url": "/repositor",
+  "scope": "/repositor",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#131c2e",
+  "theme_color": "#131c2e",
+  "lang": "pt-BR",
+  "icons": [
+    { "src": "/icons/app-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/app-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/app-icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/icons/app-icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

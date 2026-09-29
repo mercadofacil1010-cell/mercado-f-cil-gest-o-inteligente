@@ -21,6 +21,12 @@ import {
   type ReplenishmentTask,
   type ReplenishmentTaskStatus,
 } from "@/lib/replenishment-api";
+import {
+  listSyncConflicts,
+  resolveSyncConflict,
+  syncConflictActionLabel,
+  type SyncConflict,
+} from "@/lib/offline-sync-conflicts-api";
 
 const statusTone: Record<ReplenishmentTaskStatus, Tone> = {
   pendente: "neutral",
@@ -57,13 +63,18 @@ export function ReplenishmentOverview({
   const [resolvingTaskId, setResolvingTaskId] = useState<string | null>(null);
   const [resolutionNote, setResolutionNote] = useState("");
   const [busyTaskId, setBusyTaskId] = useState<string | null>(null);
+  const [syncConflicts, setSyncConflicts] = useState<SyncConflict[]>([]);
+  const [resolvingConflictId, setResolvingConflictId] = useState<string | null>(null);
+  const [conflictNote, setConflictNote] = useState("");
+  const [busyConflictId, setBusyConflictId] = useState<string | null>(null);
 
   const reload = async () => {
     setLoading(true);
-    const [positionList, taskList, memberList] = await Promise.all([
+    const [positionList, taskList, memberList, conflictList] = await Promise.all([
       listGondolaPositions(market.id),
       listReplenishmentTasks(market.id),
       companyId ? listTeamMembers(companyId) : Promise.resolve([]),
+      listSyncConflicts(market.id),
     ]);
     setPositions(positionList.filter((position) => position.productId));
     setTasks(taskList);
@@ -72,6 +83,7 @@ export function ReplenishmentOverview({
         (member) => member.role === "stocker" && member.marketNames.includes(market.name),
       ),
     );
+    setSyncConflicts(conflictList);
     setLoading(false);
   };
 
@@ -112,6 +124,24 @@ export function ReplenishmentOverview({
     setResolvingTaskId(null);
     setResolutionNote("");
     notify("Inconsistência decidida.");
+    void reload();
+  };
+
+  const handleResolveConflict = async (conflictId: string) => {
+    if (!conflictNote.trim()) {
+      notify("Informe o que foi feito para resolver.");
+      return;
+    }
+    setBusyConflictId(conflictId);
+    const result = await resolveSyncConflict(conflictId, conflictNote);
+    setBusyConflictId(null);
+    if (!result.ok) {
+      notify(result.message);
+      return;
+    }
+    setResolvingConflictId(null);
+    setConflictNote("");
+    notify("Pendência de sincronização resolvida.");
     void reload();
   };
 
@@ -330,6 +360,75 @@ export function ReplenishmentOverview({
           </ul>
         )}
       </ChartCard>
+
+      {syncConflicts.length > 0 && (
+        <ChartCard
+          title="Pendências de sincronização"
+          subtitle="Ações feitas sem internet que o servidor recusou ao sincronizar (PA-40) — nunca aplicadas por cima do que mudou; decida manualmente o que fazer."
+        >
+          <ul className="mt-5 space-y-3">
+            {syncConflicts.map((conflict) => (
+              <li
+                key={conflict.id}
+                className="rounded-md border border-warning/40 bg-warning/5 p-4"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <strong className="block">
+                      {syncConflictActionLabel[conflict.actionType] ?? conflict.actionType}
+                    </strong>
+                    <span className="block text-sm text-muted-foreground">
+                      {conflict.errorMessage}
+                    </span>
+                  </div>
+                  <AlertPill label="Pendente" tone="critical" />
+                </div>
+                <pre className="mt-2 overflow-x-auto rounded bg-muted p-2 text-xs text-muted-foreground">
+                  {JSON.stringify(conflict.payload, null, 2)}
+                </pre>
+                {resolvingConflictId === conflict.id ? (
+                  <div className="mt-3 space-y-2">
+                    <textarea
+                      value={conflictNote}
+                      onChange={(event) => setConflictNote(event.target.value)}
+                      placeholder="O que foi feito para resolver"
+                      className="min-h-[60px] w-full rounded-md border border-input bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                    />
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        disabled={busyConflictId === conflict.id}
+                        onClick={() => void handleResolveConflict(conflict.id)}
+                      >
+                        Confirmar resolução
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setResolvingConflictId(null);
+                          setConflictNote("");
+                        }}
+                      >
+                        Cancelar
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <Button
+                    className="mt-3"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setResolvingConflictId(conflict.id)}
+                  >
+                    Resolver
+                  </Button>
+                )}
+              </li>
+            ))}
+          </ul>
+        </ChartCard>
+      )}
     </div>
   );
 }

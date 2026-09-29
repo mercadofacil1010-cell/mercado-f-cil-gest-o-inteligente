@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { AlertPill } from "@/components/dashboard-ui";
 import { PhotoCapture } from "@/components/photo-capture";
 import { BarcodeScannerButton } from "@/components/barcode-scanner";
+import { OfflineStatusBadge } from "@/components/offline-status-badge";
 import { useAuth } from "@/lib/auth-context";
 import { getConferenteContext, type ConferenteContext } from "@/lib/conferente-api";
 import { listReceivings, receivingStatusLabel, type Receiving } from "@/lib/receivings-api";
@@ -35,10 +36,23 @@ import {
   type CountedItem,
   type ReceivingItemCondition,
 } from "@/lib/receiving-conference-api";
+import { registerAppShellServiceWorker } from "@/lib/pwa-register";
+import { cacheGet, cacheSet } from "@/lib/offline-db";
+import { runOrQueue, useOnlineStatus } from "@/lib/offline-sync";
 
+// App instalável (B5.5, DEC-B5-13): manifest próprio (start_url/scope
+// /conferente) — instalar aqui não instala o /repositor nem o resto do app.
 export const Route = createFileRoute("/conferente")({
   head: () => ({
-    meta: [{ title: "App do Conferente | Mercado Fácil" }, { name: "robots", content: "noindex" }],
+    meta: [
+      { title: "App do Conferente | Mercado Fácil" },
+      { name: "robots", content: "noindex" },
+      { name: "theme-color", content: "#131c2e" },
+    ],
+    links: [
+      { rel: "manifest", href: "/manifest-conferente.webmanifest" },
+      { rel: "apple-touch-icon", href: "/icons/app-icon-192.png" },
+    ],
   }),
   component: ConferenteRoute,
 });
@@ -52,6 +66,10 @@ function ConferenteRoute() {
   const { session, loading, signIn, signOut } = useAuth();
   const [checking, setChecking] = useState(true);
   const [context, setContext] = useState<ConferenteContext>(null);
+
+  useEffect(() => {
+    registerAppShellServiceWorker();
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -230,6 +248,7 @@ function ConferenteHome({
   const [receivings, setReceivings] = useState<Receiving[]>([]);
   const [loading, setLoading] = useState(true);
   const [openReceiving, setOpenReceiving] = useState<Receiving | null>(null);
+  const online = useOnlineStatus();
 
   const reload = () => {
     if (!selectedMarket) {
@@ -238,9 +257,18 @@ function ConferenteHome({
       return;
     }
     setLoading(true);
+    const cacheKey = `conferente:receivings:${selectedMarket}`;
+    if (!navigator.onLine) {
+      void cacheGet<Receiving[]>(cacheKey).then((cached) => {
+        setReceivings(cached ?? []);
+        setLoading(false);
+      });
+      return;
+    }
     void listReceivings(selectedMarket).then((list) => {
       setReceivings(list);
       setLoading(false);
+      void cacheSet(cacheKey, list);
     });
   };
 
@@ -267,6 +295,7 @@ function ConferenteHome({
           Sair
         </Button>
       </div>
+      <OfflineStatusBadge />
       <h1 className="text-xl font-extrabold">Recebimentos</h1>
 
       {markets.length === 0 ? (
@@ -307,32 +336,50 @@ function ConferenteHome({
             </div>
           ) : (
             <ul className="space-y-2">
-              {receivings.map((receiving) => (
-                <li
-                  key={receiving.id}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => setOpenReceiving(receiving)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter" || event.key === " ") setOpenReceiving(receiving);
-                  }}
-                  className="cursor-pointer rounded-lg border border-border bg-card p-4 shadow-card outline-none transition hover:border-primary/50 focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <strong className="block truncate">
-                        {receiving.supplierName || "Fornecedor não informado"}
-                      </strong>
-                      <span className="block text-sm text-muted-foreground">
-                        {receiving.invoiceNumber
-                          ? `NF ${receiving.invoiceNumber}`
-                          : "Sem nota fiscal"}
-                      </span>
+              {receivings.map((receiving) => {
+                const opensOfflineBlocked =
+                  !online && receiving.status === "aguardando_recebimento";
+                return (
+                  <li
+                    key={receiving.id}
+                    role="button"
+                    tabIndex={0}
+                    aria-disabled={opensOfflineBlocked}
+                    onClick={() => {
+                      if (opensOfflineBlocked) return;
+                      setOpenReceiving(receiving);
+                    }}
+                    onKeyDown={(event) => {
+                      if (opensOfflineBlocked) return;
+                      if (event.key === "Enter" || event.key === " ") setOpenReceiving(receiving);
+                    }}
+                    className={`rounded-lg border border-border bg-card p-4 shadow-card outline-none transition focus-visible:ring-2 focus-visible:ring-ring ${
+                      opensOfflineBlocked
+                        ? "cursor-not-allowed opacity-60"
+                        : "cursor-pointer hover:border-primary/50"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <strong className="block truncate">
+                          {receiving.supplierName || "Fornecedor não informado"}
+                        </strong>
+                        <span className="block text-sm text-muted-foreground">
+                          {receiving.invoiceNumber
+                            ? `NF ${receiving.invoiceNumber}`
+                            : "Sem nota fiscal"}
+                        </span>
+                        {opensOfflineBlocked && (
+                          <span className="mt-1 block text-xs text-muted-foreground">
+                            Precisa de internet para iniciar esta conferência.
+                          </span>
+                        )}
+                      </div>
+                      <AlertPill label={receivingStatusLabel[receiving.status]} tone="neutral" />
                     </div>
-                    <AlertPill label={receivingStatusLabel[receiving.status]} tone="neutral" />
-                  </div>
-                </li>
-              ))}
+                  </li>
+                );
+              })}
             </ul>
           )}
         </>
@@ -430,15 +477,30 @@ function BlindCountScreen({
       setError("Informe a quantidade contada.");
       return;
     }
-    setSubmitting(true);
-    const result = await addReceivingCount(receiving.id, product.id, packagingId, quantity, {
+    const options = {
       batchNumber: form.batchNumber,
       manufacturedAt: form.manufacturedAt,
       expiresAt: form.expiresAt,
       condition: form.condition,
       note: form.note,
       photoPath,
-    });
+    };
+    setSubmitting(true);
+    const result = await runOrQueue(
+      "conferente",
+      receiving.marketId,
+      {
+        actionType: "receiving_count",
+        payload: {
+          receivingId: receiving.id,
+          productId: product.id,
+          packagingId,
+          quantity,
+          options,
+        },
+      },
+      () => addReceivingCount(receiving.id, product.id, packagingId, quantity, options),
+    );
     setSubmitting(false);
     if (!result.ok) {
       setError(result.message);
@@ -448,7 +510,11 @@ function BlindCountScreen({
     setBarcode("");
     setForm(emptyCountForm);
     setPhotoPath(null);
-    reloadItems();
+    if (result.queued) {
+      setError("Sem internet — contagem guardada, vai sincronizar depois.");
+    } else {
+      reloadItems();
+    }
   };
 
   const handleRemove = async (id: string) => {
@@ -475,6 +541,7 @@ function BlindCountScreen({
           </span>
         </div>
       </div>
+      <OfflineStatusBadge />
 
       {status === "aguardando_recebimento" ? (
         <div className="rounded-lg border border-dashed border-border bg-card p-8 text-center">

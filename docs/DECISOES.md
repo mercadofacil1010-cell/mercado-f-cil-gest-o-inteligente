@@ -279,8 +279,9 @@ A "matriz de permissões (seção 2.2)" da Documentação Funcional Completa ori
 
 | ID | Pergunta | Sugestão | Decisão |
 |---|---|---|---|
-| PA-39 | Funcionamento offline no celular? | permitir tarefas já baixadas e contagens; bloquear decisões que dependem de saldo atualizado. | _pendente_ |
-| PA-40 | Como resolver conflito offline? | nunca sobrescrever silenciosamente; criar pendência para conciliação. | _pendente_ |
+| PA-39 | Funcionamento offline no celular? | permitir tarefas já baixadas e contagens; bloquear decisões que dependem de saldo atualizado. | **Aceita a sugestão** (29/09/2026, proprietário): dentro de uma tarefa de reposição já aceita (retirada, devolução, impedimento) e de uma conferência de recebimento já iniciada (contagem de item) continuam offline; aceitar tarefa, começar conferência e a própria contagem cega da gôndola (que depende do servidor responder na hora se bateu ou não) exigem internet |
+| PA-40 | Como resolver conflito offline? | nunca sobrescrever silenciosamente; criar pendência para conciliação. | **Aceita a sugestão** (29/09/2026, proprietário): mesmo padrão de fila já usado no app (perdas/ajustes acima do limite, inconsistência de reposição) — `offline_sync_conflicts`, visível para dono/gerente |
+| DEC-B5-13 | Instalação como PWA (ícone na tela inicial, tela cheia): em quais apps entra nesta etapa? | /repositor e /conferente — são as rotas realmente usadas no celular no dia a dia. | **Aceita a sugestão** (29/09/2026, proprietário) |
 
 
 ## Bloco B6
