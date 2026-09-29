@@ -6,7 +6,7 @@ Cada linha aponta a etapa do plano (`docs/PLANO_FECHAMENTO.md`) em que o item é
 **Status:** `Pendente` → `Em andamento` → `Feito` (com evidência). `Parcial` = começou, falta completar. `Adiado` = decisão formal de tirar da versão.  
 **Decisão?** `Sim` = o item tem [A DEFINIR]; a decisão precisa estar registrada em `docs/DECISOES.md` antes de codificar.
 
-Total de itens rastreados: **427** · Feito: **207** · Parcial: **31**
+Total de itens rastreados: **427** · Feito: **211** · Parcial: **31**
 
 | Bloco                          | Itens |
 | ------------------------------ | ----- |
@@ -474,10 +474,10 @@ Correção 1 exige que o Conferente tenha experiência própria, não uma aba do
 
 | ID        | Item                                                                   | Decisão? | Status   | Evidência |
 | --------- | ---------------------------------------------------------------------- | -------- | -------- | --------- |
-| RF-PDV-02 | Converter unidade de venda para unidade base.                          |          | Pendente |           |
-| RF-PDV-06 | Exibir fila e falhas de sincronização.                                 |          | Pendente |           |
-| RF-PDV-07 | Reprocessar eventos falhos sem duplicar movimentos.                    |          | Pendente |           |
-| RN-PDV-07 | Evento não mapeado cria pendência e não deve baixar produto incorreto. |          | Pendente |           |
+| RF-PDV-02 | Converter unidade de venda para unidade base.                          |          | Feito    | PR B7.2 · reusa `product_packagings.conversion_factor` (mesmo mecanismo do recebimento desde B4.2): `base_quantity = quantity * conversion_factor`, testado (fardo×6=12, água fator 1=3) |
+| RF-PDV-06 | Exibir fila e falhas de sincronização.                                 |          | Feito    | PR B7.2 · aba "Vendas" mostra status de cada evento e, quando pendente, os códigos sem vínculo (`unmapped_codes`) |
+| RF-PDV-07 | Reprocessar eventos falhos sem duplicar movimentos.                    |          | Feito    | PR B7.2 · cadastrar/corrigir um vínculo reprocessa sozinho todos os eventos pendentes com aquele código; botão manual "Tentar de novo" (`reprocess_sale_event`) também disponível; testado que nunca duplica itens |
+| RN-PDV-07 | Evento não mapeado cria pendência e não deve baixar produto incorreto. |          | Feito    | PR B7.2 · item sem vínculo fica com `product_id`/`packaging_id` nulos e o evento em `pendente_mapeamento`; nenhuma baixa de estoque existe ainda (isso é B7.3), testado |
 
 ## B7.3 — Baixa de estoque, cancelamento e devolução
 

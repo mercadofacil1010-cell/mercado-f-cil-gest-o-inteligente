@@ -647,7 +647,12 @@ export function OwnerDashboard({
               ) : tab === "Alertas" ? (
                 <AlertsModule key={market.id} marketId={market.id} notify={setToast} />
               ) : tab === "Vendas" ? (
-                <SalesModule key={market.id} marketId={market.id} notify={setToast} />
+                <SalesModule
+                  key={market.id}
+                  companyId={companyId}
+                  marketId={market.id}
+                  notify={setToast}
+                />
               ) : null
             }
           />

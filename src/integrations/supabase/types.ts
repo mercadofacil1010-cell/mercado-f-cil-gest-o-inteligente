@@ -1083,6 +1083,64 @@ export type Database = {
           },
         ]
       }
+      pdv_product_mappings: {
+        Row: {
+          created_at: string
+          created_by: string
+          external_product_code: string
+          id: string
+          market_id: string
+          packaging_id: string
+          product_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          external_product_code: string
+          id?: string
+          market_id: string
+          packaging_id: string
+          product_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          external_product_code?: string
+          id?: string
+          market_id?: string
+          packaging_id?: string
+          product_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pdv_product_mappings_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "markets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pdv_product_mappings_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pdv_product_mappings_packaging_id_fkey"
+            columns: ["packaging_id"]
+            isOneToOne: false
+            referencedRelation: "product_packagings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pending_stock_adjustments: {
         Row: {
           created_at: string
@@ -1744,20 +1802,29 @@ export type Database = {
       }
       sale_event_items: {
         Row: {
+          base_quantity: number | null
           external_product_code: string
           id: string
+          packaging_id: string | null
+          product_id: string | null
           quantity: number
           sale_event_id: string
         }
         Insert: {
+          base_quantity?: number | null
           external_product_code: string
           id?: string
+          packaging_id?: string | null
+          product_id?: string | null
           quantity: number
           sale_event_id: string
         }
         Update: {
+          base_quantity?: number | null
           external_product_code?: string
           id?: string
+          packaging_id?: string | null
+          product_id?: string | null
           quantity?: number
           sale_event_id?: string
         }
@@ -1767,6 +1834,20 @@ export type Database = {
             columns: ["sale_event_id"]
             isOneToOne: false
             referencedRelation: "sale_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sale_event_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sale_event_items_packaging_id_fkey"
+            columns: ["packaging_id"]
+            isOneToOne: false
+            referencedRelation: "product_packagings"
             referencedColumns: ["id"]
           },
         ]
@@ -2203,6 +2284,15 @@ export type Database = {
         }
         Returns: string
       }
+      create_pdv_product_mapping: {
+        Args: {
+          p_external_product_code: string
+          p_market_id: string
+          p_packaging_id: string
+          p_product_id: string
+        }
+        Returns: Database["public"]["Tables"]["pdv_product_mappings"]["Row"]
+      }
       create_receiving: {
         Args: {
           p_invoice_number?: string
@@ -2299,6 +2389,18 @@ export type Database = {
           warehouse_address_code: string | null
         }[]
       }
+      list_pdv_product_mappings: {
+        Args: { p_market_id: string }
+        Returns: {
+          created_at: string
+          external_product_code: string
+          id: string
+          packaging_id: string
+          packaging_name: string
+          product_id: string
+          product_name: string
+        }[]
+      }
       list_replenishment_tasks: {
         Args: { p_market_id: string }
         Returns: {
@@ -2336,6 +2438,7 @@ export type Database = {
           reference_external_event_id: string | null
           register_code: string
           status: Database["public"]["Enums"]["sale_event_status"]
+          unmapped_codes: string[] | null
         }[]
       }
       log_audit_event: {
@@ -2440,6 +2543,10 @@ export type Database = {
       reopen_incident: {
         Args: { p_id: string; p_note: string }
         Returns: Database["public"]["Tables"]["incidents"]["Row"]
+      }
+      reprocess_sale_event: {
+        Args: { p_id: string }
+        Returns: Database["public"]["Tables"]["sale_events"]["Row"]
       }
       request_receiving_recount: {
         Args: { p_product_ids: string[]; p_reason: string; p_receiving_id: string }

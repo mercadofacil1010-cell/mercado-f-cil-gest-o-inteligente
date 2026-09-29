@@ -48,8 +48,8 @@ select id as evento_1_id from public.sale_events where external_event_id = 'EVT-
 
 select test.ok((select count(*) from public.sale_events where id = :'evento_1_id'::uuid) = 1,
   'Evento de venda é registrado');
-select test.ok((select status from public.sale_events where id = :'evento_1_id'::uuid) = 'recebido',
-  'Evento nasce com status recebido');
+select test.ok((select status from public.sale_events where id = :'evento_1_id'::uuid) = 'pendente_mapeamento',
+  'Evento nasce pendente de mapeamento — SKU-1/SKU-2 não têm vínculo de produto ainda (B7.2)');
 select test.ok((select count(*) from public.sale_event_items where sale_event_id = :'evento_1_id'::uuid) = 2,
   'Os 2 itens do evento são registrados');
 
@@ -119,7 +119,7 @@ select test.ok((select count(*) from public.list_sale_events(:'loja_id'::uuid)) 
   'Dono lista os 2 eventos registrados até aqui (EVT-001 e EVT-005 — os demais falharam validação/permissão)');
 select test.ok((select item_count from public.list_sale_events(:'loja_id'::uuid) where external_event_id = 'EVT-001') = 2,
   'Contagem de itens do evento está correta');
-select test.ok((select count(*) from public.list_sale_events(:'loja_id'::uuid, 'recebido'::public.sale_event_status)) = 2,
-  'Filtro por status recebido traz todos (nenhum foi processado ainda)');
+select test.ok((select count(*) from public.list_sale_events(:'loja_id'::uuid, 'pendente_mapeamento'::public.sale_event_status)) = 2,
+  'Filtro por status pendente_mapeamento traz os 2 — nenhum código de produto foi vinculado ainda (B7.2)');
 select test.ok((select count(*) from public.list_sale_events(:'loja_id'::uuid, 'processado'::public.sale_event_status)) = 0,
   'Filtro por status processado não traz nada (mapeamento/baixa ainda não existem)');
