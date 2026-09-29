@@ -1292,40 +1292,91 @@ export type Database = {
       }
       replenishment_tasks: {
         Row: {
+          accepted_at: string | null
+          accepted_by: string | null
+          completed_at: string | null
+          completed_by: string | null
           created_at: string
           created_by: string
           gondola_position_id: string
           id: string
           is_near_expiry: boolean
           is_ruptura: boolean
+          last_impediment_at: string | null
+          last_impediment_reason: string | null
           market_id: string
           product_id: string
           quantity_needed: number
+          quantity_placed: number | null
+          quantity_returned: number | null
+          quantity_withdrawn: number | null
+          resolution_note: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          return_warehouse_address_id: string | null
+          source_warehouse_address_id: string | null
           status: Database["public"]["Enums"]["replenishment_task_status"]
+          withdrawal_lot_id: string | null
+          withdrawn_at: string | null
+          withdrawn_by: string | null
         }
         Insert: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
           created_at?: string
           created_by: string
           gondola_position_id: string
           id?: string
           is_near_expiry?: boolean
           is_ruptura?: boolean
+          last_impediment_at?: string | null
+          last_impediment_reason?: string | null
           market_id: string
           product_id: string
           quantity_needed: number
+          quantity_placed?: number | null
+          quantity_returned?: number | null
+          quantity_withdrawn?: number | null
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          return_warehouse_address_id?: string | null
+          source_warehouse_address_id?: string | null
           status?: Database["public"]["Enums"]["replenishment_task_status"]
+          withdrawal_lot_id?: string | null
+          withdrawn_at?: string | null
+          withdrawn_by?: string | null
         }
         Update: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
           created_at?: string
           created_by?: string
           gondola_position_id?: string
           id?: string
           is_near_expiry?: boolean
           is_ruptura?: boolean
+          last_impediment_at?: string | null
+          last_impediment_reason?: string | null
           market_id?: string
           product_id?: string
           quantity_needed?: number
+          quantity_placed?: number | null
+          quantity_returned?: number | null
+          quantity_withdrawn?: number | null
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          return_warehouse_address_id?: string | null
+          source_warehouse_address_id?: string | null
           status?: Database["public"]["Enums"]["replenishment_task_status"]
+          withdrawal_lot_id?: string | null
+          withdrawn_at?: string | null
+          withdrawn_by?: string | null
         }
         Relationships: [
           {
@@ -1655,6 +1706,10 @@ export type Database = {
     }
     Functions: {
       accept_invite: { Args: { p_token: string }; Returns: string }
+      accept_replenishment_task: {
+        Args: { p_task_id: string }
+        Returns: Database["public"]["Tables"]["replenishment_tasks"]["Row"]
+      }
       add_receiving_count: {
         Args: {
           p_batch_number?: string
@@ -1676,6 +1731,10 @@ export type Database = {
       approve_pending_stock_adjustment: {
         Args: { p_id: string; p_note?: string }
         Returns: Database["public"]["Tables"]["stock_movements"]["Row"]
+      }
+      assign_replenishment_task: {
+        Args: { p_stocker_user_id: string; p_task_id: string }
+        Returns: Database["public"]["Tables"]["replenishment_tasks"]["Row"]
       }
       check_login_lock: { Args: { p_email: string }; Returns: Json }
       create_company: {
@@ -1766,16 +1825,20 @@ export type Database = {
       list_replenishment_tasks: {
         Args: { p_market_id: string }
         Returns: {
+          accepted_by: string | null
           created_at: string
           gondola_position_code: string
           gondola_position_id: string
           id: string
           is_near_expiry: boolean
           is_ruptura: boolean
+          last_impediment_reason: string | null
           priority_score: number
           product_id: string
           product_name: string
           quantity_needed: number
+          quantity_withdrawn: number | null
+          status: Database["public"]["Enums"]["replenishment_task_status"]
           waiting_hours: number
         }[]
       }
@@ -1800,6 +1863,24 @@ export type Database = {
       register_login_attempt: {
         Args: { p_email: string; p_success: boolean }
         Returns: undefined
+      }
+      register_replenishment_completion: {
+        Args: {
+          p_note?: string
+          p_quantity_placed: number
+          p_quantity_returned?: number
+          p_return_warehouse_address_id?: string
+          p_task_id: string
+        }
+        Returns: Json
+      }
+      register_replenishment_impediment: {
+        Args: { p_reason: string; p_task_id: string }
+        Returns: Database["public"]["Tables"]["replenishment_tasks"]["Row"]
+      }
+      register_replenishment_withdrawal: {
+        Args: { p_quantity: number; p_source_warehouse_address_id: string; p_task_id: string }
+        Returns: Database["public"]["Tables"]["replenishment_tasks"]["Row"]
       }
       register_stock_movement: {
         Args: {
@@ -1845,6 +1926,10 @@ export type Database = {
         Returns: Database["public"]["Tables"]["receivings"]["Row"]
       }
       resend_invite: { Args: { p_invite_id: string }; Returns: undefined }
+      resolve_replenishment_inconsistency: {
+        Args: { p_note: string; p_task_id: string }
+        Returns: Database["public"]["Tables"]["replenishment_tasks"]["Row"]
+      }
       reverse_stock_movement: {
         Args: { p_movement_id: string; p_reason: string }
         Returns: Database["public"]["Tables"]["stock_movements"]["Row"]
@@ -1907,7 +1992,12 @@ export type Database = {
         | "finalizado"
         | "recusado"
         | "em_recontagem"
-      replenishment_task_status: "pendente"
+      replenishment_task_status:
+        | "pendente"
+        | "aceita"
+        | "em_transito"
+        | "com_inconsistencia"
+        | "concluida"
       stock_movement_type:
         | "entrada"
         | "saida"
@@ -2076,7 +2166,13 @@ export const Constants = {
         "recusado",
         "em_recontagem",
       ],
-      replenishment_task_status: ["pendente"],
+      replenishment_task_status: [
+        "pendente",
+        "aceita",
+        "em_transito",
+        "com_inconsistencia",
+        "concluida",
+      ],
       stock_movement_type: [
         "entrada",
         "saida",

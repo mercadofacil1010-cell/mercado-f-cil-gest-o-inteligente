@@ -629,6 +629,7 @@ export function OwnerDashboard({
                 />
               ) : tab === "Reposições" ? (
                 <ReplenishmentOverview
+                  companyId={companyId}
                   market={market}
                   onOpenStocker={onOpenStocker}
                   notify={setToast}
