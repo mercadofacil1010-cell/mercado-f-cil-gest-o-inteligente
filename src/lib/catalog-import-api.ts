@@ -227,6 +227,9 @@ export async function importProductsCsv(companyId: string, csvText: string): Pro
       baseUnit,
       isWeighable: parseBoolean(get(idx.pesavel)),
       tracksBatchExpiry: parseBoolean(get(idx.controla_lote_e_validade)),
+      // Preço de venda (B8.1) não faz parte do CSV de importação em massa —
+      // continua editável só pela tela de produto, um por um.
+      salePrice: null,
     };
 
     const existing = barcodeDigits ? await findProductByBarcode(companyId, barcodeDigits) : null;

@@ -73,6 +73,7 @@ const emptyProductForm: ProductFormData = {
   baseUnit: "unidade",
   isWeighable: false,
   tracksBatchExpiry: false,
+  salePrice: null,
 };
 
 const NEW_OPTION = "__new__";
@@ -376,6 +377,7 @@ function ProductDialog({
           baseUnit: product.baseUnit,
           isWeighable: product.isWeighable,
           tracksBatchExpiry: product.tracksBatchExpiry,
+          salePrice: product.salePrice,
         }
       : emptyProductForm,
   );
@@ -614,6 +616,23 @@ function ProductDialog({
               />
             </label>
           </div>
+          <label className="block text-sm">
+            <span className="mb-1.5 block font-semibold">Preço de venda (opcional)</span>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              value={form.salePrice ?? ""}
+              onChange={(event) =>
+                update({ salePrice: event.target.value === "" ? null : Number(event.target.value) })
+              }
+              placeholder="R$ 0,00"
+              className="h-11 w-full rounded-md border border-input bg-card px-3.5 text-base outline-none focus:ring-2 focus:ring-ring"
+            />
+            <span className="mt-1 block text-xs text-muted-foreground">
+              Sem preço, este produto não entra no cálculo de faturamento e ticket médio (B8.1).
+            </span>
+          </label>
           <label className="block text-sm">
             <span className="mb-1.5 block font-semibold">Unidade base</span>
             <Select

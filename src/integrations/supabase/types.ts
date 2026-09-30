@@ -1309,6 +1309,7 @@ export type Database = {
           image_url: string | null
           is_weighable: boolean
           name: string
+          sale_price: number | null
           sku: string | null
           status: Database["public"]["Enums"]["support_status"]
           tracks_batch_expiry: boolean
@@ -1326,6 +1327,7 @@ export type Database = {
           image_url?: string | null
           is_weighable?: boolean
           name: string
+          sale_price?: number | null
           sku?: string | null
           status?: Database["public"]["Enums"]["support_status"]
           tracks_batch_expiry?: boolean
@@ -1343,6 +1345,7 @@ export type Database = {
           image_url?: string | null
           is_weighable?: boolean
           name?: string
+          sale_price?: number | null
           sku?: string | null
           status?: Database["public"]["Enums"]["support_status"]
           tracks_batch_expiry?: boolean
@@ -1820,6 +1823,7 @@ export type Database = {
           product_id: string | null
           quantity: number
           sale_event_id: string
+          unit_price: number | null
         }
         Insert: {
           base_quantity?: number | null
@@ -1830,6 +1834,7 @@ export type Database = {
           product_id?: string | null
           quantity: number
           sale_event_id: string
+          unit_price?: number | null
         }
         Update: {
           base_quantity?: number | null
@@ -1840,6 +1845,7 @@ export type Database = {
           product_id?: string | null
           quantity?: number
           sale_event_id?: string
+          unit_price?: number | null
         }
         Relationships: [
           {
@@ -2339,6 +2345,10 @@ export type Database = {
         }
         Returns: Json
       }
+      get_company_dashboard: {
+        Args: { p_company_id: string; p_days?: number }
+        Returns: Json
+      }
       get_invite_preview: {
         Args: { p_token: string }
         Returns: {
@@ -2348,6 +2358,10 @@ export type Database = {
           role: Database["public"]["Enums"]["member_role"]
           status: Database["public"]["Enums"]["invite_status"]
         }[]
+      }
+      get_market_dashboard: {
+        Args: { p_days?: number; p_market_id: string }
+        Returns: Json
       }
       get_or_create_lot: {
         Args: {
@@ -2409,6 +2423,15 @@ export type Database = {
           warehouse_address_code: string | null
         }[]
       }
+      list_market_feed: {
+        Args: { p_limit?: number; p_market_id: string }
+        Returns: {
+          detail: string
+          kind: string
+          occurred_at: string
+          title: string
+        }[]
+      }
       list_pdv_product_mappings: {
         Args: { p_market_id: string }
         Returns: {
@@ -2419,6 +2442,19 @@ export type Database = {
           packaging_name: string
           product_id: string
           product_name: string
+        }[]
+      }
+      list_product_sales_ranking: {
+        Args: {
+          p_days?: number
+          p_direction?: string
+          p_limit?: number
+          p_market_id: string
+        }
+        Returns: {
+          product_id: string
+          product_name: string
+          quantity_sold: number
         }[]
       }
       list_replenishment_tasks: {

@@ -26,6 +26,7 @@ export type Product = {
   baseUnit: BaseUnit;
   isWeighable: boolean;
   tracksBatchExpiry: boolean;
+  salePrice: number | null;
   status: Database["public"]["Enums"]["support_status"];
 };
 
@@ -58,6 +59,7 @@ function mapRowToProduct(row: ProductRow, categoryName: string, brandName: strin
     baseUnit: row.base_unit as BaseUnit,
     isWeighable: row.is_weighable,
     tracksBatchExpiry: row.tracks_batch_expiry,
+    salePrice: row.sale_price,
     status: row.status,
   };
 }
@@ -161,6 +163,8 @@ export type ProductFormData = {
   baseUnit: BaseUnit;
   isWeighable: boolean;
   tracksBatchExpiry: boolean;
+  /** Preço de venda ao consumidor (B8.1) — opcional; sem ele, faturamento não é calculado para este produto. */
+  salePrice: number | null;
 };
 
 function friendlyProductError(message: string): string {
@@ -171,6 +175,8 @@ function friendlyProductError(message: string): string {
     return "Código de barras inválido: use só números (6 a 14 dígitos).";
   if (lower.includes("products_name_check")) return "Informe um nome entre 2 e 160 caracteres.";
   if (lower.includes("products_sku_check")) return "SKU muito longo (máximo 40 caracteres).";
+  if (lower.includes("products_sale_price_check"))
+    return "Preço de venda inválido (não pode ser negativo).";
   return "Não foi possível salvar o produto agora. Tente novamente.";
 }
 
@@ -195,6 +201,7 @@ export async function createProduct(
     ...(data.brandId ? { brand_id: data.brandId } : {}),
     ...(data.barcode.trim() ? { barcode: onlyDigits(data.barcode) } : {}),
     ...(data.sku.trim() ? { sku: data.sku.trim() } : {}),
+    sale_price: data.salePrice,
   };
 
   const { error: insertError } = await supabase.from("products").insert(payload);
@@ -244,6 +251,7 @@ export async function updateProduct(
     sku: data.sku.trim() || null,
     is_weighable: data.isWeighable,
     tracks_batch_expiry: data.tracksBatchExpiry,
+    sale_price: data.salePrice,
     // A unidade base não muda por aqui: trocá-la invalidaria o fator (=1) já
     // gravado na embalagem-base. Mudar de unidade base exige criar outro produto.
   };

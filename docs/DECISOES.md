@@ -339,9 +339,13 @@ Decidido pelo agente sob a mesma autorização do B7 ("faça o que você achar m
 
 ### B8.1 — Indicadores reais da rede e do mercado
 
+Decidido com o proprietário (29-30/09/2026). O texto original da seção 6.1 (fórmulas dos 15 indicadores) não está salvo neste repositório — só os nomes dos indicadores em `CONTRAPROVA.md`. Perguntado diretamente, o proprietário escolheu "usar fórmulas padrão do mercado" em vez de colar o texto original ou decidir indicador por indicador.
+
 | ID | Pergunta | Sugestão | Decisão |
 |---|---|---|---|
-| PA-48 | Quais dados financeiros serão exibidos? | faturamento e vendas do PDV; custos e margem somente se a origem estiver definida. | _pendente_ |
+| PA-48 | Quais dados financeiros serão exibidos? | faturamento e vendas do PDV; custos e margem somente se a origem estiver definida. | **Aceita a sugestão**: só faturamento/ticket médio. O catálogo nunca teve nenhum campo de preço (lacuna identificada já no B3.4) — perguntado como resolver, o proprietário escolheu acrescentar preço de venda opcional ao produto (`products.sale_price`) em vez de deixar os dois indicadores de fora. Sem preço de custo cadastrado, margem continua fora — calculá-la seria inventar dado |
+| — | Fórmulas dos 15 indicadores do cliente (IND-01..15) | usar fórmulas padrão do varejo, já que o texto original não está disponível | **Aceita a sugestão** — fórmulas padrão aplicadas e documentadas linha a linha em `20260923003200_b8_1_dashboard_indicators.sql` e na tabela de B8.1 acima. Como o catálogo só tem preço de venda (nunca custo), giro do estoque é calculado em unidades (não em R$) — mesma lógica de PA-48 |
+| — | Preço realmente usado em cada venda do PDV | — | Guardado por item (`sale_event_items.unit_price`): usa o preço mandado pelo PDV quando existir; sem isso, tira uma "foto" do preço do catálogo no momento em que o item é mapeado — o faturamento de uma venda antiga nunca muda se o preço do produto mudar depois (RN-DSH-03: sempre rastreável até a origem) |
 
 ### B8.2 — Relatórios e exportação
 
