@@ -349,9 +349,15 @@ Decidido com o proprietário (29-30/09/2026). O texto original da seção 6.1 (f
 
 ### B8.2 — Relatórios e exportação
 
+Decidido pelo agente (30/09/2026), seguindo as sugestões do próprio documento onde existiam — nenhuma delas envolvia múltiplas opções realmente defensáveis a ponto de precisar perguntar ao proprietário.
+
 | ID | Pergunta | Sugestão | Decisão |
 |---|---|---|---|
-| PA-50 | Quais formatos de relatório e exportação? | tela e CSV no MVP; PDF/planilha conforme prioridade. | _pendente_ |
+| PA-50 | Quais formatos de relatório e exportação? | tela e CSV no MVP; PDF/planilha conforme prioridade. | **Aceita a sugestão**: tela (tabela genérica, uma por tipo de relatório) + CSV gerado no navegador. PDF/planilha ficam para quando houver prioridade comercial real de algum cliente por um formato específico |
+| RN-RPT-04 | Prazo de retenção dos relatórios e logs? | — | Relatório nunca é um artefato salvo — é sempre calculado na hora a partir das tabelas de origem, que já seguem "sem exclusão física" (RN-ACL-06) em todo o projeto. Não existe "relatório antigo" para reter ou expirar |
+| RN-RPT-05 | Horário no fuso do mercado ou do usuário? | — | Fuso do navegador de quem está vendo — mesmo padrão já usado em todo o painel desde o B8.1, nenhuma tela do projeto tem fuso configurável por mercado hoje |
+| REL-13 | Relatório de assinaturas e cobrança | — | **Adiado**: o Bloco B9 (cobrança) ainda não existe, não há o que relatar |
+| REL-14 | Relatório de auditoria | — | Fica para o B8.3 (próxima etapa, especificamente sobre auditoria) — não duplicado aqui |
 
 
 ## Bloco B9

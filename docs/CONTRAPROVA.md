@@ -6,7 +6,7 @@ Cada linha aponta a etapa do plano (`docs/PLANO_FECHAMENTO.md`) em que o item é
 **Status:** `Pendente` → `Em andamento` → `Feito` (com evidência). `Parcial` = começou, falta completar. `Adiado` = decisão formal de tirar da versão.  
 **Decisão?** `Sim` = o item tem [A DEFINIR]; a decisão precisa estar registrada em `docs/DECISOES.md` antes de codificar.
 
-Total de itens rastreados: **427** · Feito: **242** · Parcial: **34**
+Total de itens rastreados: **427** · Feito: **264** · Parcial: **34**
 
 | Bloco                          | Itens |
 | ------------------------------ | ----- |
@@ -539,30 +539,30 @@ Correção 1 exige que o Conferente tenha experiência própria, não uma aba do
 
 | ID        | Item                                                                                                                    | Decisão? | Status   | Evidência |
 | --------- | ----------------------------------------------------------------------------------------------------------------------- | -------- | -------- | --------- |
-| RF-RPT-01 | Gerar relatórios por empresa, mercado, período, produto, lote, endereço e responsável.                                  |          | Pendente |           |
-| RF-RPT-02 | Permitir exportação [A DEFINIR].                                                                                        | Sim      | Pendente |           |
-| RF-RPT-03 | Mostrar origem e horário de atualização dos dados.                                                                      |          | Pendente |           |
-| RF-RPT-05 | Permitir detalhamento do indicador até os eventos de origem.                                                            |          | Pendente |           |
-| RF-RPT-06 | Restringir conteúdo conforme perfil e mercado.                                                                          |          | Pendente |           |
-| RN-RPT-01 | Relatórios respeitam o mesmo isolamento e as mesmas permissões das telas operacionais.                                  |          | Pendente |           |
-| RN-RPT-04 | Prazo de retenção dos relatórios e logs está [A DEFINIR].                                                               | Sim      | Pendente |           |
-| RN-RPT-05 | Horário deve ser apresentado no fuso do mercado ou do usuário [A DEFINIR].                                              | Sim      | Pendente |           |
-| PA-50     | Quais formatos de relatório e exportação? — Sugestão do documento: tela e CSV no MVP; PDF/planilha conforme prioridade. | Sim      | Pendente |           |
-| REL-01    | Relatório: Estoque atual (seção 6.3)                                                                                    |          | Pendente |           |
-| REL-02    | Relatório: Extrato de movimentações (seção 6.3)                                                                         |          | Pendente |           |
-| REL-03    | Relatório: Recebimentos (seção 6.3)                                                                                     |          | Pendente |           |
-| REL-04    | Relatório: Divergências de recebimento (seção 6.3)                                                                      |          | Pendente |           |
-| REL-05    | Relatório: Reposições (seção 6.3)                                                                                       |          | Pendente |           |
-| REL-06    | Relatório: Rupturas (seção 6.3)                                                                                         |          | Pendente |           |
-| REL-07    | Relatório: Validade (seção 6.3)                                                                                         |          | Pendente |           |
-| REL-08    | Relatório: Perdas (seção 6.3)                                                                                           |          | Pendente |           |
-| REL-09    | Relatório: Vendas (seção 6.3)                                                                                           |          | Pendente |           |
-| REL-10    | Relatório: Produtos sem giro (seção 6.3)                                                                                |          | Pendente |           |
-| REL-11    | Relatório: Inconsistências (seção 6.3)                                                                                  |          | Pendente |           |
-| REL-12    | Relatório: Transferências (seção 6.3)                                                                                   |          | Pendente |           |
-| REL-13    | Relatório: Assinaturas e cobrança (seção 6.3)                                                                           |          | Pendente |           |
-| REL-14    | Relatório: Auditoria (seção 6.3)                                                                                        |          | Pendente |           |
-| AUD-10    | Evento de auditoria: Exportação de relatório ou dados pessoais (seção 8.1)                                              |          | Pendente |           |
+| RF-RPT-01 | Gerar relatórios por empresa, mercado, período, produto, lote, endereço e responsável.                                  |          | Feito    | PR B8.2 · `get_report` filtra por mercado (sempre), período e produto em todos que fazem sentido; lote/endereço/responsável aparecem como colunas dos relatórios em que existem, testado |
+| RF-RPT-02 | Permitir exportação [A DEFINIR].                                                                                        | Sim      | Feito    | PR B8.2 · decisão em DECISOES.md (aceita a sugestão do PA-50): CSV gerado no navegador a partir dos dados já buscados |
+| RF-RPT-03 | Mostrar origem e horário de atualização dos dados.                                                                      |          | Feito    | PR B8.2 · relatório é sempre calculado na hora (nunca um arquivo salvo) direto das tabelas de origem — não existe "desatualizado" |
+| RF-RPT-05 | Permitir detalhamento do indicador até os eventos de origem.                                                            |          | Feito    | PR B8.2 · cada linha do relatório já É o evento de origem (movimento, venda, ocorrência...) — não é um agregado que precise de detalhe mais fundo |
+| RF-RPT-06 | Restringir conteúdo conforme perfil e mercado.                                                                          |          | Feito    | PR B8.2 · mesma `private.assert_market_manage_access` de toda função do sistema — repositor/conferente bloqueados, outra empresa bloqueada, testado |
+| RN-RPT-01 | Relatórios respeitam o mesmo isolamento e as mesmas permissões das telas operacionais.                                  |          | Feito    | PR B8.2 · mesma evidência de RF-RPT-06 |
+| RN-RPT-04 | Prazo de retenção dos relatórios e logs está [A DEFINIR].                                                               | Sim      | Feito    | PR B8.2 · decisão em DECISOES.md: relatório nunca é um artefato salvo — retenção é a mesma dos dados de origem (indefinida, RN-ACL-06) |
+| RN-RPT-05 | Horário deve ser apresentado no fuso do mercado ou do usuário [A DEFINIR].                                              | Sim      | Feito    | PR B8.2 · decisão em DECISOES.md: fuso do navegador de quem está vendo, mesmo padrão já usado desde o B8.1 |
+| PA-50     | Quais formatos de relatório e exportação? — Sugestão do documento: tela e CSV no MVP; PDF/planilha conforme prioridade. | Sim      | Feito    | PR B8.2 · decisão em DECISOES.md: aceita a sugestão — tela (tabela genérica) + CSV; PDF/planilha ficam para quando houver prioridade real |
+| REL-01    | Relatório: Estoque atual (seção 6.3)                                                                                    |          | Feito    | PR B8.2 · saldo por endereço/produto (`stock_balances`), testado |
+| REL-02    | Relatório: Extrato de movimentações (seção 6.3)                                                                        |          | Feito    | PR B8.2 · `stock_movements` com tipo/quantidade/referência/responsável, testado |
+| REL-03    | Relatório: Recebimentos (seção 6.3)                                                                                     |          | Feito    | PR B8.2 · cabeçalho de recebimentos com fornecedor/situação/responsável, testado |
+| REL-04    | Relatório: Divergências de recebimento (seção 6.3)                                                                      |          | Feito    | PR B8.2 · reaproveita as ocorrências fonte "recebimento" da Central de Inconsistências (B6.1), testado |
+| REL-05    | Relatório: Reposições (seção 6.3)                                                                                       |          | Feito    | PR B8.2 · tarefas de reposição com posição/quantidade/situação, testado |
+| REL-06    | Relatório: Rupturas (seção 6.3)                                                                                         |          | Feito    | PR B8.2 · posições de gôndola com saldo zerado no momento, testado |
+| REL-07    | Relatório: Validade (seção 6.3)                                                                                         |          | Feito    | PR B8.2 · lotes disponíveis com saldo, ordenados por vencimento, testado |
+| REL-08    | Relatório: Perdas (seção 6.3)                                                                                           |          | Feito    | PR B8.2 · movimentos tipo perda no período, testado |
+| REL-09    | Relatório: Vendas (seção 6.3)                                                                                           |          | Feito    | PR B8.2 · itens de evento de venda com preço realmente usado (B8.1), testado |
+| REL-10    | Relatório: Produtos sem giro (seção 6.3)                                                                                |          | Feito    | PR B8.2 · reaproveita `list_product_sales_ranking` (direção "bottom", B8.1), testado |
+| REL-11    | Relatório: Inconsistências (seção 6.3)                                                                                  |          | Feito    | PR B8.2 · todas as ocorrências da Central (qualquer origem) no período, testado |
+| REL-12    | Relatório: Transferências (seção 6.3)                                                                                   |          | Feito    | PR B8.2 · as duas pernas do mesmo `transfer_id` (B3.5) agrupadas numa linha com origem/destino, testado |
+| REL-13    | Relatório: Assinaturas e cobrança (seção 6.3)                                                                           |          | Adiado   | O Bloco B9 (cobrança) ainda não existe — não há o que relatar; revisitar quando B9 for construído |
+| REL-14    | Relatório: Auditoria (seção 6.3)                                                                                        |          | Pendente | Fica para o B8.3 (próxima etapa), que é especificamente sobre auditoria — não duplicado aqui |
+| AUD-10    | Evento de auditoria: Exportação de relatório ou dados pessoais (seção 8.1)                                              |          | Feito    | PR B8.2 · `logReportExport` chama `log_audit_event` (mesma função genérica do B0.2) a cada exportação de CSV |
 
 ## B8.3 — Consulta de auditoria
 

@@ -2382,6 +2382,16 @@ export type Database = {
           product_name: string
         }[]
       }
+      get_report: {
+        Args: {
+          p_date_from?: string
+          p_date_to?: string
+          p_market_id: string
+          p_product_id?: string
+          p_report: string
+        }
+        Returns: Json
+      }
       is_valid_cnpj: { Args: { value: string }; Returns: boolean }
       is_valid_cpf: { Args: { value: string }; Returns: boolean }
       list_alerts: {
