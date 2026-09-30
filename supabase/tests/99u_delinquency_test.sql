@@ -121,9 +121,11 @@ reset role;
 select id as empresa_b95_3_id from public.companies where cnpj = '99001100126039' \gset
 
 select test.as_user('ff000000-0000-0000-0000-0000000000ad');
-select test.throws(format($$select public.admin_cancel_subscription('%s'::uuid, '')$$, :'empresa_b95_3_id'),
+select test.throws(format($$select public.admin_cancel_subscription('%s'::uuid, '', '99001100126039')$$, :'empresa_b95_3_id'),
   'Cancelamento sem motivo é bloqueado');
-select public.admin_cancel_subscription(:'empresa_b95_3_id'::uuid, 'Cliente pediu cancelamento por telefone.');
+select test.throws(format($$select public.admin_cancel_subscription('%s'::uuid, 'motivo', '00000000000000')$$, :'empresa_b95_3_id'),
+  'Cancelamento com CNPJ de confirmação errado é bloqueado (RNF-SEC-03)');
+select public.admin_cancel_subscription(:'empresa_b95_3_id'::uuid, 'Cliente pediu cancelamento por telefone.', '99001100126039');
 reset role;
 select test.ok((select subscription_status from public.companies where id = :'empresa_b95_3_id'::uuid) = 'cancelled',
   'Cancelamento manual é imediato');
