@@ -359,6 +359,15 @@ Decidido pelo agente (30/09/2026), seguindo as sugestões do próprio documento 
 | REL-13 | Relatório de assinaturas e cobrança | — | **Adiado**: o Bloco B9 (cobrança) ainda não existe, não há o que relatar |
 | REL-14 | Relatório de auditoria | — | Fica para o B8.3 (próxima etapa, especificamente sobre auditoria) — não duplicado aqui |
 
+### B8.3 — Consulta de auditoria
+
+Decidido pelo agente (30/09/2026). Fecha o Bloco B8.
+
+| ID | Pergunta | Sugestão | Decisão |
+|---|---|---|---|
+| RF-RPT-04 | Trilha de auditoria pesquisável — construir mecanismo novo ou reaproveitar? | — | A trilha (`audit_log`) já existe por completo desde o B0.2, alimentada por gatilho em quase toda tabela do sistema — só faltava uma tela de consulta. Decisão: "Auditoria" vira o 13º tipo do mesmo `get_report` do B8.2, reaproveitando a mesma tela genérica, filtro de período e exportação — nenhum mecanismo novo |
+| RF-RPT-07 | O que conta como "relatório sensível" a registrar geração/exportação? | — | Todo relatório é tratado como sensível por igual: toda exportação (a de auditoria inclusive) já chama `log_audit_event` desde o B8.2 (AUD-10) — não foi necessário criar uma categoria "sensível" separada |
+
 
 ## Bloco B9
 
