@@ -245,6 +245,7 @@ export type Database = {
           city: string | null
           cnpj: string
           complement: string | null
+          coupon_id: string | null
           created_at: string
           created_by: string | null
           district: string | null
@@ -256,6 +257,7 @@ export type Database = {
           near_expiry_priority_days: number
           number: string | null
           phone: string | null
+          plan_id: string | null
           pos_name: string | null
           product_range: string | null
           segment: string | null
@@ -273,6 +275,7 @@ export type Database = {
           city?: string | null
           cnpj: string
           complement?: string | null
+          coupon_id?: string | null
           created_at?: string
           created_by?: string | null
           district?: string | null
@@ -284,6 +287,7 @@ export type Database = {
           near_expiry_priority_days?: number
           number?: string | null
           phone?: string | null
+          plan_id?: string | null
           pos_name?: string | null
           product_range?: string | null
           segment?: string | null
@@ -301,6 +305,7 @@ export type Database = {
           city?: string | null
           cnpj?: string
           complement?: string | null
+          coupon_id?: string | null
           created_at?: string
           created_by?: string | null
           district?: string | null
@@ -312,6 +317,7 @@ export type Database = {
           near_expiry_priority_days?: number
           number?: string | null
           phone?: string | null
+          plan_id?: string | null
           pos_name?: string | null
           product_range?: string | null
           segment?: string | null
@@ -324,7 +330,22 @@ export type Database = {
           updated_at?: string
           zip_code?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "companies_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: false
+            referencedRelation: "coupons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "companies_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       company_members: {
         Row: {
@@ -363,6 +384,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      coupons: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          discount_type: Database["public"]["Enums"]["coupon_discount_type"]
+          discount_value: number
+          eligibility_note: string | null
+          id: string
+          status: Database["public"]["Enums"]["support_status"]
+          times_used: number
+          usage_limit: number | null
+          valid_from: string
+          valid_until: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          discount_type: Database["public"]["Enums"]["coupon_discount_type"]
+          discount_value: number
+          eligibility_note?: string | null
+          id?: string
+          status?: Database["public"]["Enums"]["support_status"]
+          times_used?: number
+          usage_limit?: number | null
+          valid_from?: string
+          valid_until?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          discount_type?: Database["public"]["Enums"]["coupon_discount_type"]
+          discount_value?: number
+          eligibility_note?: string | null
+          id?: string
+          status?: Database["public"]["Enums"]["support_status"]
+          times_used?: number
+          usage_limit?: number | null
+          valid_from?: string
+          valid_until?: string | null
+        }
+        Relationships: []
       }
       gondola_positions: {
         Row: {
@@ -1236,6 +1302,57 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      plans: {
+        Row: {
+          base_price: number | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          features: string[]
+          id: string
+          is_default: boolean
+          max_markets: number | null
+          name: string
+          price_per_market: number | null
+          requires_payment_method_for_trial: boolean
+          status: Database["public"]["Enums"]["support_status"]
+          trial_days: number
+          updated_at: string
+        }
+        Insert: {
+          base_price?: number | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          features?: string[]
+          id?: string
+          is_default?: boolean
+          max_markets?: number | null
+          name: string
+          price_per_market?: number | null
+          requires_payment_method_for_trial?: boolean
+          status?: Database["public"]["Enums"]["support_status"]
+          trial_days?: number
+          updated_at?: string
+        }
+        Update: {
+          base_price?: number | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          features?: string[]
+          id?: string
+          is_default?: boolean
+          max_markets?: number | null
+          name?: string
+          price_per_market?: number | null
+          requires_payment_method_for_trial?: boolean
+          status?: Database["public"]["Enums"]["support_status"]
+          trial_days?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       platform_admins: {
         Row: {
@@ -2265,6 +2382,10 @@ export type Database = {
         Args: { p_expected_quantity: number; p_product_id: string; p_receiving_id: string }
         Returns: Database["public"]["Tables"]["receiving_items"]["Row"]
       }
+      admin_adjust_trial: {
+        Args: { p_company_id: string; p_new_trial_ends_at: string; p_reason: string }
+        Returns: undefined
+      }
       approve_pending_stock_adjustment: {
         Args: { p_id: string; p_note?: string }
         Returns: Database["public"]["Tables"]["stock_movements"]["Row"]
@@ -2283,12 +2404,14 @@ export type Database = {
           p_city?: string
           p_cnpj: string
           p_complement?: string
+          p_coupon_code?: string
           p_district?: string
           p_email?: string
           p_has_pos?: boolean
           p_legal_name: string
           p_number?: string
           p_phone?: string
+          p_plan_id?: string
           p_pos_name?: string
           p_product_range?: string
           p_segment?: string
@@ -2300,6 +2423,18 @@ export type Database = {
           p_zip_code?: string
         }
         Returns: string
+      }
+      create_coupon: {
+        Args: {
+          p_code: string
+          p_discount_type: Database["public"]["Enums"]["coupon_discount_type"]
+          p_discount_value: number
+          p_eligibility_note?: string
+          p_usage_limit?: number
+          p_valid_from?: string
+          p_valid_until?: string
+        }
+        Returns: Database["public"]["Tables"]["coupons"]["Row"]
       }
       create_invite: {
         Args: {
@@ -2319,6 +2454,19 @@ export type Database = {
         }
         Returns: Database["public"]["Tables"]["pdv_product_mappings"]["Row"]
       }
+      create_plan: {
+        Args: {
+          p_base_price?: number
+          p_description?: string
+          p_features?: string[]
+          p_max_markets?: number
+          p_name: string
+          p_price_per_market?: number
+          p_requires_payment_method_for_trial?: boolean
+          p_trial_days?: number
+        }
+        Returns: Database["public"]["Tables"]["plans"]["Row"]
+      }
       create_receiving: {
         Args: {
           p_invoice_number?: string
@@ -2329,6 +2477,7 @@ export type Database = {
         }
         Returns: Database["public"]["Tables"]["receivings"]["Row"]
       }
+      deactivate_coupon: { Args: { p_id: string }; Returns: undefined }
       discard_alert: {
         Args: { p_id: string; p_note?: string }
         Returns: Database["public"]["Tables"]["alerts"]["Row"]
@@ -2392,6 +2541,7 @@ export type Database = {
         }
         Returns: Json
       }
+      inactivate_plan: { Args: { p_id: string }; Returns: undefined }
       is_valid_cnpj: { Args: { value: string }; Returns: boolean }
       is_valid_cpf: { Args: { value: string }; Returns: boolean }
       list_alerts: {
@@ -2409,6 +2559,10 @@ export type Database = {
           status: Database["public"]["Enums"]["alert_status"]
           warehouse_address_code: string | null
         }[]
+      }
+      list_coupons: {
+        Args: Record<PropertyKey, never>
+        Returns: Database["public"]["Tables"]["coupons"]["Row"][]
       }
       list_incidents: {
         Args: { p_market_id: string }
@@ -2642,6 +2796,7 @@ export type Database = {
         Returns: Database["public"]["Tables"]["stock_movements"]["Row"]
       }
       revoke_invite: { Args: { p_invite_id: string }; Returns: undefined }
+      set_default_plan: { Args: { p_id: string }; Returns: undefined }
       set_inventory_count_item: {
         Args: { p_inventory_count_id: string; p_product_id: string; p_quantity: number }
         Returns: Database["public"]["Tables"]["inventory_count_items"]["Row"]
@@ -2685,6 +2840,20 @@ export type Database = {
         Args: { p_expires_at: string; p_id: string; p_reason: string }
         Returns: Database["public"]["Tables"]["lots"]["Row"]
       }
+      update_plan: {
+        Args: {
+          p_base_price?: number
+          p_description?: string
+          p_features?: string[]
+          p_id: string
+          p_max_markets?: number
+          p_name: string
+          p_price_per_market?: number
+          p_requires_payment_method_for_trial?: boolean
+          p_trial_days?: number
+        }
+        Returns: Database["public"]["Tables"]["plans"]["Row"]
+      }
       update_warehouse_address_capacity: {
         Args: { p_capacity: number; p_id: string; p_reason: string }
         Returns: Database["public"]["Tables"]["warehouse_addresses"]["Row"]
@@ -2695,6 +2864,7 @@ export type Database = {
       alert_status: "aberto" | "resolvido" | "descartado"
       alert_type: "incidente_aberto" | "saldo_negativo" | "gondola_no_minimo"
       audit_action: "insert" | "update" | "delete" | "event"
+      coupon_discount_type: "percentual" | "valor_fixo"
       incident_resolution: "corrigida" | "descartada"
       incident_severity: "baixa" | "media" | "alta"
       incident_source: "recebimento" | "reposicao" | "inventario" | "validade" | "venda"
@@ -2880,6 +3050,7 @@ export const Constants = {
       alert_status: ["aberto", "resolvido", "descartado"],
       alert_type: ["incidente_aberto", "saldo_negativo", "gondola_no_minimo"],
       audit_action: ["insert", "update", "delete", "event"],
+      coupon_discount_type: ["percentual", "valor_fixo"],
       incident_resolution: ["corrigida", "descartada"],
       incident_severity: ["baixa", "media", "alta"],
       incident_source: ["recebimento", "reposicao", "inventario", "validade", "venda"],

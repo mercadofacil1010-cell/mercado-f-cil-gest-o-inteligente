@@ -373,13 +373,19 @@ Decidido pelo agente (30/09/2026). Fecha o Bloco B8.
 
 ### B9.1 — Planos, teste gratuito e cupons no banco
 
+Perguntado ao proprietário se os planos/preços comerciais já estavam definidos antes de começar o Bloco B9 (diferente dos blocos anteriores, cheio de decisão de negócio real). Resposta: **"Ainda não defini os planos/preços"** — escolhida a opção de construir a ESTRUTURA do plano (nome, limites, recursos, campos de preço configuráveis) sem fixar nenhum valor comercial agora; os preços reais serão cadastrados depois, direto na tela de administração, quando decididos. Essa resposta governa o escopo inteiro do B9.1: sem preço real, sem gateway de pagamento (isso fica para o B9.3) — só o catálogo de planos/teste/cupons.
+
 | ID | Pergunta | Sugestão | Decisão |
 |---|---|---|---|
-| PA-28 | Quais planos, preços e limites? | validar comercialmente antes da integração do pagamento. | _pendente_ |
-| PA-29 | Existe valor base além do valor por mercado? | permitir configuração; não obrigar fórmula única. | _pendente_ |
-| PA-31 | Teste exige cartão? | parâmetro por plano/campanha. | _pendente_ |
-| PA-32 | Quantos testes uma empresa pode usar? | um por CNPJ, com exceção manual auditada. | _pendente_ |
-| PA-33 | Como funcionam cupons? | percentual ou valor fixo, vigência, limite de uso, elegibilidade e não cumulativo por padrão. | _pendente_ |
+| PA-28 | Quais planos, preços e limites? | validar comercialmente antes da integração do pagamento. | **Estrutura sem preço fechado** (resposta do proprietário acima): `plans.base_price`/`price_per_market` existem e são opcionais (`nullable`); um plano padrão foi semeado só para preservar o teste de 15 dias que já existia, sem preço nenhum. Preços reais entram depois pela própria tela "Planos" |
+| PA-29 | Existe valor base além do valor por mercado? | permitir configuração; não obrigar fórmula única. | **Aceita a sugestão**: `base_price` e `price_per_market` são colunas independentes e opcionais — nenhuma fórmula é imposta no banco; quem usa cada uma (ou as duas) é decisão comercial de cada plano |
+| PA-31 | Teste exige cartão? | parâmetro por plano/campanha. | **Aceita a sugestão, ao pé da letra**: `plans.requires_payment_method_for_trial` é um booleano por plano, não um interruptor único do sistema — por isso a antiga tela "Testes gratuitos" (um único toggle global) foi removida do admin; cada plano configura o próprio teste |
+| PA-32 | Quantos testes uma empresa pode usar? | um por CNPJ, com exceção manual auditada. | **Aceita a sugestão**: "um por CNPJ" já é garantido estruturalmente pelo `unique` em `companies.cnpj` (existe desde a fundação, B0.1) — nenhum mecanismo novo foi necessário para a regra em si. A exceção manual é nova: `admin_adjust_trial(empresa, nova_data, motivo)`, só para administrador da plataforma, exige justificativa não vazia e grava em `audit_log` (`entity = 'trial_adjusted_manually'`) |
+| PA-33 | Como funcionam cupons? | percentual ou valor fixo, vigência, limite de uso, elegibilidade e não cumulativo por padrão. | **Aceita a sugestão, por completo**: `coupons.discount_type` (`percentual`/`valor_fixo`), `valid_from`/`valid_until`, `usage_limit`/`times_used`, `eligibility_note`; "não cumulativo" virou regra estrutural — `companies.coupon_id` guarda no máximo um cupom por empresa, aplicado só na criação |
+| RN-BILL-04 | Quantidade de testes por CNPJ, CPF, e-mail ou meio de pagamento está [A DEFINIR] | — | Mesma decisão de PA-32: por CNPJ (não por CPF/e-mail/meio de pagamento — o cadastro de empresa já gira em torno do CNPJ desde a fundação) |
+| RN-BILL-05 | Cupom pode alterar valor base, valor por mercado ou total [A DEFINIR] | — | **Parcial por natureza do estágio**: o cupom guarda o tipo/valor do desconto (`discount_type`/`discount_value`), mas aplicar esse desconto sobre uma cobrança de verdade depende de existir assinatura/fatura — isso é do B9.2 (cálculo proporcional) e B9.3 (gateway), nenhum dos dois começou ainda |
+| RN-BILL-06 | Ordem de aplicação e combinação de cupons está [A DEFINIR] | — | **Nunca cumulativo**: um cupom por empresa, ponto — não existe "ordem de aplicação" porque não existe combinação possível. Se no futuro houver necessidade comercial de cupons cumulativos, isso é uma decisão nova, não uma extensão natural desta |
+| RN-CRT-BIL-04 | Cupom deve guardar tipo, valor, vigência, limite, elegibilidade e regra de combinação [A DEFINIR] | — | Mesma decisão de PA-33/RN-BILL-06 — todos os campos citados existem em `coupons`, e a regra de combinação é "nunca cumulativo" |
 
 ### B9.2 — Assinatura, cálculo e proporcional
 
