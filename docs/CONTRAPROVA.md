@@ -6,7 +6,7 @@ Cada linha aponta a etapa do plano (`docs/PLANO_FECHAMENTO.md`) em que o item é
 **Status:** `Pendente` → `Em andamento` → `Feito` (com evidência). `Parcial` = começou, falta completar. `Adiado` = decisão formal de tirar da versão.  
 **Decisão?** `Sim` = o item tem [A DEFINIR]; a decisão precisa estar registrada em `docs/DECISOES.md` antes de codificar.
 
-Total de itens rastreados: **427** · Feito: **313** · Parcial: **45**
+Total de itens rastreados: **427** · Feito: **315** · Parcial: **47**
 
 | Bloco                          | Itens |
 | ------------------------------ | ----- |
@@ -662,10 +662,10 @@ Correção 1 exige que o Conferente tenha experiência própria, não uma aba do
 
 | ID          | Item                                                                                                                                 | Decisão? | Status   | Evidência |
 | ----------- | ------------------------------------------------------------------------------------------------------------------------------------ | -------- | -------- | --------- |
-| RNF-LGPD-01 | Tratar CPF, telefone, e-mail, imagens e registros de uso somente para finalidades documentadas.                                      |          | Pendente |           |
-| RNF-LGPD-02 | Permitir atendimento a solicitações de acesso, correção, portabilidade e eliminação conforme obrigação legal e retenção [A DEFINIR]. | Sim      | Pendente |           |
-| RNF-LGPD-04 | Definir controlador, operador, encarregado, política de privacidade e prazos [A DEFINIR].                                            | Sim      | Pendente |           |
-| PA-36       | Retenção de dados após cancelamento? — Sugestão do documento: prazo contratual e legal, com exportação antes da eliminação.          | Sim      | Pendente |           |
+| RNF-LGPD-01 | Tratar CPF, telefone, e-mail, imagens e registros de uso somente para finalidades documentadas.                                      |          | Parcial  | PR B10.1 · o tratamento já é restrito por design desde a fundação (CPF só visível ao próprio usuário e a gestores, comentário no schema desde o B0); falta escrever a política de privacidade formal listando as finalidades (depende de RNF-LGPD-04) |
+| RNF-LGPD-02 | Permitir atendimento a solicitações de acesso, correção, portabilidade e eliminação conforme obrigação legal e retenção [A DEFINIR]. | Sim      | Feito    | PR B10.1 · acesso/portabilidade (`export_my_data`, `export_company_data`), eliminação (`process_data_retention`, `admin_process_erasure_request`), correção (`profiles_update_own`, política de RLS já existente desde a fundação — usuário sempre pôde corrigir os próprios dados), testado |
+| RNF-LGPD-04 | Definir controlador, operador, encarregado, política de privacidade e prazos [A DEFINIR].                                            | Sim      | Parcial  | PR B10.1 · decisão em DECISOES.md: estrutura registrada (controlador = empresa dona da plataforma; operador = fornecedores de infraestrutura) sem nomes/contatos reais do encarregado ainda — pendência explícita até o proprietário designar |
+| PA-36       | Retenção de dados após cancelamento? — Sugestão do documento: prazo contratual e legal, com exportação antes da eliminação.          | Sim      | Feito    | PR B10.1 · decisão do usuário: 90 dias corridos após o cancelamento; `process_data_retention` elimina e-mail/telefone (o cadastro em si não é apagado, RN-ACL-06), testado |
 
 ## B10.2 — Segurança reforçada
 

@@ -430,9 +430,13 @@ Perguntado ao proprietário diretamente (30/09/2026), já que o documento sugeri
 
 ### B10.1 — LGPD
 
+Perguntado ao proprietário diretamente (30/09/2026): PA-36 exigia um prazo de verdade, e RNF-LGPD-04 exigia dados reais (controlador/encarregado) que ainda não existem no projeto.
+
 | ID | Pergunta | Sugestão | Decisão |
 |---|---|---|---|
-| PA-36 | Retenção de dados após cancelamento? | prazo contratual e legal, com exportação antes da eliminação. | _pendente_ |
+| PA-36 | Retenção de dados após cancelamento? | prazo contratual e legal, com exportação antes da eliminação. | **Decisão do proprietário**: 90 dias corridos após o cancelamento. Antes disso, o dono ou o administrador podem exportar os dados via `export_company_data`; depois dos 90 dias, `process_data_retention` elimina e-mail e telefone de contato da empresa (o cadastro em si — razão social, CNPJ, histórico operacional — não é apagado, mesmo padrão de sempre, RN-ACL-06) |
+| — | O que exatamente conta como "eliminado"? | — | **Decisão do agente**: só o contato pessoal (e-mail/telefone) da empresa. Dados de auditoria (`audit_log`) mantêm os registros históricos por 5 anos (PA-43, já decidido antes) — não é um conflito: retenção de trilha de auditoria por obrigação legal/interesse legítimo é uma exceção prevista na própria LGPD ao direito de eliminação |
+| RNF-LGPD-04 | Definir controlador, operador e encarregado (DPO) — exige dados reais da empresa | — | **Decisão do proprietário**: registrar como placeholder por enquanto. Controlador = a empresa dona da plataforma (Mercado Fácil); operador = fornecedores de infraestrutura (ex.: Supabase); encarregado (DPO) = ainda não designado. Pendência explícita: falta o proprietário indicar um nome/contato real de encarregado antes de publicar uma política de privacidade de verdade |
 
 ### B10.3 — Backup, monitoramento e disponibilidade
 

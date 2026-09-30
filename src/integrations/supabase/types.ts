@@ -243,12 +243,14 @@ export type Database = {
         Row: {
           account_status: Database["public"]["Enums"]["account_status"]
           billing_cycle_anchor_day: number
+          cancelled_at: string | null
           city: string | null
           cnpj: string
           complement: string | null
           coupon_id: string | null
           created_at: string
           created_by: string | null
+          data_anonymized_at: string | null
           district: string | null
           email: string | null
           has_pos: boolean
@@ -277,12 +279,14 @@ export type Database = {
         Insert: {
           account_status?: Database["public"]["Enums"]["account_status"]
           billing_cycle_anchor_day?: number
+          cancelled_at?: string | null
           city?: string | null
           cnpj: string
           complement?: string | null
           coupon_id?: string | null
           created_at?: string
           created_by?: string | null
+          data_anonymized_at?: string | null
           district?: string | null
           email?: string | null
           has_pos?: boolean
@@ -311,12 +315,14 @@ export type Database = {
         Update: {
           account_status?: Database["public"]["Enums"]["account_status"]
           billing_cycle_anchor_day?: number
+          cancelled_at?: string | null
           city?: string | null
           cnpj?: string
           complement?: string | null
           coupon_id?: string | null
           created_at?: string
           created_by?: string | null
+          data_anonymized_at?: string | null
           district?: string | null
           email?: string | null
           has_pos?: boolean
@@ -2417,6 +2423,10 @@ export type Database = {
         Args: { p_company_id: string; p_reason: string }
         Returns: Database["public"]["Tables"]["companies"]["Row"]
       }
+      admin_process_erasure_request: {
+        Args: { p_company_id: string; p_reason: string }
+        Returns: Database["public"]["Tables"]["companies"]["Row"]
+      }
       admin_reactivate_subscription: {
         Args: { p_company_id: string; p_reason: string }
         Returns: Database["public"]["Tables"]["companies"]["Row"]
@@ -2534,6 +2544,8 @@ export type Database = {
         Args: { p_market_id: string }
         Returns: Database["public"]["Tables"]["markets"]["Row"]
       }
+      export_company_data: { Args: { p_company_id: string }; Returns: Json }
+      export_my_data: { Args: Record<PropertyKey, never>; Returns: Json }
       finalize_inventory_count: {
         Args: { p_inventory_count_id: string }
         Returns: Database["public"]["Tables"]["inventory_count_items"]["Row"][]
@@ -2729,6 +2741,7 @@ export type Database = {
         Args: { p_details?: Json; p_entity: string }
         Returns: number
       }
+      process_data_retention: { Args: Record<PropertyKey, never>; Returns: Json }
       process_subscription_delinquency: { Args: Record<PropertyKey, never>; Returns: Json }
       receive_sale_event: {
         Args: {
