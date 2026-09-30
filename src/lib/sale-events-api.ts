@@ -51,7 +51,12 @@ export type PdvProductMapping = {
   createdAt: string;
 };
 
-export type SaleEventItemInput = { externalProductCode: string; quantity: number };
+export type SaleEventItemInput = {
+  externalProductCode: string;
+  quantity: number;
+  /** Preço realmente cobrado (B8.1, opcional) — sem ele, cai no preço do catálogo ao mapear. */
+  unitPrice?: number;
+};
 
 /** Ponto de entrada único (RN-INT-01/06) — idempotente por (mercado, id do evento). */
 export async function receiveSaleEvent(
@@ -72,6 +77,7 @@ export async function receiveSaleEvent(
     p_items: items.map((item) => ({
       external_product_code: item.externalProductCode,
       quantity: item.quantity,
+      ...(item.unitPrice !== undefined ? { unit_price: item.unitPrice } : {}),
     })),
     ...(referenceExternalEventId
       ? { p_reference_external_event_id: referenceExternalEventId }

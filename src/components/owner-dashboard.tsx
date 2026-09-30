@@ -82,6 +82,7 @@ import {
 } from "@/lib/markets-api";
 import { supabase } from "@/integrations/supabase/client";
 import { roleLabel, type MemberRole } from "@/lib/invites-api";
+import { getCompanyDashboard, type CompanyDashboard } from "@/lib/dashboard-indicators-api";
 
 const initials = (name: string) =>
   name
@@ -183,6 +184,7 @@ export function OwnerDashboard({
   const [detailMarket, setDetailMarket] = useState<Market | null>(null);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [toast, setToast] = useState("");
+  const [companyDashboard, setCompanyDashboard] = useState<CompanyDashboard | null>(null);
 
   useEffect(() => {
     if (!toast) return;
@@ -227,6 +229,22 @@ export function OwnerDashboard({
     };
   }, [user]);
 
+  // Indicadores reais da rede (B8.1) — recarrega quando a empresa ou o período mudam.
+  useEffect(() => {
+    if (!companyId) {
+      setCompanyDashboard(null);
+      return;
+    }
+    let active = true;
+    const days = period === "today" ? 1 : period === "7days" ? 7 : 30;
+    void getCompanyDashboard(companyId, days).then((result) => {
+      if (active) setCompanyDashboard(result);
+    });
+    return () => {
+      active = false;
+    };
+  }, [companyId, period]);
+
   const visibleMarkets = useMemo(() => {
     const normalized = query.trim().toLocaleLowerCase("pt-BR");
     return markets.filter((market) => {
@@ -243,20 +261,31 @@ export function OwnerDashboard({
   const totals = useMemo(() => {
     const source =
       selectedMarket === "all" ? markets : markets.filter((market) => market.id === selectedMarket);
+    const rows =
+      selectedMarket === "all"
+        ? (companyDashboard?.markets ?? [])
+        : (companyDashboard?.markets ?? []).filter((row) => row.marketId === selectedMarket);
     return source.reduce(
       (sum, market) => ({
-        revenue: sum.revenue + market.revenue,
-        sales: sum.sales + market.sales,
-        replenishments: sum.replenishments + market.replenishments,
-        stockAlerts: sum.stockAlerts + market.stockAlerts,
-        expiryAlerts: sum.expiryAlerts + market.expiryAlerts,
-        inconsistencies: sum.inconsistencies + market.inconsistencies,
+        ...sum,
         open: sum.open + Number(market.status === "Aberto"),
         count: sum.count + 1,
       }),
-      emptyTotals(),
+      rows.reduce(
+        (sum, row) => ({
+          ...sum,
+          revenue: sum.revenue + row.dashboard.revenue,
+          sales: sum.sales + row.dashboard.salesCount,
+          replenishments: sum.replenishments + row.dashboard.pendingReplenishments,
+          stockAlerts: sum.stockAlerts + row.dashboard.lowStockPositions,
+          expiryAlerts: sum.expiryAlerts + row.dashboard.nearExpiryLots,
+          inconsistencies: sum.inconsistencies + row.dashboard.openIncidents,
+          losses: sum.losses + row.dashboard.losses,
+        }),
+        emptyTotals(),
+      ),
     );
-  }, [markets, selectedMarket]);
+  }, [markets, selectedMarket, companyDashboard]);
 
   const selectNav = (label: string) => {
     setActive(label);
@@ -685,6 +714,7 @@ export function OwnerDashboard({
             active={active}
             markets={markets}
             totals={totals}
+            companyDashboard={companyDashboard}
             visibleMarkets={visibleMarkets}
             query={query}
             setQuery={setQuery}
@@ -711,6 +741,7 @@ function DashboardOverview({
   openMarket,
   onAdd,
   period,
+  companyDashboard,
 }: {
   active: string;
   markets: Market[];
@@ -721,6 +752,7 @@ function DashboardOverview({
   openMarket: (market: Market) => void;
   onAdd: () => void;
   period: string;
+  companyDashboard: CompanyDashboard | null;
 }) {
   const periodLabel =
     period === "today"
@@ -730,42 +762,42 @@ function DashboardOverview({
         : "Últimos 30 dias";
   const metrics = [
     {
-      title: "Faturamento de hoje",
+      title: "Faturamento do período",
       value: money(totals.revenue),
-      note: "+8,4% em relação a ontem",
+      note: "Vendas processadas do PDV (B7)",
       icon: CircleDollarSign,
       tone: "positive",
     },
     {
       title: "Vendas realizadas",
       value: totals.sales.toLocaleString("pt-BR"),
-      note: "Pedidos concluídos",
+      note: "Eventos de venda processados",
       icon: ShoppingCart,
     },
     {
-      title: "Valor médio por venda",
+      title: "Ticket médio da rede",
       value: money(totals.sales ? totals.revenue / totals.sales : 0),
-      note: "Ticket médio da rede",
+      note: "Faturamento / vendas realizadas",
       icon: ChartNoAxesColumnIncreasing,
     },
     {
       title: "Estoque baixo",
       value: String(totals.stockAlerts),
-      note: "Produtos exigem atenção",
+      note: "Posições de gôndola no mínimo ou menos",
       icon: PackageMinus,
       tone: "warning",
     },
     {
       title: "Próximos do vencimento",
       value: String(totals.expiryAlerts),
-      note: "Itens em até 7 dias",
+      note: "Lotes dentro da janela da empresa",
       icon: CalendarDays,
       tone: "warning",
     },
     {
       title: "Reposições pendentes",
       value: String(totals.replenishments),
-      note: "Tarefas abertas",
+      note: "Tarefas ainda não concluídas",
       icon: RefreshCw,
     },
     {
@@ -782,10 +814,13 @@ function DashboardOverview({
       icon: Building2,
       tone: "positive",
     },
-    { title: "Produtos monitorados", value: "18.642", note: "Cadastro consolidado", icon: Tags },
   ];
 
-  const maxRevenue = Math.max(1, ...markets.map((market) => market.revenue));
+  const marketRevenues = (companyDashboard?.markets ?? []).map((row) => ({
+    name: row.marketName,
+    revenue: row.dashboard.revenue,
+  }));
+  const maxRevenue = Math.max(1, ...marketRevenues.map((item) => item.revenue));
   return (
     <section className="mx-auto max-w-[1680px] p-4 sm:p-6 lg:p-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -822,89 +857,49 @@ function DashboardOverview({
 
       <div className="mt-6 grid gap-5 xl:grid-cols-[minmax(0,1.55fr)_minmax(340px,.85fr)]">
         <ChartCard
-          title="Vendas nos últimos sete dias"
-          subtitle="Receita consolidada da rede"
-          badge="+11,2%"
+          title="Comparação entre mercados"
+          subtitle="Faturamento do período por unidade (RF-DSH-02)"
         >
-          <div
-            className="mt-7 flex h-56 items-end gap-2 sm:gap-4"
-            aria-label="Gráfico de vendas nos últimos sete dias"
-          >
-            {[54, 68, 62, 79, 72, 91, 84].map((height, index) => (
-              <div key={index} className="grid h-full flex-1 grid-rows-[minmax(0,1fr)_auto] gap-2">
-                <div className="flex items-end">
-                  <div
-                    className="w-full rounded-t-sm bg-chart-bar transition hover:bg-primary"
-                    style={{ height: `${height}%` }}
-                  />
-                </div>
-                <span className="text-center text-xs font-semibold text-muted-foreground">
-                  {["Qua", "Qui", "Sex", "Sáb", "Dom", "Seg", "Hoje"][index]}
-                </span>
-              </div>
-            ))}
-          </div>
+          {marketRevenues.length ? (
+            <div className="mt-6 space-y-5">
+              {marketRevenues.map((item, index) => (
+                <HorizontalBar
+                  key={item.name}
+                  label={item.name.replace("Mercado ", "")}
+                  value={item.revenue}
+                  max={maxRevenue}
+                  detail={money(item.revenue)}
+                  muted={index >= 2}
+                />
+              ))}
+            </div>
+          ) : (
+            <p className="mt-4 text-sm text-muted-foreground">Carregando indicadores…</p>
+          )}
         </ChartCard>
-        <ChartCard title="Comparação entre mercados" subtitle="Participação no faturamento">
-          <div className="mt-6 space-y-5">
-            {markets.map((market, index) => (
-              <HorizontalBar
-                key={market.id}
-                label={market.name.replace("Mercado ", "")}
-                value={market.revenue}
-                max={maxRevenue}
-                detail={money(market.revenue)}
-                muted={index >= 2}
-              />
-            ))}
-          </div>
-          <div className="mt-6 flex items-center gap-2 border-t border-border pt-4 text-sm text-muted-foreground">
-            <span className="h-2.5 w-2.5 rounded-full bg-primary" /> Atualização automática a cada 5
-            minutos
+        <ChartCard
+          title="Perdas do período"
+          subtitle="Impacto em unidades — sem custo cadastrado (PA-48)"
+        >
+          <div className="mt-6 flex items-center gap-4">
+            <div className="grid h-24 w-24 shrink-0 place-items-center rounded-full border-[10px] border-critical/60">
+              <div className="text-center">
+                <strong className="block text-lg">{totals.losses.toLocaleString("pt-BR")}</strong>
+                <span className="text-xs text-muted-foreground">unidades</span>
+              </div>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Total de perdas registradas na rede no período selecionado. Sem preço de custo
+              cadastrado, o valor financeiro não é calculado (só faturamento e vendas, PA-48).
+            </p>
           </div>
         </ChartCard>
       </div>
 
-      <div className="mt-5 grid gap-5 lg:grid-cols-3">
-        <RankCard
-          title="Produtos mais vendidos"
-          subtitle="Unidades hoje"
-          icon={BarChart3}
-          footer={`Dados consolidados de ${markets.length} mercados`}
-          items={[
-            { name: "Leite integral 1L", value: "486 un.", width: 100 },
-            { name: "Arroz tipo 1 5kg", value: "352 un.", width: 72 },
-            { name: "Café tradicional 500g", value: "297 un.", width: 61 },
-          ]}
-        />
-        <RankCard
-          title="Produtos com menor giro"
-          subtitle="Últimos 30 dias"
-          icon={PackageMinus}
-          footer={`Dados consolidados de ${markets.length} mercados`}
-          items={[
-            { name: "Azeitona premium 200g", value: "3 un.", width: 18 },
-            { name: "Molho especial 350ml", value: "5 un.", width: 28 },
-            { name: "Chá importado 20un", value: "7 un.", width: 38 },
-          ]}
-          muted
-        />
-        <ChartCard title="Perdas e divergências" subtitle="Impacto financeiro neste mês">
-          <div className="mt-6 flex items-center gap-5">
-            <div className="grid h-28 w-28 shrink-0 place-items-center rounded-full border-[14px] border-warning border-r-critical border-t-primary">
-              <div className="text-center">
-                <strong className="block text-lg">R$ 4,8 mil</strong>
-                <span className="text-xs text-muted-foreground">total</span>
-              </div>
-            </div>
-            <div className="space-y-3 text-sm">
-              <Legend color="bg-warning" label="Validade" value="46%" />
-              <Legend color="bg-critical" label="Divergências" value="31%" />
-              <Legend color="bg-primary" label="Avarias" value="23%" />
-            </div>
-          </div>
-        </ChartCard>
-      </div>
+      <p className="mt-5 text-sm text-muted-foreground">
+        Ranking de produtos mais vendidos e sem giro fica disponível na aba "Visão geral" de cada
+        mercado, junto com o feed de operação e os alertas prioritários daquela unidade.
+      </p>
 
       <div className="mt-8 flex items-end justify-between gap-4">
         <div>
@@ -942,6 +937,7 @@ function emptyTotals() {
     stockAlerts: 0,
     expiryAlerts: 0,
     inconsistencies: 0,
+    losses: 0,
     open: 0,
     count: 0,
   };
