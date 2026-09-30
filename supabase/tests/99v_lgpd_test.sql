@@ -19,7 +19,7 @@ select id as empresa_b101_id from public.companies where cnpj = '99001100134058'
 -- Caso 1: cancelamento marca cancelled_at (base da contagem dos 90 dias).
 ------------------------------------------------------------
 select test.as_user('ff000000-0000-0000-0000-0000000000ad');
-select public.admin_cancel_subscription(:'empresa_b101_id'::uuid, 'Cliente pediu cancelamento.');
+select public.admin_cancel_subscription(:'empresa_b101_id'::uuid, 'Cliente pediu cancelamento.', '99001100134058');
 reset role;
 select test.ok((select cancelled_at from public.companies where id = :'empresa_b101_id'::uuid) is not null,
   'Cancelamento marca cancelled_at, base da contagem dos 90 dias (PA-36)');
@@ -72,12 +72,14 @@ reset role;
 select id as empresa_b101_2_id from public.companies where cnpj = '99001100142077' \gset
 
 select test.as_user('ff000000-0000-0000-0000-0000000000ad');
-select test.throws(format($$select public.admin_process_erasure_request('%s'::uuid, 'pedido do cliente')$$, :'empresa_b101_2_id'),
+select test.throws(format($$select public.admin_process_erasure_request('%s'::uuid, 'pedido do cliente', '99001100142077')$$, :'empresa_b101_2_id'),
   'Não é possível eliminar contato de uma assinatura ainda ativa');
-select public.admin_cancel_subscription(:'empresa_b101_2_id'::uuid, 'Cliente pediu cancelamento.');
-select test.throws(format($$select public.admin_process_erasure_request('%s'::uuid, '')$$, :'empresa_b101_2_id'),
+select public.admin_cancel_subscription(:'empresa_b101_2_id'::uuid, 'Cliente pediu cancelamento.', '99001100142077');
+select test.throws(format($$select public.admin_process_erasure_request('%s'::uuid, '', '99001100142077')$$, :'empresa_b101_2_id'),
   'Solicitação de eliminação sem motivo é bloqueada');
-select public.admin_process_erasure_request(:'empresa_b101_2_id'::uuid, 'Cliente exerceu o direito de eliminação (LGPD) por e-mail.');
+select test.throws(format($$select public.admin_process_erasure_request('%s'::uuid, 'motivo', '00000000000000')$$, :'empresa_b101_2_id'),
+  'Eliminação com CNPJ de confirmação errado é bloqueada (RNF-SEC-03)');
+select public.admin_process_erasure_request(:'empresa_b101_2_id'::uuid, 'Cliente exerceu o direito de eliminação (LGPD) por e-mail.', '99001100142077');
 reset role;
 select test.ok((select email from public.companies where id = :'empresa_b101_2_id'::uuid) is null,
   'Solicitação de eliminação sob demanda funciona sem esperar os 90 dias');

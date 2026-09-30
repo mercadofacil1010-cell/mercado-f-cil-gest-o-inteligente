@@ -2412,7 +2412,7 @@ export type Database = {
         Returns: undefined
       }
       admin_cancel_subscription: {
-        Args: { p_company_id: string; p_reason: string }
+        Args: { p_company_id: string; p_confirm_cnpj: string; p_reason: string }
         Returns: Database["public"]["Tables"]["companies"]["Row"]
       }
       admin_list_company_audit: {
@@ -2424,7 +2424,7 @@ export type Database = {
         Returns: Database["public"]["Tables"]["companies"]["Row"]
       }
       admin_process_erasure_request: {
-        Args: { p_company_id: string; p_reason: string }
+        Args: { p_company_id: string; p_confirm_cnpj: string; p_reason: string }
         Returns: Database["public"]["Tables"]["companies"]["Row"]
       }
       admin_reactivate_subscription: {

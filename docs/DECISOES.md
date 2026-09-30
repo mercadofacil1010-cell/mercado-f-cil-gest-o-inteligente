@@ -438,6 +438,15 @@ Perguntado ao proprietário diretamente (30/09/2026): PA-36 exigia um prazo de v
 | — | O que exatamente conta como "eliminado"? | — | **Decisão do agente**: só o contato pessoal (e-mail/telefone) da empresa. Dados de auditoria (`audit_log`) mantêm os registros históricos por 5 anos (PA-43, já decidido antes) — não é um conflito: retenção de trilha de auditoria por obrigação legal/interesse legítimo é uma exceção prevista na própria LGPD ao direito de eliminação |
 | RNF-LGPD-04 | Definir controlador, operador e encarregado (DPO) — exige dados reais da empresa | — | **Decisão do proprietário**: registrar como placeholder por enquanto. Controlador = a empresa dona da plataforma (Mercado Fácil); operador = fornecedores de infraestrutura (ex.: Supabase); encarregado (DPO) = ainda não designado. Pendência explícita: falta o proprietário indicar um nome/contato real de encarregado antes de publicar uma política de privacidade de verdade |
 
+### B10.2 — Segurança reforçada
+
+Decidido pelo agente (30/09/2026) — o usuário pediu para seguir com o que fosse recomendado.
+
+| ID | Pergunta | Sugestão | Decisão |
+|---|---|---|---|
+| RNF-SEC-02 | O que entra na "política detalhada" de proteção de sessão/senha/token? | — | **Já estava, em boa parte, resolvido desde o B1.1**: senha mínima de 8 caracteres com letra e número (cadastro, B1.2), bloqueio de 15 minutos após 5 tentativas erradas seguidas (`check_login_lock`/`register_login_attempt`), auditoria de login/logout/recuperação de senha (`log_security_event`) — nada novo precisou ser construído. Sessão é gerida pelo Supabase Auth (JWT padrão da plataforma). "Tokens e integrações" fica em aberto de propósito: o conector real do PDV (B7.4) — o único lugar do sistema que teria um token de integração — depende do piloto (B10.5, ainda não decidido); não existe token nenhum no sistema hoje para proteger |
+| RNF-SEC-03 | Quais ações são "críticas" o bastante para exigir confirmação adicional, e que tipo de confirmação? | — | **Decisão do agente**: as duas ações mais irreversíveis do sistema — `admin_cancel_subscription` (cancela uma assinatura) e `admin_process_erasure_request` (elimina dados de contato, não tem volta) — passam a exigir digitar o CNPJ exato da empresa (verificado no servidor, não só uma caixinha marcada no navegador) além do motivo já obrigatório desde o B9.5/B10.1. Reautenticação (digitar a senha de novo) foi considerada e descartada por agora: exigiria um mecanismo novo de "sessão recém-confirmada" que o Supabase Auth não expõe de forma simples pelo lado do banco — revisitar se o produto crescer a ponto de precisar |
+
 ### B10.3 — Backup, monitoramento e disponibilidade
 
 | ID | Pergunta | Sugestão | Decisão |

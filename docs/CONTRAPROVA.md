@@ -6,7 +6,7 @@ Cada linha aponta a etapa do plano (`docs/PLANO_FECHAMENTO.md`) em que o item é
 **Status:** `Pendente` → `Em andamento` → `Feito` (com evidência). `Parcial` = começou, falta completar. `Adiado` = decisão formal de tirar da versão.  
 **Decisão?** `Sim` = o item tem [A DEFINIR]; a decisão precisa estar registrada em `docs/DECISOES.md` antes de codificar.
 
-Total de itens rastreados: **427** · Feito: **315** · Parcial: **47**
+Total de itens rastreados: **427** · Feito: **316** · Parcial: **48**
 
 | Bloco                          | Itens |
 | ------------------------------ | ----- |
@@ -671,8 +671,8 @@ Correção 1 exige que o Conferente tenha experiência própria, não uma aba do
 
 | ID         | Item                                                                            | Decisão? | Status   | Evidência |
 | ---------- | ------------------------------------------------------------------------------- | -------- | -------- | --------- |
-| RNF-SEC-02 | Proteger sessões, senhas, tokens e integrações; política detalhada [A DEFINIR]. | Sim      | Pendente |           |
-| RNF-SEC-03 | Exigir confirmação adicional para ações críticas [A DEFINIR].                   | Sim      | Pendente |           |
+| RNF-SEC-02 | Proteger sessões, senhas, tokens e integrações; política detalhada [A DEFINIR]. | Sim      | Parcial  | PR B10.2 · decisão em DECISOES.md: senha (mín. 8 com letra+número) e bloqueio de login (5 tentativas, 15 min) já cobertos desde o B1.1, testado; sessão é gerida pelo Supabase Auth (padrão da plataforma); "tokens e integrações" ainda não se aplica — o conector real do PDV (B7.4) depende do piloto (B10.5), que ainda não existe |
+| RNF-SEC-03 | Exigir confirmação adicional para ações críticas [A DEFINIR].                   | Sim      | Feito    | PR B10.2 · decisão em DECISOES.md: as duas ações mais irreversíveis do sistema (`admin_cancel_subscription`, `admin_process_erasure_request`) passam a exigir digitar o CNPJ exato da empresa, verificado no servidor, além do motivo já obrigatório — testado |
 
 ## B10.3 — Backup, monitoramento e disponibilidade
 
