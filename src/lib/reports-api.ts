@@ -17,7 +17,8 @@ export type ReportType =
   | "vendas"
   | "sem_giro"
   | "inconsistencias"
-  | "transferencias";
+  | "transferencias"
+  | "auditoria";
 
 export const reportTypeLabel: Record<ReportType, string> = {
   estoque_atual: "Estoque atual",
@@ -32,6 +33,7 @@ export const reportTypeLabel: Record<ReportType, string> = {
   sem_giro: "Produtos sem giro",
   inconsistencias: "Inconsistências",
   transferencias: "Transferências",
+  auditoria: "Auditoria",
 };
 
 /** Relatórios cujo filtro de período faz sentido (os demais mostram o estado atual). */
@@ -48,6 +50,7 @@ export const reportUsesPeriod: Record<ReportType, boolean> = {
   sem_giro: true,
   inconsistencias: true,
   transferencias: true,
+  auditoria: true,
 };
 
 export type ReportRow = Record<string, string | number | boolean | null>;
@@ -103,6 +106,10 @@ const columnLabels: Record<string, string> = {
   origem: "Origem",
   descricao: "Descrição",
   destino: "Destino",
+  acao: "Ação",
+  entidade: "Entidade",
+  entidade_id: "Registro",
+  campos_alterados: "Campos alterados",
 };
 
 export function reportColumnLabel(key: string): string {

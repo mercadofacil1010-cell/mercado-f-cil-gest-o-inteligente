@@ -6,7 +6,7 @@ Cada linha aponta a etapa do plano (`docs/PLANO_FECHAMENTO.md`) em que o item é
 **Status:** `Pendente` → `Em andamento` → `Feito` (com evidência). `Parcial` = começou, falta completar. `Adiado` = decisão formal de tirar da versão.  
 **Decisão?** `Sim` = o item tem [A DEFINIR]; a decisão precisa estar registrada em `docs/DECISOES.md` antes de codificar.
 
-Total de itens rastreados: **427** · Feito: **264** · Parcial: **34**
+Total de itens rastreados: **427** · Feito: **266** · Parcial: **34**
 
 | Bloco                          | Itens |
 | ------------------------------ | ----- |
@@ -568,8 +568,8 @@ Correção 1 exige que o Conferente tenha experiência própria, não uma aba do
 
 | ID        | Item                                                              | Decisão? | Status   | Evidência |
 | --------- | ----------------------------------------------------------------- | -------- | -------- | --------- |
-| RF-RPT-04 | Manter trilha de auditoria pesquisável.                           |          | Pendente |           |
-| RF-RPT-07 | Registrar geração e exportação de relatório sensível [A DEFINIR]. | Sim      | Pendente |           |
+| RF-RPT-04 | Manter trilha de auditoria pesquisável.                           |          | Feito    | PR B8.3 · trilha já existia por completo desde o B0.2 (`audit_log`); "Auditoria" vira o 13º tipo do mesmo `get_report` do B8.2 — mesma tela, mesmo filtro de período, mesma exportação, testado |
+| RF-RPT-07 | Registrar geração e exportação de relatório sensível [A DEFINIR]. | Sim      | Feito    | PR B8.3 · decisão em DECISOES.md: toda exportação de relatório (auditoria inclusa) já chama `log_audit_event` desde o B8.2 (AUD-10) — exportar a própria auditoria fica, ela mesma, auditada |
 
 ## B9.1 — Planos, teste gratuito e cupons no banco
 
