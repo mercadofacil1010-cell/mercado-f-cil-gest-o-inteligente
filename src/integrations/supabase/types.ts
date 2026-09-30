@@ -259,6 +259,7 @@ export type Database = {
           loss_adjustment_approval_threshold: number
           near_expiry_priority_days: number
           number: string | null
+          past_due_since: string | null
           phone: string | null
           plan_id: string | null
           pos_name: string | null
@@ -292,6 +293,7 @@ export type Database = {
           loss_adjustment_approval_threshold?: number
           near_expiry_priority_days?: number
           number?: string | null
+          past_due_since?: string | null
           phone?: string | null
           plan_id?: string | null
           pos_name?: string | null
@@ -325,6 +327,7 @@ export type Database = {
           loss_adjustment_approval_threshold?: number
           near_expiry_priority_days?: number
           number?: string | null
+          past_due_since?: string | null
           phone?: string | null
           plan_id?: string | null
           pos_name?: string | null
@@ -2402,9 +2405,21 @@ export type Database = {
         Args: { p_company_id: string; p_new_trial_ends_at: string; p_reason: string }
         Returns: undefined
       }
+      admin_cancel_subscription: {
+        Args: { p_company_id: string; p_reason: string }
+        Returns: Database["public"]["Tables"]["companies"]["Row"]
+      }
       admin_list_company_audit: {
         Args: { p_company_id: string; p_limit?: number }
         Returns: Database["public"]["Tables"]["audit_log"]["Row"][]
+      }
+      admin_mark_past_due: {
+        Args: { p_company_id: string; p_reason: string }
+        Returns: Database["public"]["Tables"]["companies"]["Row"]
+      }
+      admin_reactivate_subscription: {
+        Args: { p_company_id: string; p_reason: string }
+        Returns: Database["public"]["Tables"]["companies"]["Row"]
       }
       admin_update_company_plan: {
         Args: { p_company_id: string; p_plan_id: string; p_reason: string }
@@ -2714,6 +2729,7 @@ export type Database = {
         Args: { p_details?: Json; p_entity: string }
         Returns: number
       }
+      process_subscription_delinquency: { Args: Record<PropertyKey, never>; Returns: Json }
       receive_sale_event: {
         Args: {
           p_event_type: Database["public"]["Enums"]["sale_event_type"]

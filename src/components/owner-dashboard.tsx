@@ -86,6 +86,7 @@ import {
   inactivateMarket,
 } from "@/lib/markets-api";
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 import { roleLabel, type MemberRole } from "@/lib/invites-api";
 import { getCompanyDashboard, type CompanyDashboard } from "@/lib/dashboard-indicators-api";
 
@@ -179,6 +180,9 @@ export function OwnerDashboard({
   const [loadingMarkets, setLoadingMarkets] = useState(true);
   const [addingMarket, setAddingMarket] = useState(false);
   const [billingPreview, setBillingPreview] = useState<BillingPreview | undefined>(undefined);
+  const [subscriptionStatus, setSubscriptionStatus] = useState<
+    Database["public"]["Enums"]["subscription_status"] | null
+  >(null);
   const [editingMarket, setEditingMarket] = useState<Market | null>(null);
   const [products, setProducts] = useState<Product[]>(initialProducts);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -214,20 +218,23 @@ export function OwnerDashboard({
         setLoadingMarkets(false);
         return;
       }
-      const [list, { data: memberRow }, { data: profileRow }] = await Promise.all([
-        listMarkets(id),
-        supabase
-          .from("company_members")
-          .select("role")
-          .eq("company_id", id)
-          .eq("user_id", user.id)
-          .maybeSingle(),
-        supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle(),
-      ]);
+      const [list, { data: memberRow }, { data: profileRow }, { data: companyRow }] =
+        await Promise.all([
+          listMarkets(id),
+          supabase
+            .from("company_members")
+            .select("role")
+            .eq("company_id", id)
+            .eq("user_id", user.id)
+            .maybeSingle(),
+          supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle(),
+          supabase.from("companies").select("subscription_status").eq("id", id).maybeSingle(),
+        ]);
       if (!active) return;
       setMarkets(list);
       setCallerRole(memberRow?.role ?? null);
       setCallerName(profileRow?.full_name ?? null);
+      setSubscriptionStatus(companyRow?.subscription_status ?? null);
       setLoadingMarkets(false);
     });
     return () => {
@@ -753,6 +760,11 @@ export function OwnerDashboard({
               if (companyId) void loadBillingPreview(companyId);
             }}
             period={period}
+            subscriptionLocked={
+              subscriptionStatus === "past_due" ||
+              subscriptionStatus === "suspended" ||
+              subscriptionStatus === "cancelled"
+            }
           />
         )}
       </div>
@@ -771,6 +783,7 @@ function DashboardOverview({
   onAdd,
   period,
   companyDashboard,
+  subscriptionLocked,
 }: {
   active: string;
   markets: Market[];
@@ -782,6 +795,7 @@ function DashboardOverview({
   onAdd: () => void;
   period: string;
   companyDashboard: CompanyDashboard | null;
+  subscriptionLocked: boolean;
 }) {
   const periodLabel =
     period === "today"
@@ -862,10 +876,28 @@ function DashboardOverview({
             Acompanhe todos os seus mercados em uma única tela.
           </p>
         </div>
-        <Button onClick={onAdd}>
+        <Button
+          onClick={onAdd}
+          disabled={subscriptionLocked}
+          title={
+            subscriptionLocked
+              ? "Assinatura em atraso ou suspensa — regularize para adicionar novas unidades"
+              : undefined
+          }
+        >
           <Plus className="h-4 w-4" /> Adicionar novo mercado
         </Button>
       </div>
+
+      {subscriptionLocked && (
+        <div
+          role="status"
+          className="mt-4 rounded-md border border-warning/40 bg-warning-soft px-4 py-3 text-sm font-semibold text-foreground"
+        >
+          Assinatura em atraso ou suspensa: os dados continuam disponíveis para consulta, mas não é
+          possível adicionar novas unidades até regularizar.
+        </div>
+      )}
 
       <div className="relative mt-5 xl:hidden">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />

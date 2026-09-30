@@ -417,10 +417,13 @@ Perguntado ao proprietário como resolver uma divergência entre o comportamento
 
 ### B9.5 — Inadimplência, suspensão e cancelamento
 
+Perguntado ao proprietário diretamente (30/09/2026), já que o documento sugeria "assessoria comercial/jurídica" para PA-34 — sem essa assessoria disponível, o proprietário decidiu os prazos ele mesmo, como decisão de produto para poder avançar.
+
 | ID | Pergunta | Sugestão | Decisão |
 |---|---|---|---|
-| PA-34 | Prazos de inadimplência? | definir sequência de aviso, tolerância, suspensão e cancelamento com assessoria comercial/jurídica. | _pendente_ |
-| PA-35 | O que fica disponível durante suspensão? | leitura e exportação por prazo limitado; bloquear novas operações. | _pendente_ |
+| PA-34 | Prazos de inadimplência? | definir sequência de aviso, tolerância, suspensão e cancelamento com assessoria comercial/jurídica. | **Decisão do proprietário**: 7 dias em atraso suspende a assinatura; 30 dias corridos desde o início do atraso cancelam — mesmo que a empresa não tenha passado pela suspensão intermediária nesse meio tempo (ex.: processamento rodou só depois dos 30 dias). Prazos gravados no código (`process_subscription_delinquency`), fáceis de ajustar depois se a experiência real pedir outros números |
+| PA-35 | O que fica disponível durante suspensão? | leitura e exportação por prazo limitado; bloquear novas operações. | **Decisão do proprietário**: somente leitura. Implementado para a operação mais diretamente ligada à própria assinatura — adicionar um mercado novo, bloqueado desde o atraso (`past_due`) até o cancelamento. Bloquear TODAS as operações do sistema (vender, receber, repor, etc.) exigiria revisar e alterar dezenas de funções de escrita já construídas desde o Bloco B1 — risco de regressão desproporcional para esta etapa. Registrado aqui como **próximo passo pendente**: quando o gateway de pagamento (B9.3) existir de verdade e a inadimplência passar a ser automática, vale revisitar e ampliar o bloqueio de forma mais abrangente |
+| RN-BILL-08 | Retenção de dados após cancelamento está [A DEFINIR] | — | **Não decidido aqui de propósito**: essa pergunta é, na prática, a mesma do PA-36 (B10.1, LGPD) — retenção de dados é uma decisão legal, não uma decisão de engenharia de cobrança. Fica para quando o B10.1 for feito, para não duplicar a decisão |
 
 
 ## Bloco B10
