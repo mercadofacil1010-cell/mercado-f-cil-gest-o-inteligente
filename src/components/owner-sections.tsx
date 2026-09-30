@@ -56,6 +56,7 @@ import {
   type Supplier,
   type SupplierFormData,
 } from "@/lib/catalog-support-api";
+import { ReportsModule } from "@/components/reports-module";
 
 /** Seções gerais do menu do dono que não pertencem a um módulo específico. */
 export function OwnerSection({
@@ -74,7 +75,8 @@ export function OwnerSection({
   if (section === "Compras") return <Purchases notify={notify} />;
   if (section === "Fornecedores") return <Suppliers companyId={companyId} notify={notify} />;
   if (section === "Inconsistências") return <Inconsistencies notify={notify} />;
-  if (section === "Relatórios") return <Reports notify={notify} />;
+  if (section === "Relatórios")
+    return <Reports markets={markets} companyId={companyId} notify={notify} />;
   if (section === "Equipe e acessos")
     return <Team companyId={companyId} callerRole={callerRole} markets={markets} notify={notify} />;
   if (section === "Assinatura") return <Subscription markets={markets} notify={notify} />;
@@ -492,39 +494,49 @@ function Inconsistencies({ notify }: { notify: (message: string) => void }) {
   );
 }
 
-function Reports({ notify }: { notify: (message: string) => void }) {
+function Reports({
+  markets,
+  companyId,
+  notify,
+}: {
+  markets: Market[];
+  companyId: string | null;
+  notify: (message: string) => void;
+}) {
+  const [marketId, setMarketId] = useState(markets[0]?.id ?? "");
+  if (!markets.length) {
+    return (
+      <Page title="Relatórios" subtitle="Cadastre um mercado para gerar relatórios">
+        <p className="text-sm text-muted-foreground">Nenhum mercado cadastrado ainda.</p>
+      </Page>
+    );
+  }
+  const activeMarketId = marketId || (markets[0] as Market).id;
   return (
-    <Page title="Relatórios" subtitle="Análises prontas com dados fictícios">
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {reports.map((report) => (
-          <article
-            key={report.title}
-            className="flex flex-col rounded-lg border border-border bg-card p-5 shadow-card"
-          >
-            <span className="grid h-10 w-10 place-items-center rounded-md bg-primary-soft text-primary">
-              <FileChartColumn className="h-5 w-5" />
-            </span>
-            <h2 className="mt-3 font-extrabold">{report.title}</h2>
-            <p className="mt-1 flex-1 text-sm text-muted-foreground">{report.description}</p>
-            <div className="mt-4 flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => notify(`Relatório "${report.title}" gerado (simulação).`)}
-              >
-                Visualizar
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => notify(`Exportação de "${report.title}" preparada (simulação).`)}
-              >
-                <Download className="h-4 w-4" /> Exportar
-              </Button>
-            </div>
-          </article>
-        ))}
-      </div>
+    <Page
+      title="Relatórios"
+      subtitle="Estoque, movimentações, recebimentos, reposições, vendas e mais — por mercado e período (RF-RPT-01)"
+      action={
+        <Select value={activeMarketId} onValueChange={setMarketId}>
+          <SelectTrigger className="h-10 w-[220px] bg-card">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {markets.map((market) => (
+              <SelectItem key={market.id} value={market.id}>
+                {market.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      }
+    >
+      <ReportsModule
+        key={activeMarketId}
+        companyId={companyId}
+        marketId={activeMarketId}
+        notify={notify}
+      />
     </Page>
   );
 }
