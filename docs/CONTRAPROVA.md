@@ -6,7 +6,7 @@ Cada linha aponta a etapa do plano (`docs/PLANO_FECHAMENTO.md`) em que o item é
 **Status:** `Pendente` → `Em andamento` → `Feito` (com evidência). `Parcial` = começou, falta completar. `Adiado` = decisão formal de tirar da versão.  
 **Decisão?** `Sim` = o item tem [A DEFINIR]; a decisão precisa estar registrada em `docs/DECISOES.md` antes de codificar.
 
-Total de itens rastreados: **427** · Feito: **295** · Parcial: **39**
+Total de itens rastreados: **427** · Feito: **309** · Parcial: **42**
 
 | Bloco                          | Itens |
 | ------------------------------ | ----- |
@@ -627,24 +627,24 @@ Correção 1 exige que o Conferente tenha experiência própria, não uma aba do
 
 | ID         | Item                                                                                   | Decisão? | Status   | Evidência |
 | ---------- | -------------------------------------------------------------------------------------- | -------- | -------- | --------- |
-| RF-ADM-01  | Visualizar empresas, mercados, testes, assinaturas e receita recorrente.               |          | Pendente |           |
-| RF-ADM-02  | Gerenciar planos, valores, recursos e limites.                                         |          | Pendente |           |
-| RF-ADM-05  | Consultar pagamentos e inadimplência.                                                  |          | Pendente |           |
-| RF-ADM-06  | Conceder dias adicionais, desconto, suspensão, reativação e cancelamento.              |          | Pendente |           |
-| RF-ADM-07  | Consultar auditoria e histórico comercial.                                             |          | Pendente |           |
+| RF-ADM-01  | Visualizar empresas, mercados, testes, assinaturas e receita recorrente.               |          | Parcial  | PR B9.4 · indicadores agregados reais na "Visão geral" (`get_platform_indicators`); listagem individual de empresas/mercados ainda é a tela "Clientes"/"Empresas" mocada (fora de escopo desde o B9.1) |
+| RF-ADM-02  | Gerenciar planos, valores, recursos e limites.                                         |          | Feito    | PR B9.1 (CRUD de planos) + PR B9.4 (`admin_update_company_plan` migra um cliente já contratado para o preço/plano atual) |
+| RF-ADM-05  | Consultar pagamentos e inadimplência.                                                  |          | Parcial  | PR B9.4 · contagem de assinaturas atrasadas (`pastDueSubscriptions`) já existe no indicador; não há pagamentos de verdade para consultar (gateway do B9.3 não existe) |
+| RF-ADM-06  | Conceder dias adicionais, desconto, suspensão, reativação e cancelamento.              |          | Parcial  | PR B9.1 · dias adicionais (`admin_adjust_trial`) e desconto via cupom já existem; suspensão/reativação/cancelamento manuais ficam para o B9.5 |
+| RF-ADM-07  | Consultar auditoria e histórico comercial.                                             |          | Feito    | PR B9.4 · `admin_list_company_audit` (a política de leitura de `audit_log` só deixa o dono ver a própria empresa; esta função existe para o administrador investigar qualquer empresa), testado |
 | RF-ADM-09  | Configurar integrações e mensagens gerais [A DEFINIR].                                 | Sim      | Pendente |           |
-| RN-ADM-01  | Toda alteração comercial manual deve registrar administrador, motivo e antes/depois.   |          | Pendente |           |
-| RN-ADM-03  | Alterar preço de plano não deve mudar retroativamente cobranças concluídas.            |          | Pendente |           |
-| RN-ADM-04  | Aplicação de novo preço a clientes existentes, aviso e antecedência estão [A DEFINIR]. | Sim      | Pendente |           |
-| IND-ADM-01 | Indicador da plataforma: Empresas cadastradas (seção 6.2)                              |          | Pendente |           |
-| IND-ADM-02 | Indicador da plataforma: Mercados ativos (seção 6.2)                                   |          | Pendente |           |
-| IND-ADM-03 | Indicador da plataforma: Assinaturas ativas (seção 6.2)                                |          | Pendente |           |
-| IND-ADM-04 | Indicador da plataforma: Assinaturas em teste (seção 6.2)                              |          | Pendente |           |
-| IND-ADM-05 | Indicador da plataforma: MRR (seção 6.2)                                               |          | Pendente |           |
-| IND-ADM-06 | Indicador da plataforma: Previsão de receita (seção 6.2)                               |          | Pendente |           |
-| IND-ADM-07 | Indicador da plataforma: Conversão do teste (seção 6.2)                                |          | Pendente |           |
-| IND-ADM-08 | Indicador da plataforma: Cancelamento (seção 6.2)                                      |          | Pendente |           |
-| IND-ADM-09 | Indicador da plataforma: Inadimplência (seção 6.2)                                     |          | Pendente |           |
+| RN-ADM-01  | Toda alteração comercial manual deve registrar administrador, motivo e antes/depois.   |          | Feito    | PR B9.4 · `admin_update_company_plan` usa `app.justification` (mesmo mecanismo do B3.1) + gatilho genérico de auditoria de `companies`, testado |
+| RN-ADM-03  | Alterar preço de plano não deve mudar retroativamente cobranças concluídas.            |          | Feito    | PR B9.4 · decisão em DECISOES.md: preço trava em `companies.locked_base_price`/`locked_price_per_market` na contratação; editar `plans` não afeta quem já contratou, testado |
+| RN-ADM-04  | Aplicação de novo preço a clientes existentes, aviso e antecedência estão [A DEFINIR]. | Sim      | Feito    | PR B9.4 · decisão em DECISOES.md: nunca automático — só migra quem o administrador escolher, uma empresa de cada vez, sempre com motivo (mesma evidência de RN-ADM-01/03) |
+| IND-ADM-01 | Indicador da plataforma: Empresas cadastradas (seção 6.2)                              |          | Feito    | PR B9.4 · `get_platform_indicators` (`companiesCount`), testado |
+| IND-ADM-02 | Indicador da plataforma: Mercados ativos (seção 6.2)                                   |          | Feito    | PR B9.4 · `activeMarkets` |
+| IND-ADM-03 | Indicador da plataforma: Assinaturas ativas (seção 6.2)                                |          | Feito    | PR B9.4 · `activeSubscriptions` |
+| IND-ADM-04 | Indicador da plataforma: Assinaturas em teste (seção 6.2)                              |          | Feito    | PR B9.4 · `trialSubscriptions` |
+| IND-ADM-05 | Indicador da plataforma: MRR (seção 6.2)                                               |          | Feito    | PR B9.4 · `mrr` (soma dos preços travados dos mercados cobrados, com desconto de cupom), testado |
+| IND-ADM-06 | Indicador da plataforma: Previsão de receita (seção 6.2)                               |          | Feito    | PR B9.4 · `revenueForecast` — mesmo valor da MRR atual, assumindo base estável; nenhuma taxa de crescimento foi inventada |
+| IND-ADM-07 | Indicador da plataforma: Conversão do teste (seção 6.2)                                |          | Feito    | PR B9.4 · `trialConversionPct` (empresas com teste já encerrado que converteram para ativa) |
+| IND-ADM-08 | Indicador da plataforma: Cancelamento (seção 6.2)                                      |          | Feito    | PR B9.4 · `cancelledSubscriptions` |
+| IND-ADM-09 | Indicador da plataforma: Inadimplência (seção 6.2)                                     |          | Feito    | PR B9.4 · `pastDueSubscriptions` (mesma evidência de RF-ADM-05) |
 
 ## B9.5 — Inadimplência, suspensão e cancelamento
 

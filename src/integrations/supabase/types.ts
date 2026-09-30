@@ -254,6 +254,8 @@ export type Database = {
           has_pos: boolean
           id: string
           legal_name: string
+          locked_base_price: number | null
+          locked_price_per_market: number | null
           loss_adjustment_approval_threshold: number
           near_expiry_priority_days: number
           number: string | null
@@ -285,6 +287,8 @@ export type Database = {
           has_pos?: boolean
           id?: string
           legal_name: string
+          locked_base_price?: number | null
+          locked_price_per_market?: number | null
           loss_adjustment_approval_threshold?: number
           near_expiry_priority_days?: number
           number?: string | null
@@ -316,6 +320,8 @@ export type Database = {
           has_pos?: boolean
           id?: string
           legal_name?: string
+          locked_base_price?: number | null
+          locked_price_per_market?: number | null
           loss_adjustment_approval_threshold?: number
           near_expiry_priority_days?: number
           number?: string | null
@@ -2396,6 +2402,14 @@ export type Database = {
         Args: { p_company_id: string; p_new_trial_ends_at: string; p_reason: string }
         Returns: undefined
       }
+      admin_list_company_audit: {
+        Args: { p_company_id: string; p_limit?: number }
+        Returns: Database["public"]["Tables"]["audit_log"]["Row"][]
+      }
+      admin_update_company_plan: {
+        Args: { p_company_id: string; p_plan_id: string; p_reason: string }
+        Returns: Database["public"]["Tables"]["companies"]["Row"]
+      }
       approve_pending_stock_adjustment: {
         Args: { p_id: string; p_note?: string }
         Returns: Database["public"]["Tables"]["stock_movements"]["Row"]
@@ -2544,6 +2558,7 @@ export type Database = {
         }
         Returns: Database["public"]["Tables"]["lots"]["Row"]
       }
+      get_platform_indicators: { Args: Record<PropertyKey, never>; Returns: Json }
       get_receiving_comparison: {
         Args: { p_receiving_id: string }
         Returns: {

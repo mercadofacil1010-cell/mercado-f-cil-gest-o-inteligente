@@ -405,6 +405,16 @@ Decidido pelo agente (30/09/2026), seguindo as sugestões do próprio documento 
 |---|---|---|---|
 | PA-27 | Qual gateway de pagamento? | comparar Pix, boleto, cartão recorrente, cobrança proporcional e eventos de inadimplência. | _pendente_ |
 
+### B9.4 — Painel administrativo real
+
+Perguntado ao proprietário como resolver uma divergência entre o comportamento existente (preço do plano sempre "ao vivo" — editar `plans.base_price`/`price_per_market` reflete na hora em todas as empresas daquele plano) e o que o documento pede (RN-ADM-03/04: mudança de preço não deve afetar quem já contratou sem aviso). Resposta: **"Travar o preço na contratação (recomendado)"**.
+
+| ID | Pergunta | Sugestão | Decisão |
+|---|---|---|---|
+| RN-ADM-03 | Alterar preço de plano não deve mudar retroativamente cobranças concluídas — como garantir isso? | — | **Resposta do proprietário acima**: `companies.locked_base_price`/`locked_price_per_market` guardam o preço do plano no momento da contratação; `calculate_subscription_amount`/`calculate_market_addition_cost` (B9.2) passam a usar o preço travado da empresa, não mais o preço ao vivo do plano |
+| RN-ADM-04 | Aplicação de novo preço a clientes existentes, aviso e antecedência estão [A DEFINIR] | — | Decorre da mesma resposta: nunca é automático. `admin_update_company_plan` migra uma empresa de cada vez, sempre com motivo obrigatório — o "aviso e antecedência" fica sendo, na prática, uma decisão deliberada do administrador por cliente, não um aviso automatizado (que exigiria um sistema de notificação ainda não construído) |
+| — | Indicadores da plataforma (IND-ADM-01..09): como calcular "previsão de receita" sem inventar uma taxa de crescimento? | — | **Decisão do agente**: `revenueForecast` = a própria MRR atual (assumindo base estável). Nenhuma decisão registrada define um modelo de previsão, e inventar uma taxa de crescimento fabricaria dado — mesma lógica já aplicada a indicadores financeiros desde o B8.1 (PA-48) |
+
 ### B9.5 — Inadimplência, suspensão e cancelamento
 
 | ID | Pergunta | Sugestão | Decisão |
