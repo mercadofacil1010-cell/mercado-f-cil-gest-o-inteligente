@@ -57,6 +57,7 @@ import {
   type SupplierFormData,
 } from "@/lib/catalog-support-api";
 import { ReportsModule } from "@/components/reports-module";
+import { calculateSubscriptionAmount, type SubscriptionSummary } from "@/lib/subscription-api";
 
 /** Seções gerais do menu do dono que não pertencem a um módulo específico. */
 export function OwnerSection({
@@ -79,7 +80,8 @@ export function OwnerSection({
     return <Reports markets={markets} companyId={companyId} notify={notify} />;
   if (section === "Equipe e acessos")
     return <Team companyId={companyId} callerRole={callerRole} markets={markets} notify={notify} />;
-  if (section === "Assinatura") return <Subscription markets={markets} notify={notify} />;
+  if (section === "Assinatura")
+    return <Subscription companyId={companyId} markets={markets} notify={notify} />;
   if (section === "Configurações") return <Settings notify={notify} />;
   return <Help notify={notify} />;
 }
@@ -833,37 +835,74 @@ function InviteDialog({
   );
 }
 
+/** B9.2 (RF-BILL-10): plano, mercados cobrados, próxima cobrança e valor estimado — dados reais via calculate_subscription_amount. */
 function Subscription({
+  companyId,
   markets,
   notify,
 }: {
+  companyId: string | null;
   markets: Market[];
   notify: (message: string) => void;
 }) {
-  const perMarket = 249;
+  const [summary, setSummary] = useState<SubscriptionSummary | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!companyId) return;
+    setLoading(true);
+    void calculateSubscriptionAmount(companyId).then((result) => {
+      setSummary(result);
+      setLoading(false);
+    });
+  }, [companyId]);
+
+  const billedMarkets = markets.filter((market) => market.lifecycleStatus === "active");
+  const priced = summary?.priced ?? false;
+
+  if (loading) {
+    return (
+      <Page title="Assinatura" subtitle="Plano atual e cobrança por mercado">
+        <p className="text-sm text-muted-foreground">Carregando...</p>
+      </Page>
+    );
+  }
+
   return (
     <Page
       title="Assinatura"
-      subtitle="Plano atual e cobrança por mercado (valores de demonstração)"
+      subtitle={
+        priced
+          ? "Plano atual e cobrança por mercado"
+          : "Plano atual — preços comerciais ainda não definidos pela administração"
+      }
     >
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Metric
           title="Plano atual"
-          value="Profissional"
+          value={summary?.planName ?? "—"}
           note="Cobrança mensal"
           icon={Star}
           tone="positive"
         />
         <Metric
-          title="Mercados contratados"
-          value={String(markets.length)}
-          note={`${money(perMarket)} por mercado`}
+          title="Mercados cobrados"
+          value={String(summary?.billedMarkets ?? billedMarkets.length)}
+          note={
+            priced && summary?.pricePerMarket != null
+              ? `${money(summary.pricePerMarket)} por mercado`
+              : "Sem preço definido"
+          }
           icon={CheckCircle2}
         />
         <Metric
           title="Mensalidade estimada"
-          value={money(markets.length * perMarket)}
-          note="Próxima cobrança em 10/10/2026"
+          value={priced && summary?.total != null ? money(summary.total) : "A definir"}
+          note={
+            summary?.cycleEnd
+              ? `Próxima cobrança em ${new Date(summary.cycleEnd).toLocaleDateString("pt-BR")}`
+              : ""
+          }
           icon={CircleDollarSign}
         />
         <Metric
@@ -874,16 +913,36 @@ function Subscription({
           tone="warning"
         />
       </div>
+      {summary?.couponCode && summary.discount ? (
+        <p className="text-sm text-muted-foreground">
+          Cupom <strong className="font-mono">{summary.couponCode}</strong> aplicado: desconto de{" "}
+          {money(summary.discount)} já considerado no total acima.
+        </p>
+      ) : null}
       <Table
         headers={["Mercado", "Situação", "Valor mensal"]}
         rows={markets.map((market) => [
           <strong key="m">{market.name}</strong>,
           <AlertPill
             key="s"
-            label={market.status === "Aberto" ? "Ativo" : "Ativo · fechado agora"}
-            tone="positive"
+            label={
+              market.lifecycleStatus === "active"
+                ? "Cobrado"
+                : market.lifecycleStatus === "awaiting_billing"
+                  ? "Aguardando confirmação"
+                  : "Não cobrado"
+            }
+            tone={
+              market.lifecycleStatus === "active"
+                ? "positive"
+                : market.lifecycleStatus === "awaiting_billing"
+                  ? "warning"
+                  : "neutral"
+            }
           />,
-          money(perMarket),
+          priced && summary?.pricePerMarket != null && market.lifecycleStatus === "active"
+            ? money(summary.pricePerMarket)
+            : "—",
         ])}
       />
       <div className="flex flex-col gap-2 sm:flex-row">

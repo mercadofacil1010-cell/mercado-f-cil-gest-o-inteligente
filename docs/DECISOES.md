@@ -389,9 +389,15 @@ Perguntado ao proprietário se os planos/preços comerciais já estavam definido
 
 ### B9.2 — Assinatura, cálculo e proporcional
 
+Decidido pelo agente (30/09/2026), seguindo as sugestões do próprio documento — nenhuma delas dependia de um valor comercial real (que ainda não existe, PA-28), só da fórmula de cálculo. O usuário pediu para seguir com o que fosse recomendado.
+
 | ID | Pergunta | Sugestão | Decisão |
 |---|---|---|---|
-| PA-30 | Como calcular proporcional? | dias restantes/dias do ciclo, respeitando regra do gateway. | _pendente_ |
+| PA-30 | Como calcular proporcional? | dias restantes/dias do ciclo, respeitando regra do gateway. | **Aceita a sugestão**: `valor_por_mercado x dias_restantes_do_ciclo / dias_do_ciclo`, arredondado a 2 casas. "Regra do gateway" ainda não existe (B9.3 não começou) — fica só a fórmula de dias por enquanto |
+| RN-BILL-01/RN-CRT-BIL-01 | Fórmula da mensalidade [A DEFINIR] | mensalidade = valor base + mercados cobrados x valor por mercado - descontos válidos | **Aceita a sugestão**: implementada em `calculate_subscription_amount` — "mercados cobrados" = só os com `status = 'active'` (não conta `draft`/`awaiting_billing`/`inactive`); desconto de cupom válido (B9.1) já subtraído |
+| RN-BILL-02/RN-CRT-BIL-02 | Fórmula do proporcional [A DEFINIR] | valor adicional mensal x dias restantes do ciclo / dias do ciclo | Mesma decisão de PA-30. O ciclo mensal é ancorado num dia do mês (1-28) fixado na criação da empresa (fim do teste, ou data de criação sem teste) — nunca dias 29-31, para nunca cair num mês sem esse dia |
+| RN-BILL-09/RN-ORG-02 | Quando exigir o aceite do novo valor? | adicionar mercado exige aceite antes da ativação | O mercado nasce com status `awaiting_billing`; só vira `active` depois de um aceite explícito e verificado no servidor (`accept_market_billing`) — o aceite mostrado no assistente de cadastro não é só um checkbox de confiança do navegador, o valor exibido vem do mesmo cálculo que o servidor usa para validar |
+| RN-BILL-10 | Remoção de mercado: efeito imediato ou na próxima renovação? [A DEFINIR] | — | **Decisão do agente**: como ainda não existe fatura fechada (isso só chega com o gateway do B9.3), o efeito é imediato no cálculo ao vivo — assim que um mercado deixa de ser `active`, `calculate_subscription_amount` para de contá-lo. "Só na próxima renovação" é uma política de faturamento que só faz sentido quando existir uma fatura de verdade para não alterar no meio do período — revisar quando o B9.3 chegar |
 
 ### B9.3 — Gateway de pagamento
 

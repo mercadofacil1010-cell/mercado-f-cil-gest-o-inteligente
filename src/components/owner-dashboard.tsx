@@ -51,7 +51,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { AddMarketFlow, type NewMarketData } from "@/components/add-market-flow";
+import {
+  AddMarketFlow,
+  type BillingPreview,
+  type NewMarketData,
+} from "@/components/add-market-flow";
+import { calculateMarketAdditionCost, calculateSubscriptionAmount } from "@/lib/subscription-api";
 import {
   AlertPill,
   ChartCard,
@@ -173,6 +178,7 @@ export function OwnerDashboard({
   const [markets, setMarkets] = useState<Market[]>([]);
   const [loadingMarkets, setLoadingMarkets] = useState(true);
   const [addingMarket, setAddingMarket] = useState(false);
+  const [billingPreview, setBillingPreview] = useState<BillingPreview | undefined>(undefined);
   const [editingMarket, setEditingMarket] = useState<Market | null>(null);
   const [products, setProducts] = useState<Product[]>(initialProducts);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -309,6 +315,26 @@ export function OwnerDashboard({
     setToast(`${name} ${verb} com sucesso.`);
   };
 
+  const loadBillingPreview = async (id: string) => {
+    const [summary, proratedAmount] = await Promise.all([
+      calculateSubscriptionAmount(id),
+      calculateMarketAdditionCost(id),
+    ]);
+    setBillingPreview({
+      planName: summary?.planName ?? "",
+      priced: summary?.priced ?? false,
+      additionalMonthly: summary?.pricePerMarket ?? null,
+      proratedAmount,
+      nextBillingDate: summary?.cycleEnd
+        ? new Date(summary.cycleEnd).toLocaleDateString("pt-BR")
+        : "",
+      estimatedTotal:
+        summary?.priced && summary.total != null && summary.pricePerMarket != null
+          ? summary.total + summary.pricePerMarket
+          : null,
+    });
+  };
+
   const completeAddMarket = async (data: NewMarketData) => {
     if (!companyId)
       return {
@@ -357,6 +383,7 @@ export function OwnerDashboard({
         onComplete={completeAddMarket}
         onDone={() => finishAddOrEdit("Mercado", "adicionado")}
         contractedMarkets={markets.length}
+        {...(billingPreview ? { billingPreview } : {})}
       />
     );
   }
@@ -721,7 +748,9 @@ export function OwnerDashboard({
             openMarket={openMarket}
             onAdd={() => {
               setToast("");
+              setBillingPreview(undefined);
               setAddingMarket(true);
+              if (companyId) void loadBillingPreview(companyId);
             }}
             period={period}
           />
@@ -1022,6 +1051,11 @@ function MarketCard({ market, onOpen }: { market: Market; onOpen: () => void }) 
               />
               {market.status}
             </span>
+            {market.lifecycleStatus === "awaiting_billing" && (
+              <span className="mt-1 inline-flex items-center gap-1.5 text-xs font-semibold text-warning">
+                Aguardando confirmação de cobrança
+              </span>
+            )}
           </div>
         </div>
         <ChevronRight className="h-5 w-5 text-muted-foreground transition group-hover:translate-x-1 group-hover:text-primary" />

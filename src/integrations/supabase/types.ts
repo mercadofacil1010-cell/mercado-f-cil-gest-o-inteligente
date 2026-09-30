@@ -242,6 +242,7 @@ export type Database = {
       companies: {
         Row: {
           account_status: Database["public"]["Enums"]["account_status"]
+          billing_cycle_anchor_day: number
           city: string | null
           cnpj: string
           complement: string | null
@@ -272,6 +273,7 @@ export type Database = {
         }
         Insert: {
           account_status?: Database["public"]["Enums"]["account_status"]
+          billing_cycle_anchor_day?: number
           city?: string | null
           cnpj: string
           complement?: string | null
@@ -302,6 +304,7 @@ export type Database = {
         }
         Update: {
           account_status?: Database["public"]["Enums"]["account_status"]
+          billing_cycle_anchor_day?: number
           city?: string | null
           cnpj?: string
           complement?: string | null
@@ -993,6 +996,7 @@ export type Database = {
           name: string
           number: string | null
           opening_hours: string | null
+          pending_billing_amount: number | null
           phone: string | null
           pos_system: string | null
           reference: string | null
@@ -1025,6 +1029,7 @@ export type Database = {
           name: string
           number?: string | null
           opening_hours?: string | null
+          pending_billing_amount?: number | null
           phone?: string | null
           pos_system?: string | null
           reference?: string | null
@@ -1057,6 +1062,7 @@ export type Database = {
           name?: string
           number?: string | null
           opening_hours?: string | null
+          pending_billing_amount?: number | null
           phone?: string | null
           pos_system?: string | null
           reference?: string | null
@@ -2355,6 +2361,10 @@ export type Database = {
     }
     Functions: {
       accept_invite: { Args: { p_token: string }; Returns: string }
+      accept_market_billing: {
+        Args: { p_market_id: string }
+        Returns: Database["public"]["Tables"]["markets"]["Row"]
+      }
       accept_replenishment_task: {
         Args: { p_task_id: string }
         Returns: Database["public"]["Tables"]["replenishment_tasks"]["Row"]
@@ -2397,6 +2407,14 @@ export type Database = {
       assign_replenishment_task: {
         Args: { p_stocker_user_id: string; p_task_id: string }
         Returns: Database["public"]["Tables"]["replenishment_tasks"]["Row"]
+      }
+      calculate_market_addition_cost: {
+        Args: { p_company_id: string }
+        Returns: number
+      }
+      calculate_subscription_amount: {
+        Args: { p_company_id: string }
+        Returns: Json
       }
       check_login_lock: { Args: { p_email: string }; Returns: Json }
       create_company: {
@@ -2478,9 +2496,14 @@ export type Database = {
         Returns: Database["public"]["Tables"]["receivings"]["Row"]
       }
       deactivate_coupon: { Args: { p_id: string }; Returns: undefined }
+      decline_market_billing: { Args: { p_market_id: string }; Returns: undefined }
       discard_alert: {
         Args: { p_id: string; p_note?: string }
         Returns: Database["public"]["Tables"]["alerts"]["Row"]
+      }
+      evaluate_market_billing: {
+        Args: { p_market_id: string }
+        Returns: Database["public"]["Tables"]["markets"]["Row"]
       }
       finalize_inventory_count: {
         Args: { p_inventory_count_id: string }

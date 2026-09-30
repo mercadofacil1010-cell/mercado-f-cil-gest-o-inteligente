@@ -43,6 +43,9 @@ export type Market = {
   state?: string;
   street?: string;
   number?: string;
+  // B9.2: valor proporcional calculado e aguardando aceite do dono
+  // (RN-BILL-09). Só existe enquanto lifecycleStatus === "awaiting_billing".
+  pendingBillingAmount?: number | null;
 };
 
 export const money = (value: number) =>
