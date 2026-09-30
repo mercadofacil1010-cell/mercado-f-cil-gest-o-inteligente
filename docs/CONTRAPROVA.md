@@ -6,7 +6,7 @@ Cada linha aponta a etapa do plano (`docs/PLANO_FECHAMENTO.md`) em que o item é
 **Status:** `Pendente` → `Em andamento` → `Feito` (com evidência). `Parcial` = começou, falta completar. `Adiado` = decisão formal de tirar da versão.  
 **Decisão?** `Sim` = o item tem [A DEFINIR]; a decisão precisa estar registrada em `docs/DECISOES.md` antes de codificar.
 
-Total de itens rastreados: **427** · Feito: **309** · Parcial: **42**
+Total de itens rastreados: **427** · Feito: **313** · Parcial: **45**
 
 | Bloco                          | Itens |
 | ------------------------------ | ----- |
@@ -650,13 +650,13 @@ Correção 1 exige que o Conferente tenha experiência própria, não uma aba do
 
 | ID            | Item                                                                                                                                                  | Decisão? | Status   | Evidência |
 | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | -------- | --------- |
-| RF-BILL-07    | Suspender ou reativar conforme política de inadimplência.                                                                                             |          | Pendente |           |
-| RN-BILL-07    | Prazos para atraso, bloqueio, suspensão e cancelamento estão [A DEFINIR].                                                                             | Sim      | Pendente |           |
-| RN-BILL-08    | Suspensão deve preservar dados; retenção após cancelamento está [A DEFINIR].                                                                          | Sim      | Pendente |           |
-| RN-CRT-BIL-05 | Prazos de inadimplência, bloqueio, suspensão, cancelamento e retenção estão [A DEFINIR].                                                              | Sim      | Pendente |           |
-| PA-34         | Prazos de inadimplência? — Sugestão do documento: definir sequência de aviso, tolerância, suspensão e cancelamento com assessoria comercial/jurídica. | Sim      | Pendente |           |
-| PA-35         | O que fica disponível durante suspensão? — Sugestão do documento: leitura e exportação por prazo limitado; bloquear novas operações.                  | Sim      | Pendente |           |
-| F-5.6         | Fluxo: ciclo de vida da assinatura                                                                                                                    |          | Pendente |           |
+| RF-BILL-07    | Suspender ou reativar conforme política de inadimplência.                                                                                             |          | Feito    | PR B9.5 · `admin_mark_past_due`/`admin_reactivate_subscription`/`admin_cancel_subscription` (manuais) + `process_subscription_delinquency` (prazos automáticos), testado |
+| RN-BILL-07    | Prazos para atraso, bloqueio, suspensão e cancelamento estão [A DEFINIR].                                                                             | Sim      | Feito    | PR B9.5 · decisão do usuário em DECISOES.md: 7 dias em atraso suspende, 30 dias corridos desde o atraso cancela, testado |
+| RN-BILL-08    | Suspensão deve preservar dados; retenção após cancelamento está [A DEFINIR].                                                                          | Sim      | Parcial  | PR B9.5 · preservação de dados: Feito (nenhuma exclusão física em nenhum estado, testado — mesmo padrão RN-ACL-06 de sempre); retenção após cancelamento depende do B10.1 (PA-36, LGPD), ainda pendente |
+| RN-CRT-BIL-05 | Prazos de inadimplência, bloqueio, suspensão, cancelamento e retenção estão [A DEFINIR].                                                              | Sim      | Parcial  | PR B9.5 · mesma evidência de RN-BILL-07 (prazos) e RN-BILL-08 (retenção pendente do B10.1) |
+| PA-34         | Prazos de inadimplência? — Sugestão do documento: definir sequência de aviso, tolerância, suspensão e cancelamento com assessoria comercial/jurídica. | Sim      | Feito    | PR B9.5 · decisão do usuário: 7 dias suspende, 30 dias cancela (sem assessoria jurídica externa — decisão de produto para poder avançar) |
+| PA-35         | O que fica disponível durante suspensão? — Sugestão do documento: leitura e exportação por prazo limitado; bloquear novas operações.                  | Sim      | Parcial  | PR B9.5 · decisão do usuário: somente leitura. Implementado para a operação mais diretamente ligada à assinatura (adicionar mercado novo, bloqueado a partir do atraso); bloquear as demais operações do sistema (vendas, recebimento, reposição) exigiria revisar dezenas de funções já existentes desde o B1 — fica registrado como próximo passo em DECISOES.md |
+| F-5.6         | Fluxo: ciclo de vida da assinatura                                                                                                                    |          | Feito    | PR B9.5 · trial → active → past_due → suspended/cancelled, com reativação e cancelamento manual em qualquer ponto, testado |
 
 ## B10.1 — LGPD
 
