@@ -43,10 +43,8 @@ import { AlertPill, ChartCard, ColumnChart, EmptyState, HorizontalBar, Metric, M
 import {
   allFeatures,
   auditLog,
-  coupons,
   initialClients,
   initialPlans,
-  initialTrial,
   integrations,
   mrrHistory,
   payments,
@@ -55,9 +53,22 @@ import {
   type Client,
   type Plan,
   type SubscriptionStatus,
-  type TrialSettings,
 } from "@/data/admin";
+import {
+  createCoupon,
+  createPlan,
+  deactivateCoupon,
+  inactivatePlan,
+  listCoupons,
+  listPlans,
+  setDefaultPlan,
+  updatePlan,
+  type Coupon as RealCoupon,
+  type Plan as RealPlan,
+  type PlanFormData,
+} from "@/lib/plans-api";
 import { cn } from "@/lib/utils";
+import type { Database } from "@/integrations/supabase/types";
 
 const menu: Array<{ label: string; icon: IconType }> = [
   { label: "Visão geral", icon: LayoutDashboard },
@@ -67,7 +78,6 @@ const menu: Array<{ label: string; icon: IconType }> = [
   { label: "Planos", icon: Star },
   { label: "Assinaturas", icon: ClipboardList },
   { label: "Pagamentos", icon: CreditCard },
-  { label: "Testes gratuitos", icon: Gift },
   { label: "Cupons", icon: BadgePercent },
   { label: "Usuários", icon: Users },
   { label: "Suporte", icon: LifeBuoy },
@@ -86,7 +96,6 @@ export function AdminPanel({ onExit }: { onExit: () => void }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [clients, setClients] = useState<Client[]>(initialClients);
   const [plans, setPlans] = useState<Plan[]>(initialPlans);
-  const [trial, setTrial] = useState<TrialSettings>(initialTrial);
   const [toast, setToast] = useState("");
 
   useEffect(() => {
@@ -123,9 +132,8 @@ export function AdminPanel({ onExit }: { onExit: () => void }) {
           {(active === "Clientes" || active === "Assinaturas") && <ClientsSection title={active === "Clientes" ? "Clientes e assinaturas" : "Assinaturas"} clients={clients} plans={plans} onChange={setClients} notify={setToast} />}
           {active === "Empresas" && <CompaniesSection clients={clients} />}
           {active === "Mercados" && <MarketsSection clients={clients} />}
-          {active === "Planos" && <PlansSection plans={plans} onChange={setPlans} notify={setToast} />}
+          {active === "Planos" && <PlansSection notify={setToast} />}
           {active === "Pagamentos" && <PaymentsSection />}
-          {active === "Testes gratuitos" && <TrialSection trial={trial} onSave={(next) => { setTrial(next); setToast("Configuração do teste gratuito salva."); }} />}
           {active === "Cupons" && <CouponsSection notify={setToast} />}
           {active === "Usuários" && <UsersSection notify={setToast} />}
           {active === "Suporte" && <SupportSection />}
@@ -295,86 +303,106 @@ function MarketsSection({ clients }: { clients: Client[] }) {
 }
 
 /* ------------------------------------ Planos ------------------------------------ */
+/* B9.1 (PA-28/29/31): dados reais via plans-api.ts. Preço é opcional — a
+ * comercial ainda não fechou valores (ver docs/DECISOES.md). Teste grátis é
+ * configurado por plano, não mais um interruptor único do sistema. */
 
-function PlansSection({ plans, onChange, notify }: { plans: Plan[]; onChange: (plans: Plan[]) => void; notify: (message: string) => void }) {
-  const [editing, setEditing] = useState<{ plan: Plan; isNew: boolean } | null>(null);
+const emptyPlanForm: PlanFormData = { name: "", description: "", basePrice: null, pricePerMarket: null, maxMarkets: null, features: [], trialDays: 15, requiresPaymentMethodForTrial: false };
+
+function planFormFromPlan(plan: RealPlan): PlanFormData {
+  return { name: plan.name, description: plan.description, basePrice: plan.basePrice, pricePerMarket: plan.pricePerMarket, maxMarkets: plan.maxMarkets, features: plan.features, trialDays: plan.trialDays, requiresPaymentMethodForTrial: plan.requiresPaymentMethodForTrial };
+}
+
+function PlansSection({ notify }: { notify: (message: string) => void }) {
+  const [plans, setPlans] = useState<RealPlan[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState<{ id: string | null; data: PlanFormData } | null>(null);
+
+  const reload = () => { listPlans().then((list) => { setPlans(list); setLoading(false); }); };
+  useEffect(() => { reload(); }, []);
+
+  const save = async (data: PlanFormData) => {
+    const result = editing?.id ? await updatePlan(editing.id, data) : await createPlan(data);
+    if (!result.ok) return result.message;
+    notify(`Plano ${result.plan.name} salvo.`);
+    setEditing(null);
+    reload();
+    return "";
+  };
+
+  const onSetDefault = async (plan: RealPlan) => {
+    const result = await setDefaultPlan(plan.id);
+    if (!result.ok) { notify(result.message); return; }
+    notify(`${plan.name} agora é o plano padrão.`);
+    reload();
+  };
+
+  const onInactivate = async (plan: RealPlan) => {
+    const result = await inactivatePlan(plan.id);
+    if (!result.ok) { notify(result.message); return; }
+    notify(`Plano ${plan.name} inativado.`);
+    reload();
+  };
+
   return (
     <div className="space-y-5">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"><div><h1 className="text-2xl font-extrabold sm:text-3xl">Planos</h1><p className="mt-1 text-muted-foreground">Cadastre e configure os planos comercializados.</p></div><Button onClick={() => setEditing({ plan: { id: `p-${Date.now()}`, name: "", description: "", basePrice: 0, perMarket: 0, includedMarkets: 1, period: "Mensal", features: [], limits: "", active: true, highlight: false }, isNew: true })}><Plus className="h-4 w-4" /> Novo plano</Button></div>
-      <div className="grid gap-4 lg:grid-cols-3">
-        {plans.map((plan) => (
-          <article key={plan.id} className={cn("relative flex flex-col rounded-lg border bg-card p-5 shadow-card", plan.highlight ? "border-primary ring-2 ring-primary/20" : "border-border", !plan.active && "opacity-60")}>
-            {plan.highlight && <span className="absolute -top-3 left-5 rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground">Destaque comercial</span>}
-            <div className="flex items-start justify-between gap-3"><h2 className="text-xl font-extrabold">{plan.name}</h2><AlertPill label={plan.active ? "Ativo" : "Inativo"} tone={plan.active ? "positive" : "neutral"} /></div>
-            <p className="mt-1 text-sm text-muted-foreground">{plan.description}</p>
-            <p className="mt-4"><strong className="text-3xl font-extrabold">{brl(plan.basePrice)}</strong><span className="text-sm text-muted-foreground"> / {plan.period.toLowerCase()}</span></p>
-            <p className="text-sm text-muted-foreground">{plan.includedMarkets} {plan.includedMarkets === 1 ? "mercado incluído" : "mercados incluídos"} · {brl(plan.perMarket)} por mercado adicional</p>
-            <ul className="mt-4 flex-1 space-y-1.5 text-sm">{plan.features.map((feature) => <li key={feature} className="flex gap-2"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" />{feature}</li>)}</ul>
-            <p className="mt-3 text-xs text-muted-foreground">Limites: {plan.limits || "—"}</p>
-            <Button variant="outline" className="mt-4" onClick={() => setEditing({ plan, isNew: false })}><Pencil className="h-4 w-4" /> Editar plano</Button>
-          </article>
-        ))}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div><h1 className="text-2xl font-extrabold sm:text-3xl">Planos</h1><p className="mt-1 text-muted-foreground">Estrutura de planos da plataforma. Preços comerciais podem ser cadastrados quando forem definidos.</p></div>
+        <Button onClick={() => setEditing({ id: null, data: emptyPlanForm })}><Plus className="h-4 w-4" /> Novo plano</Button>
       </div>
-      {editing && <PlanForm initial={editing.plan} isNew={editing.isNew} onClose={() => setEditing(null)} onSave={(plan) => { onChange(editing.isNew ? [...plans, plan] : plans.map((item) => (item.id === plan.id ? plan : item))); setEditing(null); notify(`Plano ${plan.name} salvo.`); }} />}
+      {loading ? (
+        <p className="text-sm text-muted-foreground">Carregando planos...</p>
+      ) : plans.length === 0 ? (
+        <EmptyState icon={Star} title="Nenhum plano cadastrado" description="Cadastre o primeiro plano da plataforma." />
+      ) : (
+        <div className="grid gap-4 lg:grid-cols-3">
+          {plans.map((plan) => (
+            <article key={plan.id} className={cn("relative flex flex-col rounded-lg border bg-card p-5 shadow-card", plan.isDefault ? "border-primary ring-2 ring-primary/20" : "border-border", plan.status !== "active" && "opacity-60")}>
+              {plan.isDefault && <span className="absolute -top-3 left-5 rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground">Plano padrão</span>}
+              <div className="flex items-start justify-between gap-3"><h2 className="text-xl font-extrabold">{plan.name}</h2><AlertPill label={plan.status === "active" ? "Ativo" : "Inativo"} tone={plan.status === "active" ? "positive" : "neutral"} /></div>
+              <p className="mt-1 text-sm text-muted-foreground">{plan.description || "Sem descrição."}</p>
+              <p className="mt-4">{plan.basePrice !== null ? <><strong className="text-3xl font-extrabold">{brl(plan.basePrice)}</strong><span className="text-sm text-muted-foreground"> / mês</span></> : <span className="text-sm font-semibold text-muted-foreground">Preço a definir</span>}</p>
+              <p className="text-sm text-muted-foreground">{plan.maxMarkets ? `Até ${plan.maxMarkets} ${plan.maxMarkets === 1 ? "mercado" : "mercados"}` : "Sem limite de mercados"}{plan.pricePerMarket !== null && ` · ${brl(plan.pricePerMarket)} por mercado adicional`}</p>
+              <ul className="mt-4 flex-1 space-y-1.5 text-sm">{plan.features.length ? plan.features.map((feature) => <li key={feature} className="flex gap-2"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" />{feature}</li>) : <li className="text-muted-foreground">Nenhum recurso listado.</li>}</ul>
+              <p className="mt-3 text-xs text-muted-foreground">Teste grátis: {plan.trialDays} {plan.trialDays === 1 ? "dia" : "dias"}{plan.requiresPaymentMethodForTrial ? " · exige cartão" : ""}</p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <Button variant="outline" size="sm" onClick={() => setEditing({ id: plan.id, data: planFormFromPlan(plan) })}><Pencil className="h-4 w-4" /> Editar</Button>
+                {!plan.isDefault && <Button variant="outline" size="sm" onClick={() => onSetDefault(plan)}>Tornar padrão</Button>}
+                {!plan.isDefault && plan.status === "active" && <Button variant="outline" size="sm" onClick={() => onInactivate(plan)}>Inativar</Button>}
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
+      {editing && <PlanForm isNew={editing.id === null} initial={editing.data} onClose={() => setEditing(null)} onSave={save} />}
     </div>
   );
 }
 
-function PlanForm({ initial, isNew, onClose, onSave }: { initial: Plan; isNew: boolean; onClose: () => void; onSave: (plan: Plan) => void }) {
+function PlanForm({ initial, isNew, onClose, onSave }: { initial: PlanFormData; isNew: boolean; onClose: () => void; onSave: (data: PlanFormData) => Promise<string> }) {
   const [plan, setPlan] = useState(initial);
   const [error, setError] = useState("");
-  const set = <K extends keyof Plan>(key: K, value: Plan[K]) => { setPlan((current) => ({ ...current, [key]: value })); setError(""); };
-  const submit = () => { if (plan.name.trim().length < 2) { setError("Informe o nome do plano."); return; } if (plan.basePrice <= 0) { setError("Informe o valor base."); return; } if (plan.features.length === 0) { setError("Selecione ao menos um recurso."); return; } onSave({ ...plan, name: plan.name.trim() }); };
+  const set = <K extends keyof PlanFormData>(key: K, value: PlanFormData[K]) => { setPlan((current) => ({ ...current, [key]: value })); setError(""); };
+  const submit = async () => {
+    if (plan.name.trim().length < 2) { setError("Informe o nome do plano."); return; }
+    if (plan.trialDays < 0) { setError("Informe uma quantidade válida de dias de teste."); return; }
+    const message = await onSave({ ...plan, name: plan.name.trim() });
+    if (message) setError(message);
+  };
   return (
     <Modal title={isNew ? "Novo plano" : `Editar plano ${initial.name}`} onClose={onClose} wide footer={<><Button variant="outline" onClick={onClose}>Cancelar</Button><Button onClick={submit}><CheckCircle2 className="h-4 w-4" /> Salvar plano</Button></>}>
       <div className="grid gap-3 sm:grid-cols-2">
         <Field label="Nome"><input value={plan.name} onChange={(event) => set("name", event.target.value)} maxLength={40} className={inputClass} /></Field>
-        <Field label="Período de cobrança"><select value={plan.period} onChange={(event) => set("period", event.target.value as Plan["period"])} className={selectClass}><option>Mensal</option><option>Trimestral</option><option>Anual</option></select></Field>
+        <Field label="Dias de teste grátis"><input type="number" min="0" value={plan.trialDays} onChange={(event) => set("trialDays", Math.max(0, Number(event.target.value) || 0))} className={inputClass} /></Field>
         <div className="sm:col-span-2"><Field label="Descrição"><input value={plan.description} onChange={(event) => set("description", event.target.value)} maxLength={160} className={inputClass} /></Field></div>
-        <Field label="Valor base (R$)"><input type="number" min="0" step="0.01" value={plan.basePrice || ""} onChange={(event) => set("basePrice", Math.max(0, Number(event.target.value) || 0))} className={inputClass} /></Field>
-        <Field label="Valor por mercado (R$)"><input type="number" min="0" step="0.01" value={plan.perMarket || ""} onChange={(event) => set("perMarket", Math.max(0, Number(event.target.value) || 0))} className={inputClass} /></Field>
-        <Field label="Quantidade incluída de mercados"><input type="number" min="1" value={plan.includedMarkets} onChange={(event) => set("includedMarkets", Math.max(1, Number(event.target.value) || 1))} className={inputClass} /></Field>
-        <Field label="Limites"><input value={plan.limits} onChange={(event) => set("limits", event.target.value)} maxLength={120} placeholder="Ex.: até 20.000 produtos" className={inputClass} /></Field>
+        <Field label="Valor base (R$) — opcional"><input type="number" min="0" step="0.01" value={plan.basePrice ?? ""} placeholder="A definir" onChange={(event) => set("basePrice", event.target.value === "" ? null : Math.max(0, Number(event.target.value) || 0))} className={inputClass} /></Field>
+        <Field label="Valor por mercado (R$) — opcional"><input type="number" min="0" step="0.01" value={plan.pricePerMarket ?? ""} placeholder="A definir" onChange={(event) => set("pricePerMarket", event.target.value === "" ? null : Math.max(0, Number(event.target.value) || 0))} className={inputClass} /></Field>
+        <Field label="Limite de mercados — opcional"><input type="number" min="1" value={plan.maxMarkets ?? ""} placeholder="Sem limite" onChange={(event) => set("maxMarkets", event.target.value === "" ? null : Math.max(1, Number(event.target.value) || 1))} className={inputClass} /></Field>
         <div className="sm:col-span-2"><span className="mb-2 block text-sm font-semibold">Recursos incluídos</span><div className="grid gap-2 sm:grid-cols-2">{allFeatures.map((feature) => <label key={feature} className="flex items-center gap-2.5 rounded-md border border-border p-2.5 text-sm"><input type="checkbox" checked={plan.features.includes(feature)} onChange={(event) => set("features", event.target.checked ? [...plan.features, feature] : plan.features.filter((item) => item !== feature))} className="h-4 w-4 accent-primary" />{feature}</label>)}</div></div>
-        <label className="flex items-center gap-2.5 rounded-md border border-border p-3 text-sm font-semibold"><input type="checkbox" checked={plan.active} onChange={(event) => set("active", event.target.checked)} className="h-4 w-4 accent-primary" /> Plano ativo</label>
-        <label className="flex items-center gap-2.5 rounded-md border border-border p-3 text-sm font-semibold"><input type="checkbox" checked={plan.highlight} onChange={(event) => set("highlight", event.target.checked)} className="h-4 w-4 accent-primary" /> Destaque comercial</label>
+        <label className="flex items-center gap-2.5 rounded-md border border-border p-3 text-sm font-semibold"><input type="checkbox" checked={plan.requiresPaymentMethodForTrial} onChange={(event) => set("requiresPaymentMethodForTrial", event.target.checked)} className="h-4 w-4 accent-primary" /> Exigir cartão para iniciar o teste</label>
       </div>
       {error && <p className="mt-3 text-sm font-semibold text-critical" role="alert">{error}</p>}
     </Modal>
-  );
-}
-
-/* -------------------------------- Teste gratuito -------------------------------- */
-
-function TrialSection({ trial, onSave }: { trial: TrialSettings; onSave: (trial: TrialSettings) => void }) {
-  const [draft, setDraft] = useState(trial);
-  const [error, setError] = useState("");
-  const set = <K extends keyof TrialSettings>(key: K, value: TrialSettings[K]) => { setDraft((current) => ({ ...current, [key]: value })); setError(""); };
-  const presets = [7, 15, 20, 30];
-  const warningOptions = [15, 7, 3, 1];
-  const submit = () => { if (draft.enabled && (draft.days < 1 || draft.days > 180)) { setError("Informe entre 1 e 180 dias."); return; } if (draft.warnings.some((day) => day >= draft.days)) { setError("Os avisos precisam acontecer antes do fim do teste."); return; } onSave(draft); };
-
-  return (
-    <div className="space-y-5">
-      <div><h1 className="text-2xl font-extrabold sm:text-3xl">Teste gratuito</h1><p className="mt-1 text-muted-foreground">Defina como funciona o período de avaliação para novos clientes.</p></div>
-      <div className="rounded-lg border border-border bg-card p-5 shadow-card sm:p-6">
-        <label className="flex items-center justify-between gap-4 rounded-md bg-muted p-4"><span><strong className="block">Teste gratuito ativado</strong><span className="text-sm text-muted-foreground">Novos cadastros começam no período de teste.</span></span><input type="checkbox" checked={draft.enabled} onChange={(event) => set("enabled", event.target.checked)} className="h-5 w-5 accent-primary" /></label>
-        <fieldset disabled={!draft.enabled} className="mt-5 grid gap-5 disabled:opacity-50 lg:grid-cols-2">
-          <div>
-            <span className="mb-2 block text-sm font-semibold">Quantidade de dias</span>
-            <div className="grid grid-cols-5 gap-2">{presets.map((days) => <button key={days} type="button" onClick={() => { set("days", days); set("customDays", false); }} aria-pressed={!draft.customDays && draft.days === days} className={cn("rounded-md border p-2.5 text-sm font-bold", !draft.customDays && draft.days === days ? "border-primary bg-primary text-primary-foreground" : "border-border hover:border-primary/40")}>{days}</button>)}<button type="button" onClick={() => set("customDays", true)} aria-pressed={draft.customDays} className={cn("rounded-md border p-2.5 text-xs font-bold", draft.customDays ? "border-primary bg-primary text-primary-foreground" : "border-border")}>Outro</button></div>
-            {draft.customDays && <input type="number" min="1" max="180" value={draft.days} onChange={(event) => set("days", Number(event.target.value) || 0)} aria-label="Período personalizado em dias" className={cn(inputClass, "mt-2")} />}
-          </div>
-          <Field label="Limite de mercados durante o teste"><input type="number" min="1" max="50" value={draft.marketLimit} onChange={(event) => set("marketLimit", Math.min(50, Math.max(1, Number(event.target.value) || 1)))} className={inputClass} /></Field>
-          <label className="flex items-center justify-between gap-4 rounded-md border border-border p-4"><span><strong className="block text-sm">Exigir cartão de crédito</strong><span className="text-sm text-muted-foreground">Solicitar cartão no início do teste.</span></span><input type="checkbox" checked={draft.requireCard} onChange={(event) => set("requireCard", event.target.checked)} className="h-5 w-5 accent-primary" /></label>
-          <Field label="Ação ao terminar o período"><select value={draft.endAction} onChange={(event) => set("endAction", event.target.value as TrialSettings["endAction"])} className={selectClass}><option>Somente leitura</option><option>Bloquear acesso</option><option>Converter para plano Essencial</option></select></Field>
-          <div><span className="mb-2 block text-sm font-semibold">Recursos disponíveis no teste</span><div className="grid gap-2">{allFeatures.map((feature) => <label key={feature} className="flex items-center gap-2.5 text-sm"><input type="checkbox" checked={draft.features.includes(feature)} onChange={(event) => set("features", event.target.checked ? [...draft.features, feature] : draft.features.filter((item) => item !== feature))} className="h-4 w-4 accent-primary" />{feature}</label>)}</div></div>
-          <div><span className="mb-2 block text-sm font-semibold">Avisos antes do vencimento</span><div className="grid gap-2">{warningOptions.map((day) => <label key={day} className="flex items-center gap-2.5 text-sm"><input type="checkbox" checked={draft.warnings.includes(day)} onChange={(event) => set("warnings", event.target.checked ? [...draft.warnings, day].sort((a, b) => b - a) : draft.warnings.filter((item) => item !== day))} className="h-4 w-4 accent-primary" />{day} {day === 1 ? "dia antes" : "dias antes"}</label>)}</div></div>
-        </fieldset>
-        {error && <p className="mt-4 text-sm font-semibold text-critical" role="alert">{error}</p>}
-        <div className="mt-6 flex flex-col gap-3 border-t border-border pt-5 sm:flex-row sm:items-center sm:justify-between"><p className="text-sm text-muted-foreground">{draft.enabled ? `Teste de ${draft.days} dias, até ${draft.marketLimit} mercados, ${draft.requireCard ? "com" : "sem"} cartão.` : "Teste gratuito desativado."}</p><Button onClick={submit}><CheckCircle2 className="h-4 w-4" /> Salvar configuração</Button></div>
-      </div>
-    </div>
   );
 }
 
@@ -385,8 +413,85 @@ function PaymentsSection() {
   return <Section title="Pagamentos" subtitle={`Recebido no mês: ${brl(total)} · valores fictícios`}><SimpleTable headers={["Código", "Cliente", "Valor", "Forma", "Data", "Situação"]} rows={payments.map((payment) => [<strong key="i">{payment.id}</strong>, payment.client, brl(payment.value), payment.method, payment.date, <AlertPill key="s" label={payment.status} tone={payment.status === "Pago" ? "positive" : payment.status === "Em atraso" ? "critical" : "neutral"} />])} /></Section>;
 }
 
+/* ------------------------------------ Cupons ------------------------------------ */
+/* B9.1 (RN-BILL-06): dados reais via plans-api.ts — um cupom por empresa,
+ * nunca cumulativo, sempre com limite de uso e/ou validade controlados. */
+
 function CouponsSection({ notify }: { notify: (message: string) => void }) {
-  return <Section title="Cupons" subtitle="Descontos promocionais para novos clientes" action={<Button size="sm" onClick={() => notify("Cupom criado (simulação).")}><Plus className="h-4 w-4" /> Novo cupom</Button>}><SimpleTable headers={["Código", "Desconto", "Usos", "Validade", "Situação"]} rows={coupons.map((coupon) => [<strong key="c" className="font-mono">{coupon.code}</strong>, coupon.discount, coupon.uses, coupon.validity, <AlertPill key="s" label={coupon.active ? "Ativo" : "Encerrado"} tone={coupon.active ? "positive" : "neutral"} />])} /></Section>;
+  const [coupons, setCoupons] = useState<RealCoupon[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
+
+  const reload = () => { listCoupons().then((list) => { setCoupons(list); setLoading(false); }); };
+  useEffect(() => { reload(); }, []);
+
+  const onDeactivate = async (coupon: RealCoupon) => {
+    const result = await deactivateCoupon(coupon.id);
+    if (!result.ok) { notify(result.message); return; }
+    notify(`Cupom ${coupon.code} desativado.`);
+    reload();
+  };
+
+  const discountLabel = (coupon: RealCoupon) => (coupon.discountType === "percentual" ? `${coupon.discountValue}%` : brl(coupon.discountValue));
+  const usageLabel = (coupon: RealCoupon) => (coupon.usageLimit !== null ? `${coupon.timesUsed} / ${coupon.usageLimit}` : String(coupon.timesUsed));
+  const validityLabel = (coupon: RealCoupon) => (coupon.validUntil ? new Date(coupon.validUntil).toLocaleDateString("pt-BR") : "Sem prazo");
+
+  return (
+    <Section title="Cupons" subtitle="Descontos promocionais para novos clientes, com limite de uso e validade" action={<Button size="sm" onClick={() => setCreating(true)}><Plus className="h-4 w-4" /> Novo cupom</Button>}>
+      {loading ? (
+        <p className="mt-5 text-sm text-muted-foreground">Carregando cupons...</p>
+      ) : coupons.length === 0 ? (
+        <EmptyState icon={BadgePercent} title="Nenhum cupom cadastrado" description="Crie o primeiro cupom promocional." />
+      ) : (
+        <SimpleTable
+          headers={["Código", "Desconto", "Usos", "Validade", "Situação", ""]}
+          rows={coupons.map((coupon) => [
+            <strong key="c" className="font-mono">{coupon.code}</strong>,
+            discountLabel(coupon),
+            usageLabel(coupon),
+            validityLabel(coupon),
+            <AlertPill key="s" label={coupon.status === "active" ? "Ativo" : "Encerrado"} tone={coupon.status === "active" ? "positive" : "neutral"} />,
+            coupon.status === "active" ? <Button key="a" variant="outline" size="sm" onClick={() => onDeactivate(coupon)}>Desativar</Button> : null,
+          ])}
+        />
+      )}
+      {creating && <CouponForm onClose={() => setCreating(false)} onSave={async (data) => {
+        const result = await createCoupon(data.code, data.discountType, data.discountValue, data.validUntil, data.usageLimit, data.eligibilityNote);
+        if (!result.ok) return result.message;
+        notify(`Cupom ${result.coupon.code} criado.`);
+        setCreating(false);
+        reload();
+        return "";
+      }} />}
+    </Section>
+  );
+}
+
+type CouponFormData = { code: string; discountType: Database["public"]["Enums"]["coupon_discount_type"]; discountValue: number; validUntil: string | null; usageLimit: number | null; eligibilityNote: string };
+
+function CouponForm({ onClose, onSave }: { onClose: () => void; onSave: (data: CouponFormData) => Promise<string> }) {
+  const [data, setData] = useState<CouponFormData>({ code: "", discountType: "percentual", discountValue: 10, validUntil: null, usageLimit: null, eligibilityNote: "" });
+  const [error, setError] = useState("");
+  const set = <K extends keyof CouponFormData>(key: K, value: CouponFormData[K]) => { setData((current) => ({ ...current, [key]: value })); setError(""); };
+  const submit = async () => {
+    if (data.code.trim().length < 2) { setError("Informe o código do cupom."); return; }
+    if (data.discountValue <= 0) { setError("Informe um valor de desconto maior que zero."); return; }
+    const message = await onSave(data);
+    if (message) setError(message);
+  };
+  return (
+    <Modal title="Novo cupom" onClose={onClose} footer={<><Button variant="outline" onClick={onClose}>Cancelar</Button><Button onClick={submit}><CheckCircle2 className="h-4 w-4" /> Criar cupom</Button></>}>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Field label="Código"><input value={data.code} onChange={(event) => set("code", event.target.value.toUpperCase())} maxLength={30} className={cn(inputClass, "font-mono uppercase")} /></Field>
+        <Field label="Tipo de desconto"><select value={data.discountType} onChange={(event) => set("discountType", event.target.value as CouponFormData["discountType"])} className={selectClass}><option value="percentual">Percentual</option><option value="valor_fixo">Valor fixo (R$)</option></select></Field>
+        <Field label={data.discountType === "percentual" ? "Desconto (%)" : "Desconto (R$)"}><input type="number" min="0" max={data.discountType === "percentual" ? 100 : undefined} step={data.discountType === "percentual" ? 1 : 0.01} value={data.discountValue} onChange={(event) => set("discountValue", Math.max(0, Number(event.target.value) || 0))} className={inputClass} /></Field>
+        <Field label="Limite de uso — opcional"><input type="number" min="1" value={data.usageLimit ?? ""} placeholder="Sem limite" onChange={(event) => set("usageLimit", event.target.value === "" ? null : Math.max(1, Number(event.target.value) || 1))} className={inputClass} /></Field>
+        <Field label="Válido até — opcional"><input type="date" value={data.validUntil ?? ""} onChange={(event) => set("validUntil", event.target.value || null)} className={inputClass} /></Field>
+        <div className="sm:col-span-2"><Field label="Observação de elegibilidade — opcional"><input value={data.eligibilityNote} onChange={(event) => set("eligibilityNote", event.target.value)} maxLength={160} className={inputClass} /></Field></div>
+      </div>
+      {error && <p className="mt-3 text-sm font-semibold text-critical" role="alert">{error}</p>}
+    </Modal>
+  );
 }
 
 function UsersSection({ notify }: { notify: (message: string) => void }) {
