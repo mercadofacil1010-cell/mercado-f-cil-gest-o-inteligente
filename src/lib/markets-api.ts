@@ -63,6 +63,7 @@ export function mapRowToMarket(row: MarketRow, managerName?: string): Market {
     state: row.state ?? "",
     street: row.street ?? "",
     number: row.number ?? "",
+    pendingBillingAmount: row.pending_billing_amount,
   };
 }
 
@@ -154,8 +155,11 @@ export async function createMarket(
     phone: onlyDigits(data.phone),
     email: data.email.trim(),
     opening_hours: data.openingHours.trim(),
-    // Ativado imediatamente: a cobrança de verdade só chega no B9 (RF-ORG-02, plano B1.4).
-    status: "active",
+    // B9.2: nasce aguardando o cálculo/aceite de cobrança (RN-BILL-09) — o
+    // dono já confirmou o resumo no próprio assistente antes de chegar aqui;
+    // evaluate_market_billing/accept_market_billing (abaixo) formalizam isso
+    // no servidor. Sem preço definido no plano, ativa direto sozinho.
+    status: "awaiting_billing",
     is_open: data.initialStatus === "Aberto",
     zip_code: onlyDigits(data.zipCode),
     street: data.street.trim(),
@@ -186,6 +190,21 @@ export async function createMarket(
     return { ok: false, message: "Não foi possível criar o mercado agora. Tente novamente." };
   }
 
+  const { error: evaluateError } = await supabase.rpc("evaluate_market_billing", {
+    p_market_id: id,
+  });
+  if (evaluateError) {
+    return {
+      ok: false,
+      message: "Mercado criado, mas não foi possível calcular a cobrança. Tente novamente.",
+    };
+  }
+  // O aceite já foi confirmado no resumo do assistente (checkbox obrigatório
+  // na etapa "Cobrança"); aqui só formaliza no servidor. Se o plano não tem
+  // preço definido, evaluate_market_billing já ativou direto e esta chamada
+  // é um no-op esperado (ignorado).
+  await supabase.rpc("accept_market_billing", { p_market_id: id });
+
   const { data: row, error: fetchError } = await supabase
     .from("markets")
     .select("*")
@@ -198,6 +217,26 @@ export async function createMarket(
     };
   }
   return { ok: true, market: mapRowToMarket(row) };
+}
+
+/** RN-BILL-09: caso o mercado tenha ficado preso em "aguardando cobrança" (ex.: aba fechada no meio do fluxo). */
+export async function acceptMarketBilling(
+  marketId: string,
+): Promise<{ ok: true; market: Market } | { ok: false; message: string }> {
+  const { data: row, error } = await supabase.rpc("accept_market_billing", {
+    p_market_id: marketId,
+  });
+  if (error || !row)
+    return { ok: false, message: error?.message ?? "Não foi possível confirmar a cobrança." };
+  return { ok: true, market: mapRowToMarket(row) };
+}
+
+export async function declineMarketBilling(
+  marketId: string,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const { error } = await supabase.rpc("decline_market_billing", { p_market_id: marketId });
+  if (error) return { ok: false, message: error.message };
+  return { ok: true };
 }
 
 export async function updateMarket(

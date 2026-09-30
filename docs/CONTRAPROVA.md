@@ -6,7 +6,7 @@ Cada linha aponta a etapa do plano (`docs/PLANO_FECHAMENTO.md`) em que o item é
 **Status:** `Pendente` → `Em andamento` → `Feito` (com evidência). `Parcial` = começou, falta completar. `Adiado` = decisão formal de tirar da versão.  
 **Decisão?** `Sim` = o item tem [A DEFINIR]; a decisão precisa estar registrada em `docs/DECISOES.md` antes de codificar.
 
-Total de itens rastreados: **427** · Feito: **282** · Parcial: **37**
+Total de itens rastreados: **427** · Feito: **295** · Parcial: **39**
 
 | Bloco                          | Itens |
 | ------------------------------ | ----- |
@@ -599,21 +599,21 @@ Correção 1 exige que o Conferente tenha experiência própria, não uma aba do
 
 | ID            | Item                                                                                                                                             | Decisão? | Status   | Evidência |
 | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | -------- | -------- | --------- |
-| RF-ORG-08     | Simular e confirmar impacto financeiro ao adicionar mercado.                                                                                     |          | Pendente |           |
-| RN-ORG-02     | A inclusão de mercado deve passar pelo resumo de cobrança antes da ativação.                                                                     |          | Pendente |           |
-| RF-BILL-04    | Simular valor proporcional ao adicionar mercado no meio do ciclo.                                                                                |          | Pendente |           |
-| RF-BILL-08    | Registrar histórico de alterações comerciais.                                                                                                    |          | Pendente |           |
-| RF-BILL-09    | Permitir concessão administrativa de dias adicionais.                                                                                            |          | Pendente |           |
-| RF-BILL-10    | Exibir ao cliente plano, mercados cobrados, próxima cobrança e valor estimado.                                                                   |          | Pendente |           |
-| RN-BILL-01    | O preço considera valor base + quantidade de mercados cobrados x valor por mercado, salvo regras do plano [A DEFINIR].                           | Sim      | Pendente |           |
-| RN-BILL-02    | Mercado adicional pode gerar cobrança proporcional entre ativação e próxima renovação; fórmula e arredondamento [A DEFINIR].                     | Sim      | Pendente |           |
-| RN-BILL-09    | Adicionar mercado exige aceite do novo valor antes da ativação.                                                                                  |          | Pendente |           |
-| RN-BILL-10    | Remoção de mercado e efeito na cobrança imediata ou próxima renovação estão [A DEFINIR].                                                         | Sim      | Pendente |           |
-| RN-CRT-BIL-01 | Fórmula sugerida [A DEFINIR]: mensalidade = valor base + mercados cobrados x valor por mercado - descontos válidos.                              | Sim      | Pendente |           |
-| RN-CRT-BIL-02 | Proporcional sugerido [A DEFINIR]: valor adicional mensal x dias restantes do ciclo / dias do ciclo, conforme regra do gateway e arredondamento. | Sim      | Pendente |           |
-| PA-30         | Como calcular proporcional? — Sugestão do documento: dias restantes/dias do ciclo, respeitando regra do gateway.                                 | Sim      | Pendente |           |
-| F-5.3         | Fluxo: adicionar mercado (com cobrança)                                                                                                          |          | Pendente |           |
-| AUD-08        | Evento de auditoria: Plano, teste, preço, cupom, assinatura, pagamento, suspensão, cancelamento (seção 8.1)                                      |          | Pendente |           |
+| RF-ORG-08     | Simular e confirmar impacto financeiro ao adicionar mercado.                                                                                     |          | Feito    | PR B9.2 · etapa "Cobrança" do assistente de novo mercado usa `calculate_market_addition_cost` de verdade (não mais valores fictícios), testado |
+| RN-ORG-02     | A inclusão de mercado deve passar pelo resumo de cobrança antes da ativação.                                                                     |          | Feito    | PR B9.2 · mercado nasce `awaiting_billing`; só vira `active` depois do aceite explícito (`accept_market_billing`), testado |
+| RF-BILL-04    | Simular valor proporcional ao adicionar mercado no meio do ciclo.                                                                                |          | Feito    | PR B9.2 · `calculate_market_addition_cost` (mesma evidência de RF-ORG-08) |
+| RF-BILL-08    | Registrar histórico de alterações comerciais.                                                                                                    |          | Feito    | PR B9.2 · `markets`/`companies` já têm gatilho de auditoria genérico (B0.2); a transição `awaiting_billing → active` grava o valor aceito no antes/depois automaticamente, sem código novo de auditoria |
+| RF-BILL-09    | Permitir concessão administrativa de dias adicionais.                                                                                            |          | Feito    | PR B9.1 · `admin_adjust_trial` (item já construído no bloco anterior; linha desta tabela só não estava marcada) |
+| RF-BILL-10    | Exibir ao cliente plano, mercados cobrados, próxima cobrança e valor estimado.                                                                   |          | Feito    | PR B9.2 · tela "Assinatura" do dono passa a usar `calculate_subscription_amount` de verdade (antes era 100% fictícia), testado |
+| RN-BILL-01    | O preço considera valor base + quantidade de mercados cobrados x valor por mercado, salvo regras do plano [A DEFINIR].                           | Sim      | Feito    | PR B9.2 · decisão em DECISOES.md: fórmula do próprio documento, mercados cobrados = só os com status `active`, testado |
+| RN-BILL-02    | Mercado adicional pode gerar cobrança proporcional entre ativação e próxima renovação; fórmula e arredondamento [A DEFINIR].                     | Sim      | Feito    | PR B9.2 · decisão em DECISOES.md: dias restantes do ciclo / dias do ciclo, arredondado a 2 casas (`round(..., 2)`), testado |
+| RN-BILL-09    | Adicionar mercado exige aceite do novo valor antes da ativação.                                                                                  |          | Feito    | PR B9.2 · mesma evidência de RN-ORG-02 |
+| RN-BILL-10    | Remoção de mercado e efeito na cobrança imediata ou próxima renovação estão [A DEFINIR].                                                         | Sim      | Parcial  | PR B9.2 · decisão em DECISOES.md: como ainda não existe fatura fechada (gateway só no B9.3), `calculate_subscription_amount` já para de contar o mercado assim que ele deixa de ser `active` — efeito imediato no cálculo ao vivo; "só na próxima renovação" fica para quando existir fatura de verdade |
+| RN-CRT-BIL-01 | Fórmula sugerida [A DEFINIR]: mensalidade = valor base + mercados cobrados x valor por mercado - descontos válidos.                              | Sim      | Feito    | PR B9.2 · mesma evidência de RN-BILL-01, com desconto de cupom válido já subtraído |
+| RN-CRT-BIL-02 | Proporcional sugerido [A DEFINIR]: valor adicional mensal x dias restantes do ciclo / dias do ciclo, conforme regra do gateway e arredondamento. | Sim      | Feito    | PR B9.2 · mesma evidência de RN-BILL-02 — "regra do gateway" ainda não existe (B9.3), aplicada só a fórmula de dias |
+| PA-30         | Como calcular proporcional? — Sugestão do documento: dias restantes/dias do ciclo, respeitando regra do gateway.                                 | Sim      | Feito    | PR B9.2 · decisão em DECISOES.md: aceita a sugestão do documento ao pé da letra |
+| F-5.3         | Fluxo: adicionar mercado (com cobrança)                                                                                                          |          | Feito    | PR B9.2 · etapa "Cobrança" do assistente de novo mercado (`add-market-flow.tsx`) com números reais, testado |
+| AUD-08        | Evento de auditoria: Plano, teste, preço, cupom, assinatura, pagamento, suspensão, cancelamento (seção 8.1)                                      |          | Parcial  | PR B9.1/B9.2 · plano, teste, preço, cupom e assinatura (mercado) já auditados via gatilhos genéricos; pagamento/suspensão/cancelamento dependem do B9.3/B9.5, ainda não iniciados |
 
 ## B9.3 — Gateway de pagamento
 
