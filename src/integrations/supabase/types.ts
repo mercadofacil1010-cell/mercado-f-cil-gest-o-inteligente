@@ -884,6 +884,62 @@ export type Database = {
           },
         ]
       }
+      invoices: {
+        Row: {
+          amount: number
+          checkout_url: string | null
+          company_id: string
+          created_at: string
+          cycle_end: string
+          cycle_start: string
+          gateway: string
+          gateway_payment_id: string | null
+          gateway_preference_id: string | null
+          id: string
+          paid_at: string | null
+          payment_method: string | null
+          status: Database["public"]["Enums"]["invoice_status"]
+        }
+        Insert: {
+          amount: number
+          checkout_url?: string | null
+          company_id: string
+          created_at?: string
+          cycle_end: string
+          cycle_start: string
+          gateway?: string
+          gateway_payment_id?: string | null
+          gateway_preference_id?: string | null
+          id?: string
+          paid_at?: string | null
+          payment_method?: string | null
+          status?: Database["public"]["Enums"]["invoice_status"]
+        }
+        Update: {
+          amount?: number
+          checkout_url?: string | null
+          company_id?: string
+          created_at?: string
+          cycle_end?: string
+          cycle_start?: string
+          gateway?: string
+          gateway_payment_id?: string | null
+          gateway_preference_id?: string | null
+          id?: string
+          paid_at?: string | null
+          payment_method?: string | null
+          status?: Database["public"]["Enums"]["invoice_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       login_attempts: {
         Row: {
           attempted_at: string
@@ -2562,6 +2618,10 @@ export type Database = {
         }
         Returns: string
       }
+      create_invoice: {
+        Args: { p_company_id: string }
+        Returns: Database["public"]["Tables"]["invoices"]["Row"]
+      }
       create_pdv_product_mapping: {
         Args: {
           p_external_product_code: string
@@ -2715,6 +2775,10 @@ export type Database = {
           status: Database["public"]["Enums"]["incident_status"]
           warehouse_address_code: string | null
         }[]
+      }
+      list_invoices: {
+        Args: { p_company_id: string }
+        Returns: Database["public"]["Tables"]["invoices"]["Row"][]
       }
       list_market_feed: {
         Args: { p_limit?: number; p_market_id: string }
@@ -2912,6 +2976,15 @@ export type Database = {
         Args: { p_id: string; p_photo_path?: string; p_reason: string }
         Returns: Database["public"]["Tables"]["receiving_counted_items"]["Row"]
       }
+      register_invoice_payment: {
+        Args: {
+          p_gateway_payment_id: string
+          p_invoice_id: string
+          p_payment_method?: string
+          p_status: Database["public"]["Enums"]["invoice_status"]
+        }
+        Returns: Database["public"]["Tables"]["invoices"]["Row"]
+      }
       remove_receiving_count: { Args: { p_id: string }; Returns: undefined }
       remove_receiving_item: { Args: { p_id: string }; Returns: undefined }
       reopen_incident: {
@@ -2954,6 +3027,10 @@ export type Database = {
       set_inventory_count_item: {
         Args: { p_inventory_count_id: string; p_product_id: string; p_quantity: number }
         Returns: Database["public"]["Tables"]["inventory_count_items"]["Row"]
+      }
+      set_invoice_checkout: {
+        Args: { p_checkout_url: string; p_invoice_id: string; p_preference_id: string }
+        Returns: Database["public"]["Tables"]["invoices"]["Row"]
       }
       start_incident_investigation: {
         Args: { p_id: string }
@@ -3025,6 +3102,7 @@ export type Database = {
       incident_status: "aberta" | "reconhecida" | "em_investigacao" | "encerrada"
       inventory_count_status: "aberta" | "finalizada"
       invite_status: "pending" | "accepted" | "revoked"
+      invoice_status: "pendente" | "pago" | "falhou" | "cancelado"
       lot_status: "available" | "blocked"
       market_product_status: "active" | "blocked" | "inactive"
       market_status:
@@ -3211,6 +3289,7 @@ export const Constants = {
       incident_status: ["aberta", "reconhecida", "em_investigacao", "encerrada"],
       inventory_count_status: ["aberta", "finalizada"],
       invite_status: ["pending", "accepted", "revoked"],
+      invoice_status: ["pendente", "pago", "falhou", "cancelado"],
       lot_status: ["available", "blocked"],
       market_product_status: ["active", "blocked", "inactive"],
       market_status: [

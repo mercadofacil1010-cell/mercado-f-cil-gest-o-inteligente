@@ -15,10 +15,10 @@ alter default privileges in schema public grant all on functions to anon, authen
 
 -- Utilitários de teste
 create schema test;
-grant usage on schema test to anon, authenticated;
+grant usage on schema test to anon, authenticated, service_role;
 create table test.results (id serial, name text, ok boolean, detail text);
-grant all on test.results to anon, authenticated;
-grant usage on sequence test.results_id_seq to anon, authenticated;
+grant all on test.results to anon, authenticated, service_role;
+grant usage on sequence test.results_id_seq to anon, authenticated, service_role;
 
 create function test.as_user(u text) returns void language plpgsql as $$
 begin
@@ -42,4 +42,4 @@ end $$;
 -- Executa o SQL e retorna quantas linhas foram afetadas.
 create function test.rows(sql text) returns int language plpgsql as $$
 declare n int; begin execute sql; get diagnostics n = row_count; return n; end $$;
-grant execute on all functions in schema test to anon, authenticated;
+grant execute on all functions in schema test to anon, authenticated, service_role;

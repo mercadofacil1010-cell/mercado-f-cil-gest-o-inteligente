@@ -59,7 +59,15 @@ import {
   type SupplierFormData,
 } from "@/lib/catalog-support-api";
 import { ReportsModule } from "@/components/reports-module";
-import { calculateSubscriptionAmount, type SubscriptionSummary } from "@/lib/subscription-api";
+import {
+  calculateSubscriptionAmount,
+  createCheckout,
+  createInvoice,
+  listInvoices,
+  type Invoice,
+  type InvoiceStatus,
+  type SubscriptionSummary,
+} from "@/lib/subscription-api";
 import {
   createPdvToken,
   listPdvTokens,
@@ -844,7 +852,21 @@ function InviteDialog({
   );
 }
 
-/** B9.2 (RF-BILL-10): plano, mercados cobrados, próxima cobrança e valor estimado — dados reais via calculate_subscription_amount. */
+const invoiceStatusLabel: Record<InvoiceStatus, string> = {
+  pendente: "Pendente",
+  pago: "Pago",
+  falhou: "Recusado",
+  cancelado: "Cancelado",
+};
+
+const invoiceStatusTone: Record<InvoiceStatus, Tone> = {
+  pendente: "warning",
+  pago: "positive",
+  falhou: "critical",
+  cancelado: "neutral",
+};
+
+/** B9.2 (RF-BILL-10): plano, mercados cobrados, próxima cobrança e valor estimado — dados reais via calculate_subscription_amount. B9.3 (RF-BILL-05): gerar fatura e pagar via checkout do Mercado Pago. */
 function Subscription({
   companyId,
   markets,
@@ -856,6 +878,14 @@ function Subscription({
 }) {
   const [summary, setSummary] = useState<SubscriptionSummary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [generating, setGenerating] = useState(false);
+  const [payingId, setPayingId] = useState<string | null>(null);
+
+  const reloadInvoices = async () => {
+    if (!companyId) return;
+    setInvoices(await listInvoices(companyId));
+  };
 
   useEffect(() => {
     if (!companyId) return;
@@ -864,10 +894,37 @@ function Subscription({
       setSummary(result);
       setLoading(false);
     });
+    void reloadInvoices();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- recarrega só quando a empresa muda
   }, [companyId]);
+
+  const handleGenerateInvoice = async () => {
+    if (!companyId) return;
+    setGenerating(true);
+    const result = await createInvoice(companyId);
+    setGenerating(false);
+    if (!result.ok) {
+      notify(result.message);
+      return;
+    }
+    notify('Fatura gerada. Clique em "Pagar agora" para abrir o checkout.');
+    void reloadInvoices();
+  };
+
+  const handlePay = async (invoiceId: string) => {
+    setPayingId(invoiceId);
+    const result = await createCheckout(invoiceId);
+    setPayingId(null);
+    if (!result.ok) {
+      notify(result.message);
+      return;
+    }
+    window.open(result.checkoutUrl, "_blank", "noopener,noreferrer");
+  };
 
   const billedMarkets = markets.filter((market) => market.lifecycleStatus === "active");
   const priced = summary?.priced ?? false;
+  const pendingInvoice = invoices.find((invoice) => invoice.status === "pendente");
 
   if (loading) {
     return (
@@ -916,10 +973,10 @@ function Subscription({
         />
         <Metric
           title="Forma de pagamento"
-          value="A definir"
-          note="Pagamento ainda não integrado"
+          value={priced ? "Pix, boleto ou cartão" : "A definir"}
+          note={priced ? "Checkout do Mercado Pago" : "Sem preço definido"}
           icon={CircleDollarSign}
-          tone="warning"
+          tone={priced ? "positive" : "warning"}
         />
       </div>
       {summary?.couponCode && summary.discount ? (
@@ -954,6 +1011,48 @@ function Subscription({
             : "—",
         ])}
       />
+      {priced && (
+        <>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <Button
+              onClick={() => void handleGenerateInvoice()}
+              disabled={generating || !!pendingInvoice}
+            >
+              {generating ? "Gerando..." : "Gerar fatura deste ciclo"}
+            </Button>
+            {pendingInvoice && (
+              <Button
+                variant="outline"
+                onClick={() => void handlePay(pendingInvoice.id)}
+                disabled={payingId === pendingInvoice.id}
+              >
+                {payingId === pendingInvoice.id
+                  ? "Abrindo..."
+                  : `Pagar agora (${money(pendingInvoice.amount)})`}
+              </Button>
+            )}
+          </div>
+          {invoices.length > 0 && (
+            <Table
+              headers={["Ciclo", "Valor", "Situação", "Forma de pagamento", "Pago em"]}
+              rows={invoices.map((invoice) => [
+                <span key="c">
+                  {new Date(invoice.cycleStart).toLocaleDateString("pt-BR")} –{" "}
+                  {new Date(invoice.cycleEnd).toLocaleDateString("pt-BR")}
+                </span>,
+                money(invoice.amount),
+                <AlertPill
+                  key="s"
+                  label={invoiceStatusLabel[invoice.status]}
+                  tone={invoiceStatusTone[invoice.status]}
+                />,
+                invoice.paymentMethod ?? "—",
+                invoice.paidAt ? new Date(invoice.paidAt).toLocaleDateString("pt-BR") : "—",
+              ])}
+            />
+          )}
+        </>
+      )}
       <div className="flex flex-col gap-2 sm:flex-row">
         <Button
           variant="outline"
