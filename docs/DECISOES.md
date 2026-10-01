@@ -407,7 +407,7 @@ Decidido pelo agente (30/09/2026), seguindo as sugestões do próprio documento 
 
 | ID | Pergunta | Sugestão | Decisão |
 |---|---|---|---|
-| PA-27 | Qual gateway de pagamento? | comparar Pix, boleto, cartão recorrente, cobrança proporcional e eventos de inadimplência. | _pendente_ |
+| PA-27 | Qual gateway de pagamento? | comparar Pix, boleto, cartão recorrente, cobrança proporcional e eventos de inadimplência. | **Decisão do usuário (01/10/2026)**: Mercado Pago, por ser o mais usado no Brasil e já trazer Pix/boleto/cartão num único checkout hospedado (Checkout Pro). Credenciais de teste (sandbox) ainda não existem — decisão do agente: construir toda a estrutura (fatura, Edge Functions de criação de cobrança e webhook, atualização automática de status de inadimplência) pronta para funcionar assim que o `MERCADOPAGO_ACCESS_TOKEN` for configurado; sem a credencial, a função de criar cobrança retorna um erro claro em vez de travar |
 
 ### B9.4 — Painel administrativo real
 
