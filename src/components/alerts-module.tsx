@@ -128,6 +128,13 @@ export function AlertsModule({
                             · {alert.gondolaPositionCode}
                           </span>
                         )}
+                        {alert.lotBatchNumber && (
+                          <span className="text-sm text-muted-foreground">
+                            · lote {alert.lotBatchNumber}
+                            {alert.lotExpiresAt &&
+                              ` · vence em ${new Date(alert.lotExpiresAt).toLocaleDateString("pt-BR")}`}
+                          </span>
+                        )}
                       </div>
                       <p className="mt-1 text-sm text-muted-foreground">{alert.description}</p>
                     </div>

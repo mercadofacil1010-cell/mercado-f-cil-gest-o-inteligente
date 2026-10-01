@@ -26,6 +26,7 @@ export type Database = {
           description: string
           gondola_position_id: string | null
           id: string
+          lot_id: string | null
           market_id: string
           product_id: string | null
           reference_incident_id: string | null
@@ -42,6 +43,7 @@ export type Database = {
           description: string
           gondola_position_id?: string | null
           id?: string
+          lot_id?: string | null
           market_id: string
           product_id?: string | null
           reference_incident_id?: string | null
@@ -58,6 +60,7 @@ export type Database = {
           description?: string
           gondola_position_id?: string | null
           id?: string
+          lot_id?: string | null
           market_id?: string
           product_id?: string | null
           reference_incident_id?: string | null
@@ -99,6 +102,20 @@ export type Database = {
             columns: ["reference_incident_id"]
             isOneToOne: false
             referencedRelation: "incidents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alerts_lot_id_fkey"
+            columns: ["lot_id"]
+            isOneToOne: false
+            referencedRelation: "expiring_lots"
+            referencedColumns: ["lot_id"]
+          },
+          {
+            foreignKeyName: "alerts_lot_id_fkey"
+            columns: ["lot_id"]
+            isOneToOne: false
+            referencedRelation: "lots"
             referencedColumns: ["id"]
           },
         ]
@@ -2306,9 +2323,11 @@ export type Database = {
         Row: {
           balance: number | null
           batch_number: string | null
+          company_id: string | null
           days_until_expiry: number | null
           expires_at: string | null
           lot_id: string | null
+          market_id: string | null
           product_id: string | null
           status: Database["public"]["Enums"]["lot_status"] | null
           warehouse_address_id: string | null
@@ -2660,6 +2679,9 @@ export type Database = {
           discard_note: string | null
           gondola_position_code: string | null
           id: string
+          lot_batch_number: string | null
+          lot_expires_at: string | null
+          lot_id: string | null
           product_id: string | null
           product_name: string | null
           reference_incident_id: string | null
@@ -2994,7 +3016,7 @@ export type Database = {
     Enums: {
       account_status: "pending" | "active" | "blocked" | "cancelled"
       alert_status: "aberto" | "resolvido" | "descartado"
-      alert_type: "incidente_aberto" | "saldo_negativo" | "gondola_no_minimo"
+      alert_type: "incidente_aberto" | "saldo_negativo" | "gondola_no_minimo" | "lote_vencendo"
       audit_action: "insert" | "update" | "delete" | "event"
       coupon_discount_type: "percentual" | "valor_fixo"
       incident_resolution: "corrigida" | "descartada"
@@ -3180,7 +3202,7 @@ export const Constants = {
     Enums: {
       account_status: ["pending", "active", "blocked", "cancelled"],
       alert_status: ["aberto", "resolvido", "descartado"],
-      alert_type: ["incidente_aberto", "saldo_negativo", "gondola_no_minimo"],
+      alert_type: ["incidente_aberto", "saldo_negativo", "gondola_no_minimo", "lote_vencendo"],
       audit_action: ["insert", "update", "delete", "event"],
       coupon_discount_type: ["percentual", "valor_fixo"],
       incident_resolution: ["corrigida", "descartada"],

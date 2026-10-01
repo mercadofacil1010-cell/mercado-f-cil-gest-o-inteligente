@@ -1,9 +1,10 @@
 // Motor de alertas (B6.2, RF-EST-06/RF-INC-06/RN-DSH-05). Feed único que
 // reúne sinais que já existem espalhados pelo sistema — inconsistência
 // aberta (B6.1), saldo negativo, gôndola no mínimo sem tarefa ativa (o
-// caso que o B5.1 não cobre sozinho) — em vez de reinventar a detecção.
-// Canal só sistema por enquanto (PA-37); dono/gerente sem preferências
-// ainda (PA-38); nunca desaparece sozinho ao abrir o painel (RN-DSH-05).
+// caso que o B5.1 não cobre sozinho), lote vencendo em até 90 dias (CHK-11,
+// B10.5) — em vez de reinventar a detecção. Canal só sistema por enquanto
+// (PA-37); dono/gerente sem preferências ainda (PA-38); nunca desaparece
+// sozinho ao abrir o painel (RN-DSH-05).
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -14,6 +15,7 @@ export const alertTypeLabel: Record<AlertType, string> = {
   incidente_aberto: "Inconsistência aberta",
   saldo_negativo: "Saldo negativo",
   gondola_no_minimo: "Gôndola no mínimo",
+  lote_vencendo: "Lote vencendo",
 };
 
 export type Alert = {
@@ -24,6 +26,9 @@ export type Alert = {
   warehouseAddressCode: string;
   gondolaPositionCode: string;
   referenceIncidentId: string | null;
+  lotId: string | null;
+  lotBatchNumber: string;
+  lotExpiresAt: string | null;
   description: string;
   status: AlertStatus;
   discardNote: string;
@@ -50,6 +55,9 @@ export async function listAlerts(marketId: string): Promise<Alert[]> {
     warehouseAddressCode: row.warehouse_address_code ?? "",
     gondolaPositionCode: row.gondola_position_code ?? "",
     referenceIncidentId: row.reference_incident_id,
+    lotId: row.lot_id,
+    lotBatchNumber: row.lot_batch_number ?? "",
+    lotExpiresAt: row.lot_expires_at,
     description: row.description,
     status: row.status,
     discardNote: row.discard_note ?? "",
