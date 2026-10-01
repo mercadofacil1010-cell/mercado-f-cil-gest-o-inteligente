@@ -467,5 +467,6 @@ Decidido pelo agente (30/09/2026) — o usuário pediu para seguir com o que fos
 
 | ID | Pergunta | Sugestão | Decisão |
 |---|---|---|---|
-| PA-46 | Qual mercado será o piloto? | uma unidade real com PDV conhecido, equipe disponível e volume controlável. | _pendente_ |
+| PA-46 | Qual mercado será o piloto? | uma unidade real com PDV conhecido, equipe disponível e volume controlável. | **Decisão do usuário (01/10/2026)**: o piloto será a **Mercearia do João, em Fortaleza/CE**. PDV: sem fornecedor específico escolhido ainda — o conector genérico por token (B7.4) já está pronto e pode receber eventos de qualquer PDV assim que um for integrado; até lá, a operação segue manual. Volume: **pequeno**, conforme sugestão do próprio documento para um primeiro piloto (decisão do agente, já que o usuário pediu para seguir a recomendação) |
 
+Checklist final (seção 11 do documento), avaliado em 01/10/2026 cruzando com os status já registrados neste documento e em CONTRAPROVA.md — ver seção B10.5 de CONTRAPROVA.md para a evidência item a item.
