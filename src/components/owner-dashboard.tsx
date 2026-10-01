@@ -21,6 +21,7 @@ import {
   Menu,
   Package,
   PackageMinus,
+  Plug,
   Plus,
   RefreshCw,
   Search,
@@ -141,6 +142,7 @@ const navigation: Array<{ label: string; icon: IconType }> = [
   { label: "Relatórios", icon: FileChartColumn },
   { label: "Equipe e acessos", icon: UserRoundCog },
   { label: "Assinatura", icon: CircleDollarSign },
+  { label: "Integração PDV", icon: Plug },
   { label: "Configurações", icon: Settings },
   { label: "Ajuda e suporte", icon: HelpCircle },
 ];
@@ -150,7 +152,7 @@ const navigation: Array<{ label: string; icon: IconType }> = [
 // B4/B5), então por enquanto só veem visão geral, mercados e ajuda.
 const allSectionLabels = navigation.map((item) => item.label);
 const managerSections = allSectionLabels.filter(
-  (label) => label !== "Assinatura" && label !== "Configurações",
+  (label) => label !== "Assinatura" && label !== "Configurações" && label !== "Integração PDV",
 );
 const basicSections = ["Visão geral", "Meus mercados", "Ajuda e suporte"];
 const sectionsByRole: Record<MemberRole, string[]> = {

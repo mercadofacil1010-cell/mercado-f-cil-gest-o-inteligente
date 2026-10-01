@@ -3,11 +3,13 @@ import {
   CheckCircle2,
   ChevronDown,
   CircleDollarSign,
+  Copy,
   Download,
   FileChartColumn,
   LifeBuoy,
   Mail,
   MessageCircle,
+  Plug,
   Plus,
   RefreshCw,
   Star,
@@ -58,6 +60,12 @@ import {
 } from "@/lib/catalog-support-api";
 import { ReportsModule } from "@/components/reports-module";
 import { calculateSubscriptionAmount, type SubscriptionSummary } from "@/lib/subscription-api";
+import {
+  createPdvToken,
+  listPdvTokens,
+  revokePdvToken,
+  type PdvToken,
+} from "@/lib/pdv-connector-api";
 
 /** Seções gerais do menu do dono que não pertencem a um módulo específico. */
 export function OwnerSection({
@@ -82,6 +90,7 @@ export function OwnerSection({
     return <Team companyId={companyId} callerRole={callerRole} markets={markets} notify={notify} />;
   if (section === "Assinatura")
     return <Subscription companyId={companyId} markets={markets} notify={notify} />;
+  if (section === "Integração PDV") return <PdvConnector markets={markets} notify={notify} />;
   if (section === "Configurações") return <Settings notify={notify} />;
   return <Help notify={notify} />;
 }
@@ -960,6 +969,267 @@ function Subscription({
         </Button>
       </div>
     </Page>
+  );
+}
+
+/** B7.4: token de integração por mercado para o conector de PDV real. */
+function PdvConnector({
+  markets,
+  notify,
+}: {
+  markets: Market[];
+  notify: (message: string) => void;
+}) {
+  const [marketId, setMarketId] = useState(markets[0]?.id ?? "");
+  const [tokens, setTokens] = useState<PdvToken[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
+  const [justCreated, setJustCreated] = useState<{ label: string; token: string } | null>(null);
+
+  const reload = async (id: string) => {
+    if (!id) {
+      setTokens([]);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    setTokens(await listPdvTokens(id));
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    void reload(marketId);
+  }, [marketId]);
+
+  const handleRevoke = async (token: PdvToken) => {
+    if (
+      !window.confirm(
+        `Revogar o token "${token.label}"? O PDV que usa esse token para de funcionar na hora.`,
+      )
+    )
+      return;
+    const result = await revokePdvToken(token.id);
+    if (!result.ok) {
+      notify(result.message);
+      return;
+    }
+    notify(`Token "${token.label}" revogado.`);
+    void reload(marketId);
+  };
+
+  return (
+    <Page
+      title="Integração PDV"
+      subtitle="Token de integração para o sistema de PDV da unidade se conectar ao Mercado Fácil"
+      action={
+        markets.length > 0 ? (
+          <Button onClick={() => setCreating(true)}>
+            <Plug className="h-4 w-4" /> Novo token
+          </Button>
+        ) : undefined
+      }
+    >
+      {markets.length === 0 ? (
+        <p className="text-sm text-muted-foreground">
+          Cadastre um mercado antes de criar um token de integração.
+        </p>
+      ) : (
+        <>
+          <label className="block max-w-xs text-sm">
+            <span className="mb-1.5 block font-semibold">Mercado</span>
+            <Select value={marketId} onValueChange={setMarketId}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {markets.map((market) => (
+                  <SelectItem key={market.id} value={market.id}>
+                    {market.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </label>
+
+          {loading ? (
+            <p className="text-sm text-muted-foreground">Carregando...</p>
+          ) : tokens.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Nenhum token criado para esta unidade ainda. Crie um para conectar o sistema de PDV
+              real.
+            </p>
+          ) : (
+            <Table
+              headers={["Nome", "Criado em", "Último uso", "Situação", ""]}
+              rows={tokens.map((token) => [
+                <strong key="l">{token.label}</strong>,
+                new Date(token.createdAt).toLocaleDateString("pt-BR"),
+                token.lastUsedAt
+                  ? new Date(token.lastUsedAt).toLocaleString("pt-BR")
+                  : "Nunca usado",
+                <AlertPill
+                  key="s"
+                  label={token.revokedAt ? "Revogado" : "Ativo"}
+                  tone={token.revokedAt ? "neutral" : "positive"}
+                />,
+                token.revokedAt ? null : (
+                  <Button
+                    key="a"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => void handleRevoke(token)}
+                  >
+                    Revogar
+                  </Button>
+                ),
+              ])}
+            />
+          )}
+        </>
+      )}
+
+      {creating && (
+        <CreatePdvTokenDialog
+          onClose={() => setCreating(false)}
+          onCreate={async (label) => {
+            const result = await createPdvToken(marketId, label);
+            if (!result.ok) return result.message;
+            setCreating(false);
+            setJustCreated({ label: result.token.label, token: result.token.token });
+            void reload(marketId);
+            return "";
+          }}
+        />
+      )}
+
+      {justCreated && (
+        <RevealPdvTokenDialog
+          label={justCreated.label}
+          token={justCreated.token}
+          onClose={() => setJustCreated(null)}
+          notify={notify}
+        />
+      )}
+    </Page>
+  );
+}
+
+function CreatePdvTokenDialog({
+  onClose,
+  onCreate,
+}: {
+  onClose: () => void;
+  onCreate: (label: string) => Promise<string>;
+}) {
+  const [label, setLabel] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleSubmit = async () => {
+    if (!label.trim()) {
+      setError("Informe um nome para identificar o token (ex.: nome do PDV ou da loja).");
+      return;
+    }
+    setSubmitting(true);
+    const message = await onCreate(label);
+    setSubmitting(false);
+    if (message) setError(message);
+  };
+
+  return (
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
+      <DialogContent className="max-w-[440px]">
+        <DialogHeader>
+          <DialogTitle>Novo token de integração</DialogTitle>
+          <DialogDescription>
+            O valor do token só aparece uma vez, logo depois de criado — copie e cole no sistema de
+            PDV na hora.
+          </DialogDescription>
+        </DialogHeader>
+        <label className="block text-sm">
+          <span className="mb-1.5 block font-semibold">Nome do token</span>
+          <input
+            value={label}
+            onChange={(event) => {
+              setLabel(event.target.value);
+              setError("");
+            }}
+            placeholder="Ex.: PDV do caixa principal"
+            maxLength={60}
+            className="h-11 w-full rounded-md border border-input bg-card px-3.5 text-base outline-none focus:ring-2 focus:ring-ring"
+          />
+        </label>
+        {error && (
+          <p
+            role="alert"
+            className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive"
+          >
+            {error}
+          </p>
+        )}
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose}>
+            <X className="h-4 w-4" /> Cancelar
+          </Button>
+          <Button disabled={submitting} onClick={() => void handleSubmit()}>
+            {submitting ? <RefreshCw className="h-4 w-4 animate-spin" /> : "Criar token"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function RevealPdvTokenDialog({
+  label,
+  token,
+  onClose,
+  notify,
+}: {
+  label: string;
+  token: string;
+  onClose: () => void;
+  notify: (message: string) => void;
+}) {
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(token);
+      notify("Token copiado.");
+    } catch {
+      notify("Não foi possível copiar automaticamente — selecione o texto e copie manualmente.");
+    }
+  };
+  return (
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
+      <DialogContent className="max-w-[520px]">
+        <DialogHeader>
+          <DialogTitle>Token "{label}" criado</DialogTitle>
+          <DialogDescription>
+            Copie agora e cole na configuração do sistema de PDV. Por segurança, este valor não pode
+            ser mostrado de novo — se perder, crie outro token e revogue este.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="flex items-center gap-2 rounded-md border border-border bg-muted px-3.5 py-3">
+          <code className="flex-1 break-all text-sm">{token}</code>
+          <Button variant="outline" size="sm" onClick={() => void copy()}>
+            <Copy className="h-4 w-4" /> Copiar
+          </Button>
+        </div>
+        <DialogFooter>
+          <Button onClick={onClose}>Entendi, já copiei</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

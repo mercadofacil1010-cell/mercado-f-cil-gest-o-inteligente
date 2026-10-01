@@ -6,7 +6,7 @@ Cada linha aponta a etapa do plano (`docs/PLANO_FECHAMENTO.md`) em que o item é
 **Status:** `Pendente` → `Em andamento` → `Feito` (com evidência). `Parcial` = começou, falta completar. `Adiado` = decisão formal de tirar da versão.  
 **Decisão?** `Sim` = o item tem [A DEFINIR]; a decisão precisa estar registrada em `docs/DECISOES.md` antes de codificar.
 
-Total de itens rastreados: **427** · Feito: **316** · Parcial: **48**
+Total de itens rastreados: **427** · Feito: **318** · Parcial: **49**
 
 | Bloco                          | Itens |
 | ------------------------------ | ----- |
@@ -498,9 +498,9 @@ Correção 1 exige que o Conferente tenha experiência própria, não uma aba do
 
 | ID        | Item                                                                                              | Decisão? | Status   | Evidência |
 | --------- | ------------------------------------------------------------------------------------------------- | -------- | -------- | --------- |
-| RN-INT-05 | Sistemas/fornecedores iniciais de PDV, pagamento, e-mail e WhatsApp estão [A DEFINIR].            | Sim      | Pendente |           |
-| PA-24     | Qual PDV será integrado primeiro? — Sugestão do documento: escolher o PDV real do mercado piloto. | Sim      | Pendente |           |
-| INT-PDV   | Integração PDV                                                                                    |          | Pendente |           |
+| RN-INT-05 | Sistemas/fornecedores iniciais de PDV, pagamento, e-mail e WhatsApp estão [A DEFINIR].            | Sim      | Parcial  | PR B7.4 · decisão em DECISOES.md: PDV resolvido com conector genérico (token de API), sem depender de escolher um fornecedor específico; pagamento/e-mail/WhatsApp continuam sem fornecedor definido |
+| PA-24     | Qual PDV será integrado primeiro? — Sugestão do documento: escolher o PDV real do mercado piloto. | Sim      | Parcial  | PR B7.4 · decisão em DECISOES.md: em vez de integrar um PDV específico, construído um conector genérico por token de API que qualquer sistema de PDV pode chamar — a escolha do fornecedor deixa de ser um bloqueio técnico |
+| INT-PDV   | Integração PDV                                                                                    |          | Feito    | PR B7.4 · `create_pdv_token`/`list_pdv_tokens`/`revoke_pdv_token` (tela "Integração PDV" do dono) + `pdv_receive_sale_event` (ponto de entrada autenticado por token, mesmo pipeline de recepção/mapeamento/baixa de estoque do B7.1-B7.3), testado |
 
 ## B8.1 — Indicadores reais da rede e do mercado
 
@@ -671,7 +671,7 @@ Correção 1 exige que o Conferente tenha experiência própria, não uma aba do
 
 | ID         | Item                                                                            | Decisão? | Status   | Evidência |
 | ---------- | ------------------------------------------------------------------------------- | -------- | -------- | --------- |
-| RNF-SEC-02 | Proteger sessões, senhas, tokens e integrações; política detalhada [A DEFINIR]. | Sim      | Parcial  | PR B10.2 · decisão em DECISOES.md: senha (mín. 8 com letra+número) e bloqueio de login (5 tentativas, 15 min) já cobertos desde o B1.1, testado; sessão é gerida pelo Supabase Auth (padrão da plataforma); "tokens e integrações" ainda não se aplica — o conector real do PDV (B7.4) depende do piloto (B10.5), que ainda não existe |
+| RNF-SEC-02 | Proteger sessões, senhas, tokens e integrações; política detalhada [A DEFINIR]. | Sim      | Feito    | PR B10.2/B7.4 · senha (mín. 8 com letra+número) e bloqueio de login (5 tentativas, 15 min) desde o B1.1, testado; sessão gerida pelo Supabase Auth; tokens do conector de PDV (B7.4) guardados só como hash (sha-256), nunca em texto puro, revogáveis sem exclusão física, testado |
 | RNF-SEC-03 | Exigir confirmação adicional para ações críticas [A DEFINIR].                   | Sim      | Feito    | PR B10.2 · decisão em DECISOES.md: as duas ações mais irreversíveis do sistema (`admin_cancel_subscription`, `admin_process_erasure_request`) passam a exigir digitar o CNPJ exato da empresa, verificado no servidor, além do motivo já obrigatório — testado |
 
 ## B10.3 — Backup, monitoramento e disponibilidade

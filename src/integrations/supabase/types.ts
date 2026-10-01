@@ -1180,6 +1180,47 @@ export type Database = {
           },
         ]
       }
+      pdv_integration_tokens: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          label: string
+          last_used_at: string | null
+          market_id: string
+          revoked_at: string | null
+          token_hash: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          label: string
+          last_used_at?: string | null
+          market_id: string
+          revoked_at?: string | null
+          token_hash: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          label?: string
+          last_used_at?: string | null
+          market_id?: string
+          revoked_at?: string | null
+          token_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pdv_integration_tokens_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "markets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pdv_product_mappings: {
         Row: {
           created_at: string
@@ -2511,6 +2552,7 @@ export type Database = {
         }
         Returns: Database["public"]["Tables"]["pdv_product_mappings"]["Row"]
       }
+      create_pdv_token: { Args: { p_label: string; p_market_id: string }; Returns: Json }
       create_plan: {
         Args: {
           p_base_price?: number
@@ -2673,6 +2715,16 @@ export type Database = {
           product_name: string
         }[]
       }
+      list_pdv_tokens: {
+        Args: { p_market_id: string }
+        Returns: {
+          created_at: string
+          id: string
+          label: string
+          last_used_at: string | null
+          revoked_at: string | null
+        }[]
+      }
       list_product_sales_ranking: {
         Args: {
           p_days?: number
@@ -2740,6 +2792,18 @@ export type Database = {
       log_security_event: {
         Args: { p_details?: Json; p_entity: string }
         Returns: number
+      }
+      pdv_receive_sale_event: {
+        Args: {
+          p_event_type: Database["public"]["Enums"]["sale_event_type"]
+          p_external_event_id: string
+          p_items: Json
+          p_occurred_at: string
+          p_reference_external_event_id?: string
+          p_register_code: string
+          p_token: string
+        }
+        Returns: Json
       }
       process_data_retention: { Args: Record<PropertyKey, never>; Returns: Json }
       process_subscription_delinquency: { Args: Record<PropertyKey, never>; Returns: Json }
@@ -2858,6 +2922,7 @@ export type Database = {
         Args: { p_id: string; p_note: string }
         Returns: Database["public"]["Tables"]["offline_sync_conflicts"]["Row"]
       }
+      revoke_pdv_token: { Args: { p_token_id: string }; Returns: undefined }
       reverse_stock_movement: {
         Args: { p_movement_id: string; p_reason: string }
         Returns: Database["public"]["Tables"]["stock_movements"]["Row"]

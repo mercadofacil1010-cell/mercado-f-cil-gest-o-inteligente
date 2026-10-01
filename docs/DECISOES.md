@@ -330,9 +330,13 @@ Decidido pelo agente sob a mesma autorização do B7 ("faça o que você achar m
 
 ### B7.4 — Conector do PDV do mercado piloto
 
+Retomado em 01/10/2026, a pedido do usuário ("já faz a API de conexão PDV"), antes mesmo do mercado piloto escolhido ter sistema de PDV definido (o usuário respondeu "sem preferência" quando perguntado qual PDV o piloto usa).
+
 | ID | Pergunta | Sugestão | Decisão |
 |---|---|---|---|
-| PA-24 | Qual PDV será integrado primeiro? | escolher o PDV real do mercado piloto. | _pendente_ |
+| PA-24 | Qual PDV será integrado primeiro? | escolher o PDV real do mercado piloto. | **Decisão do agente, a partir da resposta do usuário ("sem preferência")**: em vez de integrar um fornecedor específico de PDV (que exigiria saber o formato exato da API/webhook dele), foi construído um conector genérico — um token de API por mercado (`create_pdv_token`/`pdv_receive_sale_event`) que qualquer sistema de PDV real pode chamar para enviar vendas, no formato já usado desde o B7.1 (`receive_sale_event`). Quando o piloto escolher um PDV específico, a integração é só configurar aquele sistema para chamar este mesmo endpoint com o token gerado — não exige nova decisão de arquitetura |
+| — | Como autenticar uma chamada de fora do navegador (o PDV não tem sessão de usuário)? | — | **Decisão do agente**: token de API por mercado, gerado pelo dono, guardado só como hash (sha-256) — o valor em texto puro só existe uma vez, no momento da criação, exatamente como qualquer provedor de API-key faz. Pode ser revogado a qualquer momento sem excluir o histórico de uso (RN-ACL-06) |
+| — | A lógica de recepção/idempotência/mapeamento/baixa de estoque do B7.1-B7.3 precisa ser duplicada para o caminho do token? | — | **Decisão do agente**: não — extraído o núcleo de `receive_sale_event` para uma função privada compartilhada (`private.ingest_sale_event`), reaproveitada tanto pelo lançamento manual autenticado (dono/gerente) quanto pelo conector de PDV via token. Nenhum teste existente do B7/B8 precisou mudar — mesma assinatura, mesmo comportamento, confirmado pela suíte completa (727 testes) |
 
 
 ## Bloco B8
