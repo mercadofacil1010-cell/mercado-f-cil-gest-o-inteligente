@@ -96,7 +96,25 @@ export type ExpiringLot = {
   daysUntilExpiry: number;
 };
 
-/** Lotes com validade e saldo, para os alertas de 90/60/30 dias e a fila de descarte dos vencidos (RF-LOT-02, PA-19). */
+function mapRowToExpiringLot(
+  row: Database["public"]["Views"]["expiring_lots"]["Row"] & {
+    products?: { name: string } | null;
+  },
+): ExpiringLot {
+  return {
+    lotId: row.lot_id as string,
+    warehouseAddressId: row.warehouse_address_id as string,
+    productId: row.product_id as string,
+    productName: row.products?.name ?? "",
+    batchNumber: row.batch_number ?? "",
+    expiresAt: row.expires_at as string,
+    status: row.status as LotStatus,
+    balance: row.balance ?? 0,
+    daysUntilExpiry: row.days_until_expiry ?? 0,
+  };
+}
+
+/** Lotes com validade e saldo de um endereço, para a tela de recebimento/saída (RF-LOT-02). Os alertas de 90/60/30 dias (CHK-11) ficam no feed de Alertas (B6.2), que lê a mesma view por mercado direto no banco. */
 export async function listExpiringLots(warehouseAddressId: string): Promise<ExpiringLot[]> {
   const { data, error } = await supabase
     .from("expiring_lots")
@@ -104,17 +122,5 @@ export async function listExpiringLots(warehouseAddressId: string): Promise<Expi
     .eq("warehouse_address_id", warehouseAddressId)
     .order("expires_at", { ascending: true });
   if (error || !data) return [];
-  return data
-    .filter((row) => row.lot_id && row.expires_at)
-    .map((row) => ({
-      lotId: row.lot_id as string,
-      warehouseAddressId: row.warehouse_address_id as string,
-      productId: row.product_id as string,
-      productName: (row as { products?: { name: string } | null }).products?.name ?? "",
-      batchNumber: row.batch_number ?? "",
-      expiresAt: row.expires_at as string,
-      status: row.status as LotStatus,
-      balance: row.balance ?? 0,
-      daysUntilExpiry: row.days_until_expiry ?? 0,
-    }));
+  return data.filter((row) => row.lot_id && row.expires_at).map(mapRowToExpiringLot);
 }

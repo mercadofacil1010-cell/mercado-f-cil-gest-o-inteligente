@@ -189,3 +189,46 @@ select test.throws(format($$select public.list_alerts('%s'::uuid)$$, :'loja_id')
 select test.as_user('f8000000-0000-0000-0000-00000000000b');
 select test.ok((select count(*) from public.list_alerts(:'loja_id'::uuid)) >= 3,
   'Gerente com acesso ao mercado lista os alertas criados até aqui');
+
+------------------------------------------------------------
+-- Caso 6 (CHK-11, B10.5): lote vencendo em até 90 dias — resolve sozinho
+-- quando o saldo do lote chega a zero (saída ou perda).
+------------------------------------------------------------
+select test.as_user('f8000000-0000-0000-0000-00000000000a');
+insert into public.products (company_id, name, base_unit, tracks_batch_expiry) values (:'rede_id'::uuid, 'Iogurte B62', 'unidade', true);
+reset role;
+select id as iogurte_id from public.products where name = 'Iogurte B62' \gset
+
+select test.as_user('f8000000-0000-0000-0000-00000000000a');
+select public.get_or_create_lot(:'endereco_id'::uuid, :'iogurte_id'::uuid, 'LOTE-PERTO', (current_date + 10));
+select public.get_or_create_lot(:'endereco_id'::uuid, :'iogurte_id'::uuid, 'LOTE-LONGE', (current_date + 400));
+reset role;
+select id as lote_perto_id from public.lots where batch_number = 'LOTE-PERTO' \gset
+select id as lote_longe_id from public.lots where batch_number = 'LOTE-LONGE' \gset
+
+select test.as_user('f8000000-0000-0000-0000-00000000000a');
+select public.register_stock_movement(:'endereco_id'::uuid, :'iogurte_id'::uuid, 'entrada', 40, 'Recebimento', null, :'lote_perto_id'::uuid);
+select public.register_stock_movement(:'endereco_id'::uuid, :'iogurte_id'::uuid, 'entrada', 40, 'Recebimento', null, :'lote_longe_id'::uuid);
+reset role;
+
+select test.as_user('f8000000-0000-0000-0000-00000000000b');
+select public.sync_alerts(:'loja_id'::uuid);
+reset role;
+select test.ok((select count(*) from public.alerts where lot_id = :'lote_perto_id'::uuid and alert_type = 'lote_vencendo' and status = 'aberto') = 1,
+  'Lote vencendo em 10 dias gera alerta');
+select test.ok((select count(*) from public.alerts where lot_id = :'lote_longe_id'::uuid and alert_type = 'lote_vencendo') = 0,
+  'Lote vencendo só em 400 dias não gera alerta');
+
+select test.as_user('f8000000-0000-0000-0000-00000000000b');
+select public.sync_alerts(:'loja_id'::uuid);
+reset role;
+select test.ok((select count(*) from public.alerts where lot_id = :'lote_perto_id'::uuid and alert_type = 'lote_vencendo' and status = 'aberto') = 1,
+  'Sincronizar de novo não duplica o alerta do lote');
+
+select test.as_user('f8000000-0000-0000-0000-00000000000a');
+select public.register_stock_movement(:'endereco_id'::uuid, :'iogurte_id'::uuid, 'saida', -40, 'Venda', null, :'lote_perto_id'::uuid);
+select test.as_user('f8000000-0000-0000-0000-00000000000b');
+select public.sync_alerts(:'loja_id'::uuid);
+reset role;
+select test.ok((select status from public.alerts where lot_id = :'lote_perto_id'::uuid and alert_type = 'lote_vencendo') = 'resolvido',
+  'Alerta do lote se resolve sozinho quando o saldo chega a zero');
